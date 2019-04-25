@@ -1,7 +1,7 @@
 export maximal_coherent_clades
 # export is_coherent_clade_nodelist
 # export is_coherent_clade
-export name_mcc_clades
+export name_mcc_clades!
 
 """
     maximal_coherent_clades(treelist)
@@ -136,51 +136,45 @@ end
 
 """
 For each clade `m` in `MCCs`: 
-- Rename the root `r` of `m` to `MCC_$(i)` or (`MCC_$i_$(r.label)` if `r` is a leaf) where `i` is an integer starting at `label_init`.
-- Rename each non-leaf internal node of `m` to `shared_$i_$j` where `j` is an index specific to `m`.  
+- Rename the root `r` of `m` to `MCC_\$(i)` or (`\$(r.label)` if `r` is a leaf) where `i` is an integer starting at `label_init`.
+- Rename each non-leaf internal node of `m` to `shared_\$i_\$j` where `j` is an index specific to `m`.  
 
 ## Procedure
 In an MCC internal node is defined in all trees by the clade it forms. 
 """
-function name_mcc_clades(treelist, MCCs ; label_init = 1)
-    
-end
+function name_mcc_clades!(treelist, MCCs ; label_init = 1)
+    for (i,m) in enumerate(MCCs)
+        cl = i + label_init - 1
+        # Renaming root
+        for t in treelist
+            r = lca([t.lnodes[x] for x in m])
+            old_label = r.label
+            new_label = r.isleaf ? "$(old_label)" : "MCC_$(cl)"
+            r.label = new_label
+            delete!(t.lnodes, old_label)
+            t.lnodes[new_label] = r
+        end
 
-"""
-TO BE REDONE probably
-"""
-function name_mcc_clades!(treelist, MCC ; label_init = 1)
-    roots = [t.root for t in treelist]
-    tt = label_init
-    for (i, m) in enumerate(MCC)
-        ft = false
-        for t in roots
-            # Find said clade
-            tclade = [node_findlabel(l,t) for l in m] 
-            # Introduce new internal node
-            if isclade(tclade)
-                r = lca(tclade)
-                if r.isleaf
-                    r.label = "MCC_$(r.label)"
-                else
-                    r.label = "MCC_$tt"
-                    ft = true
+        # Renaming internal nodes - Using the first element of treelist to iterate through internal nodes
+        r1 = lca([treelist[1].lnodes[x] for x in m])
+        j = 1
+        for n in node_clade(r1) 
+            if n!=r1 && !n.isleaf
+                # Relevant internal node. Rename it in all trees
+                llist = [x.label for x in node_leavesclade(n)]
+                for t in treelist
+                    n = lca([t.lnodes[x] for x in llist])
+                    old_label = n.label
+                    new_label = "shared_$(cl)_$j"
+                    n.label = new_label
+                    delete!(t.lnodes, old_label)
+                    t.lnodes[new_label] = n
                 end
-            else
-                @warn "Should be either a clade or an unresolved clade."
+                j += 1
             end
         end
-        if ft
-            tt += 1
-        end
-    end
-    for t in treelist
-        tt = node2tree(t.root)
-        t.lleaves = tt.lleaves
-        t.lnodes = tt.lnodes
     end
 end
-
 
 
 
