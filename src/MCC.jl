@@ -2,6 +2,7 @@ export maximal_coherent_clades
 # export is_coherent_clade_nodelist
 # export is_coherent_clade
 export name_mcc_clades!
+export adjust_branchlength!
 
 """
     maximal_coherent_clades(treelist)
@@ -161,14 +162,15 @@ function name_mcc_clades!(treelist, MCCs ; label_init = 1)
         for n in node_clade(r1) 
             if n!=r1 && !n.isleaf
                 # Relevant internal node. Rename it in all trees
+                # `llist` acts as a common identifier for `n` in all trees
                 llist = [x.label for x in node_leavesclade(n)]
                 for t in treelist
-                    n = lca([t.lnodes[x] for x in llist])
-                    old_label = n.label
+                    ln = lca([t.lnodes[x] for x in llist])
+                    old_label = ln.label
                     new_label = "shared_$(cl)_$j"
-                    n.label = new_label
+                    ln.label = new_label
                     delete!(t.lnodes, old_label)
-                    t.lnodes[new_label] = n
+                    t.lnodes[new_label] = ln
                 end
                 j += 1
             end
@@ -176,7 +178,31 @@ function name_mcc_clades!(treelist, MCCs ; label_init = 1)
     end
 end
 
+"""
+"""
+function adjust_branchlength!(treelist, tref, MCCs)
+    # Checking that MCCs make sense before adjusting
+    for m in MCCs
+        nlist = [tref.lleaves[x] for x in m]
+        if !is_coherent_clade_nodelist(nlist, (treelist..., tref))
+            error("Input MCCs are not consistent clade in all trees.")
+        end
+    end
 
+    # Adjusting branch lenght
+    for m in MCCs
+        r = lca([tref.lnodes[x] for x in m])
+        for n in node_clade(r)
+            if n != r
+                llist = [x.label for x in node_leavesclade(n)]
+                for t in treelist
+                    ln = lca([t.lnodes[x] for x in llist])
+                    ln.data.tau = n.data.tau 
+                end
+            end
+        end
+    end
+end
 
 
 
