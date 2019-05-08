@@ -1,5 +1,6 @@
 export resolve_trees
 export resolve_null_branches!
+export is_unresolved_clade
 
 """
     resolve_trees(t, tref ; label_init=1, rtau = 1. /L/4)

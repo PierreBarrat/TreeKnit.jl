@@ -36,9 +36,8 @@ function maximal_coherent_clades(treelist)
     # Explore one leave at a time
     mc_clades = []
     global i = 1;
-    println("Hello")
     for (cl,v) in checklist
-        print("$i/$(length(t.lleaves)) -- $cl  --     Found $(sum(values(checklist)))/$(length(t.lleaves))            \r")
+        # print("$i/$(length(t.lleaves)) -- $cl  --     Found $(sum(values(checklist)))/$(length(t.lleaves))            \r")
         if !v # If leave not already visited
             # We're going to go up in all trees at the same time
             global croot = map(x->x.lleaves[cl], treelist_) 
