@@ -7,16 +7,27 @@ export is_unresolved_clade
 
 Resolves clades in `t` using clades in `tref`. Newly introduced nodes are assigned a time `rtau`. 
 """
-function resolve_trees(t, tref ; label_init=1, rtau = 1. /length(t.leaves[1].data.sequence)/4)
+function resolve_trees(t, tref ; rtau = 1. /length(t.leaves[1].data.sequence)/4, verbose=true)
     if !share_labels(t, tref)
         error("`resolve_trees` can only be used on trees that share leaf nodes.")
     end       
     tt = deepcopy(t)
+    # Getting starting index for node labeling
+    label_init = 1
+    for n in values(t.nodes)
+        if match(r"RESOLVED", n.label)!=nothing && parse(Int64, n.label[10:end]) >= label_init
+            label_init = parse(Int64, n.label[10:end]) + 1
+        end
+    end
+
+
     L = length(tt.leaves[1].data.sequence)
     label_i = label_init
     rcount = 0
     for (i,cl) in enumerate(keys(tref.lleaves))
-        print("$i/$(length(tref.lleaves)) -- $cl                                \r")
+        if verbose
+            print("$i/$(length(tref.lleaves)) -- $cl                                \r")
+        end
         # Leaves are always okay
         croot = tref.lleaves[cl]
         clabel = [cl]   
@@ -24,7 +35,7 @@ function resolve_trees(t, tref ; label_init=1, rtau = 1. /length(t.leaves[1].dat
         while flag && !croot.isroot 
             # Go up one clade in `tref`
             nroot = croot.anc
-            nlabel = [x.label for x in node_leavesclade(nroot)]    
+            nlabel = node_leavesclade_labels(nroot) #[x.label for x in node_leavesclade(nroot)]    
             # Three cases
             # i. `nlabel` is a clade in `t` as well.  
             # --> Go up 
@@ -34,7 +45,7 @@ function resolve_trees(t, tref ; label_init=1, rtau = 1. /length(t.leaves[1].dat
             # --> `flag=false`, go to next leaf. 
             nodes = [tt.lleaves[x] for x in nlabel]
             if isclade(nodes)
-            elseif is_unresolved_clade(nodes)
+            elseif is_unresolved_clade(nodes) # I'm basically calling the same function twice here. Could easily be optimized. 
                 make_unresolved_clade!(nodes, label = "RESOLVED_$(label_i)", tau = rtau)
                 rcount += 1
                 label_i += 1
@@ -47,7 +58,9 @@ function resolve_trees(t, tref ; label_init=1, rtau = 1. /length(t.leaves[1].dat
             end
         end
     end
-    println("\n$rcount clades have been resolved.\n")
+    if verbose
+        println("\n$rcount clades have been resolved.\n")
+    end
     return node2tree(tt.root)
 end
 
@@ -95,7 +108,7 @@ function resolve_trees(treelist ; label_init=1)
                 for ct in treelist_
                         nodes = [ct.lleaves[x] for x in nlabel]
                         if isclade(nodes)
-                        elseif is_unresolved_clade(nodes)
+                        elseif is_unresolved_clade(nodes, checkclade=false)
                             # println("Resolving nodes $([nlabel])")
                             make_unresolved_clade!(nodes, label = "RESOLVED_$(label_i)", tau = 1. /L/4)
                             rcount += 1
@@ -151,9 +164,9 @@ end
 OLD(iii) A copy of the tree is created. Each element in `A` is pruned of the copy and grafted onto an empty root `r`. If the leaves of this new tree correspond exactly to `node_list`, then `node_list` is an unresolved clade, and `r` is the root of this clade. 
 
 """
-function is_unresolved_clade(node_list)
+function is_unresolved_clade(node_list ; checkclade=true)
 	# (i)
-	if isclade(node_list)
+	if checkclade && isclade(node_list)
 		return true
 	end
     

@@ -142,7 +142,18 @@ For each clade `m` in `MCCs`:
 ## Procedure
 In an MCC internal node is defined in all trees by the clade it forms. 
 """
-function name_mcc_clades!(treelist, MCCs ; label_init = 1)
+function name_mcc_clades!(treelist, MCCs)
+    # Finding initial label
+    label_init = 1
+    for t in treelist
+        for n in values(t.nodes)
+            if match(r"MCC", n.label)!=nothing && parse(Int64, n.label[5:end]) >= label_init
+                label_init = parse(Int64, n.label[5:end]) + 1
+            end
+        end
+    end
+    # println("label_init = $label_init")
+
     for (i,m) in enumerate(MCCs)
         cl = i + label_init - 1
         # Renaming root
@@ -181,9 +192,10 @@ end
 """
 function adjust_branchlength!(treelist, tref, MCCs)
     # Checking that MCCs make sense before adjusting
-    for m in MCCs
+    for (i,m) in enumerate(MCCs)
         nlist = [tref.lleaves[x] for x in m]
         if !is_coherent_clade_nodelist(nlist, (treelist..., tref))
+            println(i,m)
             error("Input MCCs are not consistent clade in all trees.")
         end
     end
