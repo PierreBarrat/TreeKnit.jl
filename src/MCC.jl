@@ -273,7 +273,7 @@ function supraMCCs(treelist, MCC)
 end
 
 """
-    compute_mcc_scores_pairs(segtrees, jointtree, MCC ; nmax = 20)
+    compute_mcc_scores_pairs(segtrees, jointtree, MCC ; nmax = 15)
 
 Function to score pairs of MCCs based on their removal. Outputs two scores for each pair `(m1,m2)` in MCC: 
 1. average size of remaining MCCs after removing `m1` and `m2`
@@ -292,7 +292,7 @@ function compute_mcc_scores_pairs(segtrees, jointtree, MCC ; nmax = 15)
                 for (k,t) in tpruned
                     tpruned[k] = remove_internal_singletons(t)
                 end
-                _resolve_trees_loc!(tpruned, jpruned)
+                Iterating._resolve_trees!(tpruned, jpruned)
                 MCCn = maximal_coherent_clades(collect(values(tpruned)))
                 li = lca(first(values(segtrees)).lnodes[x] for x in m1).label
                 lj = lca(first(values(segtrees)).lnodes[x] for x in m2).label
@@ -310,17 +310,17 @@ Function to score MCCs based on the effect of their removal. Outputs two scores 
 1. average size of remaining MCCs after removing `m`
 2. number of remaining MCCs after removing `m`
 """
-function compute_mcc_scores(segtrees, jointtree, MCC ; nmax = 30)
+function compute_mcc_scores(segtrees, jointtree, MCC ; nmax = 100)
     MCC_scores = Dict{String, Array{Float64,1}}()
     if length(MCC)<nmax
         for (i,m) in enumerate(MCC)
-            # print("$(i)/$(length(MCC))             \r")
+            print("$(i)/$(length(MCC))             \r")
             jpruned = prunenodes(jointtree,m)
             tpruned = Dict(k=>prunenodes(segtrees[k],m) for k in keys(segtrees))
             for (k,t) in tpruned
                 tpruned[k] = remove_internal_singletons(t)
             end
-            _resolve_trees_loc!(tpruned, jpruned)
+            Iterating._resolve_trees!(tpruned, jpruned)
             MCCn = maximal_coherent_clades(collect(values(tpruned)))
             MCC_scores[lca(first(values(segtrees)).lnodes[x] for x in m).label] = [mean([length(x) for x in MCCn]), length(MCCn)]
         end
@@ -330,34 +330,6 @@ function compute_mcc_scores(segtrees, jointtree, MCC ; nmax = 30)
     return MCC_scores
 end
 
-"""
-Delete null branches above internal nodes. Then resolve all trees in `segtrees` using `jointtree`. 
-### Notes
-Initial null (*i.e.* too short to bear a mutation) branches above internal nodes are not trusted. --> They are set to 0, corresponding internal nodes are removed.  
-Trees are resolved using the joint tree, introducing new very small branches. These are trusted because of topological evidence.  
-Finally, leaves that have too short of a branch are also stretched to a minimum threshold.  
-"""
-function _resolve_trees_loc!(segtrees, jointtree; verbose=false)
-    if verbose
-        println("\n### RESOLVING ###\n")
-    end
-    delete_null_branches!(jointtree.root, threshold = 1/length(jointtree.leaves[1].data.sequence)/10)
-    jointtree = node2tree(remove_internal_singletons(jointtree).root)
-    check_tree(jointtree)
-    # Joint tree as a reference
-    for (k,t) in segtrees
-        if verbose
-            println("$k...")
-        end
-        L = length(t.leaves[1].data.sequence)
-        delete_null_branches!(t.root, threshold = 1/L/10)
-        t = node2tree(t.root)
-        t = resolve_trees(t, jointtree, rtau = 1/L/10, verbose=verbose)
-        t = remove_internal_singletons(t)
-        resolve_null_branches!(t, tau = 1/L/10)
-        segtrees[k] = t
-    end
-end
 
 
 
