@@ -8,7 +8,6 @@ export tree_match
 export _nodes_match!
 export likelihoodratio
 export sym_likelihoodratio
-export supraMCCs
 
 """
 	pmut(node1::TreeNode, node2::TreeNode, mu, tau)
@@ -170,43 +169,6 @@ function is_coherent_clade(cladekeys, cmap::Dict{Tuple{String, String}, Bool})
     return true
 end
 
-
-"""
-Find supra MCCs: clades that are common to all trees in `treelist` and contain as few MCCs as possible (i.e. they should be direct ancestors to MCCs ideally)
-"""
-function supraMCCs(treelist, MCC)
-    supra = Array{SupraMCC,1}(undef, 0)
-    for m in MCC
-        sup = SupraMCC()
-        flag = true
-        r = lca([first(treelist).lnodes[x] for x in m]).anc # Ancestor of `m` in one of the trees
-        global llist = node_leavesclade_labels(r)
-        while flag
-            flag = false
-            for t in treelist
-                mapr = [t.lnodes[x] for x in llist]
-                if !isclade(mapr)
-                    flag = true
-                    r = lca(mapr)
-                    global llist = node_leavesclade_labels(r)
-                end
-            end
-        end
-        sup.labels = Set(llist)
-        if !in(llist, [x.labels for x in supra])
-            push!(supra, sup)
-        end
-    end
-    # Composition in terms of MCCs
-    for s in supra
-        for m in MCC
-            if prod([in(x,s.labels) for x in m])
-                push!(s.MCC, lca(first(treelist).lnodes[x] for x in m).label)
-            end
-        end
-    end
-    return supra
-end
 
 
 

@@ -3,6 +3,9 @@ export maximal_coherent_clades
 # export is_coherent_clade
 export name_mcc_clades!
 export adjust_branchlength!
+export supraMCCs
+export compute_mcc_scores
+export compute_mcc_scores_pairs
 
 """
     maximal_coherent_clades(treelist)
@@ -35,13 +38,12 @@ function maximal_coherent_clades(treelist)
     checklist = Dict(k=>false for k in keys(t.lleaves))
     # Explore one leave at a time
     mc_clades = []
-    global i = 1;
     for (cl,v) in checklist
         # print("$i/$(length(t.lleaves)) -- $cl  --     Found $(sum(values(checklist)))/$(length(t.lleaves))            \r")
         if !v # If leave not already visited
             # We're going to go up in all trees at the same time
-            global croot = map(x->x.lleaves[cl], treelist_) 
-            global clabel = [cl]
+            croot = map(x->x.lleaves[cl], treelist_) 
+            clabel = [cl]
             # Initial individual, always a common clade in all trees since it's a leaf. 
             flag = true
             while flag && prod([!x.isroot for x in croot])
@@ -53,7 +55,12 @@ function maximal_coherent_clades(treelist)
                 if prod([nlabel[i]==nlabel[1] for i in 1:length(nlabel)])
                     nclade = [[node_findlabel(l, r) for l in nlabel[1]] for r in nroot]
                     if prod([is_coherent_clade_nodelist(c, treelist_) for c in nclade])
-                        croot = [lca(c) for c in nclade]
+                        tcroot = [lca(c) for c in nclade]
+                        if tcroot == croot # Singleton in the tree, or clade with a single node --> the algorithm is getting stuck on this node
+                            croot = [x.anc for x in croot]
+                        else
+                            croot = tcroot
+                        end
                         clabel = nlabel[1]
                     else
                         flag = false
@@ -68,7 +75,6 @@ function maximal_coherent_clades(treelist)
             map(x->checklist[x]=true, [c for c in clabel])
             push!(mc_clades, [c for c in clabel])
         end
-        global i+=1
     end
     return mc_clades
 end
@@ -216,6 +222,142 @@ function adjust_branchlength!(treelist, tref, MCCs)
 end
 
 
+
+
+
+"""
+    supraMCCs(treelist, MCC)
+
+Find supra MCCs: clades that are common to all trees in `treelist` and contain as few MCCs as possible (i.e. they should be direct ancestors to MCCs ideally)
+Method: For each `m` in MCC 
+1. Start with the root of `m` in `first(treelist)`: `r` 
+2. The clade `C` defined by `m.anc` is our first candidate to a supraMCC
+3. For each tree in `treelist`, check if `C` is a clade. If not, `a = mrca(C)` and `C<--clade(a)`. 
+4. Iterate 3. until `C` is a clade for all trees in `treelist`. `C` is the supraMCC corresponding to `m`
+"""
+function supraMCCs(treelist, MCC)
+    supra = Array{SupraMCC,1}(undef, 0)
+    for m in MCC
+        sup = SupraMCC()
+        flag = true
+        r = lca([first(treelist).lnodes[x] for x in m]).anc # Ancestor of `m` in one of the trees
+        # if isnothing(r)
+        #     r = first(treelist).root
+        # end
+        llist = node_leavesclade_labels(r)
+        while flag
+            flag = false
+            for t in treelist
+                mapr = [t.lnodes[x] for x in llist]
+                if !isclade(mapr)
+                    flag = true
+                    r = lca(mapr)
+                    llist = node_leavesclade_labels(r)
+                end
+            end
+        end
+        sup.labels = Set(llist)
+        if !in(llist, [x.labels for x in supra])
+            push!(supra, sup)
+        end
+    end
+    # Composition in terms of MCCs
+    for s in supra
+        for m in MCC
+            if prod([in(x,s.labels) for x in m])
+                push!(s.MCC, lca(first(treelist).lnodes[x] for x in m).label)
+            end
+        end
+    end
+    return supra
+end
+
+"""
+    compute_mcc_scores_pairs(segtrees, jointtree, MCC ; nmax = 20)
+
+Function to score pairs of MCCs based on their removal. Outputs two scores for each pair `(m1,m2)` in MCC: 
+1. average size of remaining MCCs after removing `m1` and `m2`
+2. number of remaining MCCs after removing `m1` and `m2`
+"""
+function compute_mcc_scores_pairs(segtrees, jointtree, MCC ; nmax = 15)
+    MCC_scores = Dict{Tuple{String,String}, Array{Float64,1}}()
+    if length(MCC)<nmax
+        for i in 1:length(MCC)
+            # print("$(i)/$(length(MCC))             \r")
+            for j in (i+1):length(MCC)
+                m1 = MCC[i]
+                m2 = MCC[j]
+                jpruned = prunenodes(jointtree,cat(m1,m2,dims=1))
+                tpruned = Dict(k=>prunenodes(segtrees[k],cat(m1,m2,dims=1)) for k in keys(segtrees))
+                for (k,t) in tpruned
+                    tpruned[k] = remove_internal_singletons(t)
+                end
+                _resolve_trees_loc!(tpruned, jpruned)
+                MCCn = maximal_coherent_clades(collect(values(tpruned)))
+                li = lca(first(values(segtrees)).lnodes[x] for x in m1).label
+                lj = lca(first(values(segtrees)).lnodes[x] for x in m2).label
+                MCC_scores[li,lj] = [mean([length(x) for x in MCCn]), length(MCCn)]
+            end
+        end
+    end
+    return MCC_scores
+end
+
+"""
+    compute_mcc_scores(segtrees, jointtree, MCC ; nmax = 50)
+
+Function to score MCCs based on the effect of their removal. Outputs two scores for `m` in MCC: 
+1. average size of remaining MCCs after removing `m`
+2. number of remaining MCCs after removing `m`
+"""
+function compute_mcc_scores(segtrees, jointtree, MCC ; nmax = 30)
+    MCC_scores = Dict{String, Array{Float64,1}}()
+    if length(MCC)<nmax
+        for (i,m) in enumerate(MCC)
+            # print("$(i)/$(length(MCC))             \r")
+            jpruned = prunenodes(jointtree,m)
+            tpruned = Dict(k=>prunenodes(segtrees[k],m) for k in keys(segtrees))
+            for (k,t) in tpruned
+                tpruned[k] = remove_internal_singletons(t)
+            end
+            _resolve_trees_loc!(tpruned, jpruned)
+            MCCn = maximal_coherent_clades(collect(values(tpruned)))
+            MCC_scores[lca(first(values(segtrees)).lnodes[x] for x in m).label] = [mean([length(x) for x in MCCn]), length(MCCn)]
+        end
+    else
+        # @warn()
+    end
+    return MCC_scores
+end
+
+"""
+Delete null branches above internal nodes. Then resolve all trees in `segtrees` using `jointtree`. 
+### Notes
+Initial null (*i.e.* too short to bear a mutation) branches above internal nodes are not trusted. --> They are set to 0, corresponding internal nodes are removed.  
+Trees are resolved using the joint tree, introducing new very small branches. These are trusted because of topological evidence.  
+Finally, leaves that have too short of a branch are also stretched to a minimum threshold.  
+"""
+function _resolve_trees_loc!(segtrees, jointtree; verbose=false)
+    if verbose
+        println("\n### RESOLVING ###\n")
+    end
+    delete_null_branches!(jointtree.root, threshold = 1/length(jointtree.leaves[1].data.sequence)/10)
+    jointtree = node2tree(remove_internal_singletons(jointtree).root)
+    check_tree(jointtree)
+    # Joint tree as a reference
+    for (k,t) in segtrees
+        if verbose
+            println("$k...")
+        end
+        L = length(t.leaves[1].data.sequence)
+        delete_null_branches!(t.root, threshold = 1/L/10)
+        t = node2tree(t.root)
+        t = resolve_trees(t, jointtree, rtau = 1/L/10, verbose=verbose)
+        t = remove_internal_singletons(t)
+        resolve_null_branches!(t, tau = 1/L/10)
+        segtrees[k] = t
+    end
+end
 
 
 
