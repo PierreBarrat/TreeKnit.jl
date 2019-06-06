@@ -1,15 +1,18 @@
 module Iterating
 
-using StatsBase
-using DelimitedFiles
+using StatsBase, DelimitedFiles
 using TreeTools, RecombTools
 
 global segments = ["ha","na","pb1","pb2","pa"]
 global root_strain = "A/Victoria/361/2011"
 
+
+export read_trees, _resolve_trees!, _adjust_branchlength!, write_trees, prunetrees_mut, prunetrees_irem
+
+
 """
 """
-function run_it(it::Int64)
+function run_it(it::Int64 ; mut=true, irem=true)
 	# Setting up directories
 	println("\n\n ### ITERATION $it ###\n")
 	mkpath("It$(it)")
@@ -26,7 +29,7 @@ function run_it(it::Int64)
 	# Running Augur
 	runaugur(it)
 	# Filtering strains
-	prunetrees_sup(it)
+	prunetrees(it, mut=mut, irem=irem)
 end
 
 """
@@ -53,13 +56,19 @@ function runaugur(it::Int64)
 end
 
 """
+"""
+function run_auspice_export(it::Int64)
+	run(`bash pierres_scripts/set_branchlength_auspice.sh`)
+end
+
+"""
 - Resolve trees
 - Find MCCs
 - Compute ancestral states
 - Find suspicious MCCs
 - Filter sequences
 """
-function prunetrees_mut(it::Int64)
+function prunetrees(it::Int64 ; mut=true, irem=true)
 	cd("It$(it)/OutData")
 	## Reading trees
 	segtrees = read_trees(segments)
@@ -83,9 +92,40 @@ function prunetrees_mut(it::Int64)
 	write_trees(Dict("all"=>jointtree))
 
 	## I SHOULD RE-EXPORT FOR AUSPICE HERE
+	cd("../AugurData")
+	run_auspice_export(it)
+	cd("../OutData")
 
+	# Filtering
+	tofilter_strains_mut = []
+	tofilter_mccs_mut =[]
+	tofilter_strains_sup = []
+	tofilter_mccs_sup = []
+	if mut
+		println("\n### Running treetime...###")
+		tofilter_strains_mut, tofilter_mccs_mut, confidence = prunetrees_mut(segtrees, MCC)		
+	end
+	if irem
+		println("\n### Computing supra MCCs... ###")
+		tofilter_strains_sup, tofilter_mccs_sup = prunetrees_irem(segtrees, jointtree, MCC)
+	end
+	tofilter_strains_all = cat(tofilter_strains_mut,tofilter_strains_sup,dims=1)
+	tofilter_mccs_all = cat(tofilter_mccs_mut,collect(tofilter_mccs_sup),dims=1)
+	println("\n### FILTERING ###")
+	println("Based on mutations: Filtering $(length(tofilter_strains_mut)) strains ($(length(tofilter_mccs_mut)) MCCs).")
+	println("Based on supra MCCs: Filtering $(length(tofilter_strains_sup)) strains ($(length(tofilter_mccs_sup)) MCCs).")
+	println("--> In total: Filtering $(length(tofilter_strains_all)) strains ($(length(tofilter_mccs_all)) MCCs).")
+	filter_strains(tofilter_strains_all, tofilter_mccs_all)
+
+	cd("../../")
+
+end
+
+
+"""
+"""
+function prunetrees_mut(segtrees, MCC)
 	## Computing ancestral states
-	println("\n### Running treetime...###")
 	run_treetime(segtrees)
 
 	## Counting mutations
@@ -100,16 +140,19 @@ function prunetrees_mut(it::Int64)
 		splice!(tofilter, i)
 		splice!(confidence, i)
 	end
-	println("\n### FILTERING ###")
-	println("Filtering $(length(tofilter)) strains ($(length(fmcc)) MCCs).")
-	writedlm("StrainsToFilter_mut.txt",cat(tofilter, confidence, dims=2))
-	mkpath("outmsas")
-	for s in segments
-		filter_fasta("../AugurData/results/aligned_h3n2_$(s).fasta", "outmsas/filtered_h3n2_$(s).fasta", tofilter)
-	end
+	return tofilter, fmcc, confidence
+end
 
-	# 
-	cd("../../")
+"""
+"""
+function prunetrees_irem(segtrees, jointtree, MCC)
+	supra, scores_1, scores_2, scores_3 = _compute_mcc_scores_irem(segtrees, jointtree, MCC)
+	smcc = find_suspicious_mccs_irem(supra, scores_1, scores_2, scores_3)
+	toremove = Array{String,1}(undef, 0)
+	for m in smcc
+		append!(toremove, node_leavesclade_labels(segtrees[first(segments)].lnodes[m]))
+	end
+	return toremove, smcc
 end
 
 """
@@ -120,55 +163,73 @@ end
 - If one of the two above procedures completely resolved `s`, store the corresponding removed MCCs in a `toremove` list. 
 - Filter MCCs in `toremove` from the dataset. 
 """
-function prunetrees_sup(it::Int64)
-	cd("It$(it)/OutData")
-	## Reading trees
-	segtrees = read_trees(segments)
-	jointtree = read_trees(("all", ))["all"];
+function _compute_mcc_scores_irem(segtrees, jointtree, MCC)
+	scores_1 = []
+	scores_2 = []
+	scores_3 = []
+	threshold_indiv = 50
+	threshold_pair = 25
+	threshold_triplets = 9
 
-	## Resolving
-	_resolve_trees!(segtrees, jointtree);
-
-
-	## MCCs
-	MCC = maximal_coherent_clades(collect(values(segtrees)))
-	println("\n### MCCs ###\n")
-	println("Found $(length(MCC)) MCCs of average size $(mean([length(x) for x in MCC]))")
-
-	## Adjusting branch length in MCCs
-	_adjust_branchlength!(segtrees, jointtree, MCC)
-
-	## Writing resolved trees for auspice 
-	# This is not very well placed in the overall module ... move it? 
-	write_trees(segtrees)
-	write_trees(Dict("all"=>jointtree))
-
-	## I SHOULD RE-EXPORT FOR AUSPICE HERE
-
-	##
-	supra = RecombTools.supraMCCs(values(segtrees), MCC);
-	mcc_scores_1, mcc_scores_2 = _compute_mcc_scores(segtrees, jointtree, supra)
-	##
-
-	## Finding suspicious MCCs
-	fmcc, tofilter = find_suspicious_mccs_sup(segtrees, mcc_scores_1, mcc_scores_2)
-	iroot = findall(x->x==root_strain, tofilter)
-	for i in iroot
-		splice!(tofilter, i)
+	# Reducing input trees to MCCs
+	segtrees_reduced = Dict{String, Tree}()
+	for (s,t) in segtrees
+		segtrees_reduced[s] = reduce_to_mcc(t, MCC)
 	end
+	jointtree_reduced = reduce_to_mcc(jointtree, MCC)
 
-	# Filtering
-	println("\n### FILTERING ###")
-	println("Filtering $(length(tofilter)) strains ($(length(fmcc)) MCCs).")
-	writedlm("StrainsToFilter_supra.txt",tofilter)
+	#
+	supra = supraMCC(cat(collect(values(segtrees_reduced)), jointtree_reduced, dims=1), [[x] for x in keys(jointtree_reduced.lleaves)])
+	# tmp = [length(x)!=length(jointtree.lleaves) for x in supra]
+	# println("Found $(sum(tmp)) supra-MCCs that are not the root.")
+	for (i,sup) in enumerate(supra)
+		if length(sup) < threshold_indiv
+			# Constructing sub trees
+	    	sub_jointtree = node2tree(prunenode(lca([jointtree_reduced.lnodes[x] for x in sup]))[1])
+	    	subtrees = Dict{String, Tree}()
+	    	for (s,t) in segtrees_reduced
+	    	    subtrees[s] = node2tree(prunenode(lca([t.lnodes[x] for x in sup]))[1])
+	    	end
+
+	    	# Scores of MCCs
+	    	MCCloc = maximal_coherent_clades(collect(values(subtrees))) # Should be the leaves, so I should maybe remove this line
+	    	push!(scores_1, prune_mcc_scores(collect(values(subtrees)), sub_jointtree, MCCloc, nmax = threshold_indiv))
+	    	# The following ensures `scores_2` has the same length as scores_1
+	    	if length(sup) < threshold_pair
+				push!(scores_2, prune_mcc_scores_pairs(collect(values(subtrees)), sub_jointtree, MCCloc, nmax = threshold_pair))
+			else
+				push!(scores_2, Dict{Tuple{String,String},Int64}())
+			end
+			if length(sup) < threshold_triplets
+				push!(scores_3, prune_mcc_scores_triplets(collect(values(subtrees)), sub_jointtree, MCCloc, nmax = threshold_triplets))
+			else
+				push!(scores_3, Dict{Tuple{String,String,String},Int64}())
+			end
+
+		else
+			push!(scores_1, Dict{Tuple{String},Int64}())
+			push!(scores_2, Dict{Tuple{String,String},Int64}())
+			push!(scores_3, Dict{Tuple{String,String,String},Int64}())
+		end
+	end
+	return supra, scores_1, scores_2, scores_3
+end
+
+"""
+"""
+function filter_strains(tofilter_strains, tofilter_mccs ; confidence=[])
+	if !isempty(confidence)
+		writedlm("StrainsToFilter.txt",cat(tofilter_strains, confidence, dims=2))
+	else
+		writedlm("StrainsToFilter.txt", tofilter_strains)
+	end
 	mkpath("outmsas")
 	for s in segments
-		filter_fasta("../AugurData/results/aligned_h3n2_$(s).fasta", "outmsas/filtered_h3n2_$(s).fasta", tofilter)
+		filter_fasta("../AugurData/results/aligned_h3n2_$(s).fasta", "outmsas/filtered_h3n2_$(s).fasta", tofilter_strains)
 	end
-
-	# 
-	cd("../../")
 end
+
+
 
 """
 Read trees from file
@@ -180,6 +241,8 @@ function read_trees(segments)
 end
 
 """
+	_resolve_trees!(segtrees, jointtree; verbose=false)
+
 Delete null branches above internal nodes. Then resolve all trees in `segtrees` using `jointtree`. 
 ### Notes
 Initial null (*i.e.* too short to bear a mutation) branches above internal nodes are not trusted. --> They are set to 0, corresponding internal nodes are removed.  
@@ -188,18 +251,19 @@ Finally, leaves that have too short of a branch are also stretched to a minimum 
 """
 function _resolve_trees!(segtrees, jointtree; verbose=false)
 	verbose && println("\n### RESOLVING ###\n")
-	delete_null_branches!(jointtree.root, threshold = 1/length(jointtree.leaves[1].data.sequence)/10)
-	jointtree = node2tree(remove_internal_singletons(jointtree).root)
+	delete_null_branches!(jointtree.root, threshold = 1/length(jointtree.leaves[1].data.sequence)/3)
+	jointtree = node2tree(jointtree.root)
+	jointtree = remove_internal_singletons(jointtree)
 	check_tree(jointtree)
 	# Joint tree as a reference
 	for (k,t) in segtrees
 		verbose && println("$k...")
 		L = length(t.leaves[1].data.sequence)
-		delete_null_branches!(t.root, threshold = 1/L/10)
+		delete_null_branches!(t.root, threshold = 1/L/3)
 		t = node2tree(t.root)
-		t = resolve_trees(t, jointtree, rtau = 1/L/10, verbose=verbose)
 		t = remove_internal_singletons(t)
-		resolve_null_branches!(t, tau = 1/L/10)
+		t = resolve_trees(t, jointtree, rtau = 1/L/3, verbose=verbose)
+		resolve_null_branches!(t, tau = 1/L/3)
 		segtrees[k] = t
 	end
 end
@@ -312,46 +376,26 @@ function filter_fasta(ifasta, ofasta, filt)
 	end
 end
 
-"""
-For individual MCCs, should return an array `score_ind` of length `length(supra)`. `score_ind[i]` is a dictionary with MCC labels as keys and score as value. 
-"""
-function _compute_mcc_scores(segtrees, jointtree, supra)
-	score_ind = []
-	score_pairs = []
-	for (i,sup) in enumerate(supra)
-	    suptrees = Dict{String, Tree}()
-	    sup_jointtree = node2tree(prunenode(lca([jointtree.lnodes[x] for x in sup.labels])))
-	    for (s,t) in segtrees
-	        suptrees[s] = node2tree(prunenode(lca([t.lnodes[x] for x in sup.labels])))
-	    end
-	    MCCloc = maximal_coherent_clades(collect(values(suptrees)))
-	    s1 = compute_mcc_scores(suptrees, sup_jointtree, MCCloc)
-	    s2 = compute_mcc_scores_pairs(suptrees, sup_jointtree, MCCloc)
-	    push!(score_ind, s1)
-	    push!(score_pairs, s2)
-	end
-	return score_ind, score_pairs
-end
 
 """
-- s1: individual scores for given supra -- s2: pairwise scores for ... Those are dictionaries `s[m] = score`. The relevant score is `score[2]`
-- if `s1[m][2] == 1` for some MCC `m`, `push!(toremove, m)`. break
+- s1: individual scores for given supra -- s2: pairwise scores for ... Those are dictionaries `s[m] = score`. 
+- if `s1[m] == 1` for some MCC `m`, `push!(toremove, m)`. break
 """
-function find_suspicious_mccs_sup(segtrees, mcc_scores_1, mcc_scores_2)
-	toremove = Set()
-	for (i,s1) in enumerate(mcc_scores_1)
+function find_suspicious_mccs_irem(supra, mcc_scores_1, mcc_scores_2, mcc_scores_3)
+	smcc = Set()
+	for (i,sup) in enumerate(supra)
+		s1 = mcc_scores_1[i]
 		s2 = mcc_scores_2[i]
-		if !isempty(s1) && findmin([x[2] for x in values(s1)])[1] == 1 # there a unique an MCC which blocks resolving 
-			map(x->push!(toremove, x), findall(x->x==1, Dict(k=>v[2] for (k,v) in s1)) )
-		elseif !isempty(s2) && findmin([x[2] for x in values(s2)])[1] == 1
-        	map(x->(push!(toremove,x[1]);push!(toremove,x[2])), findall(x->x==1, Dict(k=>v[2] for (k,v) in s2)))
-    	end
-    end
-    tofilter = []
-    for m in toremove
-    	append!(tofilter, [x.label for x in node_leavesclade(segtrees["ha"].lnodes[m])])
-    end
-    return toremove, tofilter
+		s3 = mcc_scores_3[i]
+		if !isempty(s1) && findmin([x for x in values(s1)])[1] == 1
+			map(x->push!(smcc,x),findall(x->x==1, s1))
+		elseif !isempty(s2) && findmin([x for x in values(s2)])[1] == 1
+			map(x->(push!(smcc,x[1]);push!(smcc,x[2])),findall(x->x==1, s2))
+		elseif !isempty(s3) && findmin([x for x in values(s3)])[1] == 1
+			map(x->(push!(smcc,x[1]);push!(smcc,x[2]);push!(smcc,x[3])),findall(x->x==1, s3))
+		end
+	end
+	return smcc
 end
 
 

@@ -3,9 +3,10 @@ export maximal_coherent_clades
 # export is_coherent_clade
 export name_mcc_clades!
 export adjust_branchlength!
-export supraMCCs
-export compute_mcc_scores
-export compute_mcc_scores_pairs
+export supraMCC
+export prune_mcc_scores
+export prune_mcc_scores_pairs, prune_mcc_scores_triplets
+export reduce_to_mcc
 
 """
     maximal_coherent_clades(treelist)
@@ -19,7 +20,7 @@ All the trees of `treelist` should share the same leaf nodes.
 # Note
 In this version, the function does not attempt to
 - Resolve clades. Since we should already be resolving clade using the information of all segments, resolving them here just makes the code more complex
-- Increasing MCCs by adding children of multiforcations one by one. I wish to keep this code as basic as possible: it should just find regions of perfect topologic compatibility in all trees of `treelist`. The rest can use another function, maybe a `combine_mcc` one. 
+- Increasing MCC by adding children of multiforcations one by one. I wish to keep this code as basic as possible: it should just find regions of perfect topologic compatibility in all trees of `treelist`. The rest can use another function, maybe a `combine_mcc` one. 
 """
 function maximal_coherent_clades(treelist)
     # Checking that trees have the same label for leaf nodes
@@ -141,14 +142,14 @@ end
 
 
 """
-For each clade `m` in `MCCs`: 
+For each clade `m` in `MCC`: 
 - Rename the root `r` of `m` to `MCC_\$(i)` or (`\$(r.label)` if `r` is a leaf) where `i` is an integer starting at `label_init`.
 - Rename each non-leaf internal node of `m` to `shared_\$i_\$j` where `j` is an index specific to `m`.  
 
 ## Procedure
 In an MCC internal node is defined in all trees by the clade it forms. 
 """
-function name_mcc_clades!(treelist, MCCs)
+function name_mcc_clades!(treelist, MCC)
     # Finding initial label
     label_init = 1
     for t in treelist
@@ -158,9 +159,9 @@ function name_mcc_clades!(treelist, MCCs)
             end
         end
     end
-    # println("label_init = $label_init")
 
-    for (i,m) in enumerate(MCCs)
+    nd = Dict()
+    for (i,m) in enumerate(MCC)
         cl = i + label_init - 1
         # Renaming root
         for t in treelist
@@ -170,6 +171,7 @@ function name_mcc_clades!(treelist, MCCs)
             r.label = new_label
             delete!(t.lnodes, old_label)
             t.lnodes[new_label] = r
+            nd[new_label] = m
         end
 
         # Renaming internal nodes - Using the first element of treelist to iterate through internal nodes
@@ -192,22 +194,19 @@ function name_mcc_clades!(treelist, MCCs)
             end
         end
     end
+    return nd
 end
 
 """
 """
-function adjust_branchlength!(treelist, tref, MCCs)
-    # Checking that MCCs make sense before adjusting
-    for (i,m) in enumerate(MCCs)
-        nlist = [tref.lleaves[x] for x in m]
-        if !is_coherent_clade_nodelist(nlist, (treelist..., tref))
-            println(i,m)
-            error("Input MCCs are not consistent clade in all trees.")
-        end
+function adjust_branchlength!(treelist, tref, MCC)
+    # Checking that MCC make sense before adjusting
+    if !assert_mcc(treelist, MCC)
+        error("MCC are not common to all trees\n")
     end
 
-    # Adjusting branch lenght
-    for m in MCCs
+    # Adjusting branch length
+    for m in MCC
         r = lca([tref.lnodes[x] for x in m])
         for n in node_clade(r)
             if n != r
@@ -221,30 +220,42 @@ function adjust_branchlength!(treelist, tref, MCCs)
     end
 end
 
+"""
+    assert_mcc(treelist, MCC)
+
+Asserts whether all elements of `MCC` are consistent clades for all trees of `treelist`. Print warning if not. Return `Bool`. 
+"""
+function assert_mcc(treelist, MCC)
+    flag = true
+    for (i,m) in enumerate(MCC)
+        nlist = [first(treelist).lleaves[x] for x in m]
+        if !is_coherent_clade_nodelist(nlist, treelist)
+            @warn "MCC $i not common to all tree: \n $m \n"
+            flag = false
+        end
+    end
+    return flag
+end
 
 
 
 
 """
-    supraMCCs(treelist, MCC)
+    supraMCC(treelist, MCC)
 
-Find supra MCCs: clades that are common to all trees in `treelist` and contain as few MCCs as possible (i.e. they should be direct ancestors to MCCs ideally)
+Find supra MCC: clades that are common to all trees in `treelist` and contain as few MCC as possible (i.e. they should be direct ancestors to MCC ideally)
 Method: For each `m` in MCC 
 1. Start with the root of `m` in `first(treelist)`: `r` 
 2. The clade `C` defined by `m.anc` is our first candidate to a supraMCC
 3. For each tree in `treelist`, check if `C` is a clade. If not, `a = mrca(C)` and `C<--clade(a)`. 
 4. Iterate 3. until `C` is a clade for all trees in `treelist`. `C` is the supraMCC corresponding to `m`
 """
-function supraMCCs(treelist, MCC)
-    supra = Array{SupraMCC,1}(undef, 0)
-    for m in MCC
-        sup = SupraMCC()
-        flag = true
+function supraMCC(treelist, MCC)
+    supra = Array{Array{String,1},1}(undef, length(MCC))
+    for (i,m) in enumerate(MCC)
         r = lca([first(treelist).lnodes[x] for x in m]).anc # Ancestor of `m` in one of the trees
-        # if isnothing(r)
-        #     r = first(treelist).root
-        # end
         llist = node_leavesclade_labels(r)
+        flag = true
         while flag
             flag = false
             for t in treelist
@@ -256,47 +267,96 @@ function supraMCCs(treelist, MCC)
                 end
             end
         end
-        sup.labels = Set(llist)
-        if !in(llist, [x.labels for x in supra])
-            push!(supra, sup)
-        end
-    end
-    # Composition in terms of MCCs
-    for s in supra
-        for m in MCC
-            if prod([in(x,s.labels) for x in m])
-                push!(s.MCC, lca(first(treelist).lnodes[x] for x in m).label)
-            end
-        end
+        supra[i] = llist
     end
     return supra
 end
 
 """
+    reduce_to_mcc(tree, MCC)
+
+Reduce `tree` to its MCC. Returns a tree with `length(MCC)` leaves. 
+"""
+function reduce_to_mcc(tree, MCC)
+    if !assert_mcc((tree,), MCC)
+        error("MCC are not consistent with tree.")
+    end
+    #
+    out = deepcopy(tree)
+    for m in MCC
+        r = lca([out.lnodes[x] for x in m])
+        if !r.isleaf
+            rn = TreeNode(isleaf=true, isroot = true, label=r.label, data=r.data)
+            a = r.anc
+            prunenode!(r)
+            graftnode!(a, rn)
+        end
+    end
+    return node2tree(out.root)
+end
+
+
+"""
+    prune_mcc_scores(tlist, tref, MCC; nmax = 30)
+
+Function to score MCC based on the effect of their removal. The score is the number of remaining MCCs after removing `m`.  
+Scores are computed using trees in `tlist`. `tref` is used to resolve trees when MCCs are removed. 
+
+### MCC have to have common labels in all trees!
+"""
+function prune_mcc_scores(tlist, tref, MCC; nmax = 30)
+    MCC_scores = Dict{String, Int64}()
+    if length(MCC)<nmax && length(MCC) > 1
+        for m in MCC
+            mlabel = lca([tref.lnodes[x] for x in m]).label
+            # Pruning `m` and removing potential singletons created
+            tref_pruned = prunenode(tref, mlabel)
+            tref_pruned = remove_internal_singletons(tref_pruned)
+            tlist_pruned = [prunenode(t, mlabel) for t in tlist]
+            for (i,t) in enumerate(tlist_pruned)
+                tlist_pruned[i] = remove_internal_singletons(t)
+                tlist_pruned[i] = resolve_trees(tlist_pruned[i], tref_pruned, rtau = 1e-4, verbose=false)
+            end
+            # New mccs
+            MCCn = maximal_coherent_clades(tlist_pruned)
+            MCC_scores[mlabel] = length(MCCn)
+        end
+    end
+    return MCC_scores
+end
+
+
+"""
     compute_mcc_scores_pairs(segtrees, jointtree, MCC ; nmax = 15)
 
-Function to score pairs of MCCs based on their removal. Outputs two scores for each pair `(m1,m2)` in MCC: 
-1. average size of remaining MCCs after removing `m1` and `m2`
-2. number of remaining MCCs after removing `m1` and `m2`
+Function to score pairs of MCC based on their removal. Outputs two scores for each pair `(m1,m2)` in MCC: 
+1. average size of remaining MCC after removing `m1` and `m2`
+2. number of remaining MCC after removing `m1` and `m2`
 """
-function compute_mcc_scores_pairs(segtrees, jointtree, MCC ; nmax = 15)
-    MCC_scores = Dict{Tuple{String,String}, Array{Float64,1}}()
-    if length(MCC)<nmax
+function prune_mcc_scores_pairs(tlist, tref, MCC; nmax = 15)
+    MCC_scores = Dict{Tuple{String,String}, Int64}()
+    if length(MCC) < nmax && length(MCC) > 2
         for i in 1:length(MCC)
-            # print("$(i)/$(length(MCC))             \r")
             for j in (i+1):length(MCC)
-                m1 = MCC[i]
-                m2 = MCC[j]
-                jpruned = prunenodes(jointtree,cat(m1,m2,dims=1))
-                tpruned = Dict(k=>prunenodes(segtrees[k],cat(m1,m2,dims=1)) for k in keys(segtrees))
-                for (k,t) in tpruned
-                    tpruned[k] = remove_internal_singletons(t)
-                end
-                Iterating._resolve_trees!(tpruned, jpruned)
-                MCCn = maximal_coherent_clades(collect(values(tpruned)))
-                li = lca(first(values(segtrees)).lnodes[x] for x in m1).label
-                lj = lca(first(values(segtrees)).lnodes[x] for x in m2).label
-                MCC_scores[li,lj] = [mean([length(x) for x in MCCn]), length(MCCn)]
+                m1 = lca([tref.lnodes[x] for x in MCC[i]]).label
+                m2 = lca([tref.lnodes[x] for x in MCC[j]]).label
+                # Pruning `m1` and `m2` and removing potential singletons created
+                # Since `m1` and `m2` might be brothers in some of the trees, we need to remove internal singletons after pruning one of them
+                tref_pruned = prunenode(tref, m1)
+                tref_pruned = remove_internal_singletons(tref_pruned)
+                tref_pruned = prunenode(tref_pruned, m2)
+                tref_pruned = remove_internal_singletons(tref_pruned)
+
+                tlist_pruned = [prunenode(t, m1) for t in tlist]
+                for (i,t) in enumerate(tlist_pruned)
+                    tlist_pruned[i] = remove_internal_singletons(t)
+                    tlist_pruned[i] = prunenode(tlist_pruned[i], m2)
+                    tlist_pruned[i] = remove_internal_singletons(tlist_pruned[i])
+                    tlist_pruned[i] = resolve_trees(tlist_pruned[i], tref_pruned, verbose=false)
+                end                    
+                # New mccs
+                MCCn = maximal_coherent_clades(tlist_pruned)
+                MCC_scores[(m1,m2)] = length(MCCn)
             end
         end
     end
@@ -304,28 +364,45 @@ function compute_mcc_scores_pairs(segtrees, jointtree, MCC ; nmax = 15)
 end
 
 """
-    compute_mcc_scores(segtrees, jointtree, MCC ; nmax = 50)
+    compute_mcc_scores_triplets(segtrees, jointtree, MCC ; nmax = 9)
 
-Function to score MCCs based on the effect of their removal. Outputs two scores for `m` in MCC: 
-1. average size of remaining MCCs after removing `m`
-2. number of remaining MCCs after removing `m`
+Function to score pairs of MCC based on their removal. Outputs two scores for each pair `(m1,m2)` in MCC: 
+1. average size of remaining MCC after removing `m1` and `m2`
+2. number of remaining MCC after removing `m1` and `m2`
 """
-function compute_mcc_scores(segtrees, jointtree, MCC ; nmax = 100)
-    MCC_scores = Dict{String, Array{Float64,1}}()
-    if length(MCC)<nmax
-        for (i,m) in enumerate(MCC)
-            print("$(i)/$(length(MCC))             \r")
-            jpruned = prunenodes(jointtree,m)
-            tpruned = Dict(k=>prunenodes(segtrees[k],m) for k in keys(segtrees))
-            for (k,t) in tpruned
-                tpruned[k] = remove_internal_singletons(t)
+function prune_mcc_scores_triplets(tlist, tref, MCC; nmax = 9)
+    MCC_scores = Dict{Tuple{String,String,String}, Int64}()
+    if length(MCC) < nmax && length(MCC) > 3
+        for i in 1:length(MCC)
+            for j in (i+1):length(MCC)
+                for k in (j+1):length(MCC)
+                    m1 = lca([tref.lnodes[x] for x in MCC[i]]).label
+                    m2 = lca([tref.lnodes[x] for x in MCC[j]]).label
+                    m3 = lca([tref.lnodes[x] for x in MCC[k]]).label
+                    # Pruning `m1` and `m2` and removing potential singletons created
+                    # Since `m1` and `m2` might be brothers in some of the trees, we need to remove internal singletons after pruning one of them
+                    tref_pruned = prunenode(tref, m1)
+                    tref_pruned = remove_internal_singletons(tref_pruned)
+                    tref_pruned = prunenode(tref_pruned, m2)
+                    tref_pruned = remove_internal_singletons(tref_pruned)
+                    tref_pruned = prunenode(tref_pruned, m3)
+                    tref_pruned = remove_internal_singletons(tref_pruned)
+
+                    tlist_pruned = [prunenode(t, m1) for t in tlist]
+                    for (i,t) in enumerate(tlist_pruned)
+                        tlist_pruned[i] = remove_internal_singletons(t)
+                        tlist_pruned[i] = prunenode(tlist_pruned[i], m2)
+                        tlist_pruned[i] = remove_internal_singletons(tlist_pruned[i])
+                        tlist_pruned[i] = prunenode(tlist_pruned[i], m3)
+                        tlist_pruned[i] = remove_internal_singletons(tlist_pruned[i])
+                        tlist_pruned[i] = resolve_trees(tlist_pruned[i], tref_pruned, verbose=false)
+                    end                    
+                    # New mccs
+                    MCCn = maximal_coherent_clades(tlist_pruned)
+                    MCC_scores[(m1,m2,m3)] = length(MCCn)
+                end
             end
-            Iterating._resolve_trees!(tpruned, jpruned)
-            MCCn = maximal_coherent_clades(collect(values(tpruned)))
-            MCC_scores[lca(first(values(segtrees)).lnodes[x] for x in m).label] = [mean([length(x) for x in MCCn]), length(MCCn)]
         end
-    else
-        # @warn()
     end
     return MCC_scores
 end
@@ -335,99 +412,3 @@ end
 
 
 
-
-#####################################################################################
-################################### OLD STUFF #######################################
-#####################################################################################
-
-"""
-"""
-function clade_maptonodes(cmap)
-    cl = []
-    l = 1
-    c = 1
-    while l!=0
-        tmp = findall(x->x==c, cmap)
-        l = length(tmp)
-        if l >0
-            push!(cl, tmp)
-        end
-        c+=1
-    end
-    return cl
-end
-
-"""
-    maximal_coherent_clades_old(treelist)
-
-Find sets of nodes which are: 
-- clades in all trees of `treelist`,
-- all subclades of nodes are clades in all trees of `treelist` (both of these properties define consistency),
-- maximal: adding a node to a set results it in not being a clade in at least one of the trees. 
-All the trees of `treelist` should share the same leaf nodes.  
-"""
-function maximal_coherent_clades_old(treelist)
-    # Checking that trees have the same label for leaf nodes
-    flag = true
-    for t1 in treelist
-        for t2 in treelist
-            flag *= share_labels(t1,t2)
-        end
-    end
-    if !flag
-        error("`maximal_common_clades` can only be used on trees that share leaf nodes.")
-    end
-    # List of already visited nodes
-    treelist_ = deepcopy(treelist)
-    t = treelist_[1]
-    checklist = Dict(k=>false for k in keys(t.lleaves))
-    # Explore one leave at a time
-    mc_clades = []
-    global i = 1;
-    for (cl,v) in checklist
-        print("$i/$(length(t.lleaves)) -- $cl  --     Found $(sum(values(checklist)))/$(length(t.lleaves))            \r")
-        if !v # If leave not already visited
-            ###
-            # We're going to go up in all trees at the same time
-            global croot = map(x->x.lleaves[cl], treelist_) 
-            global clabel = [cl]
-            # Initial individual, always a common clade in all trees since it's a leaf. 
-            flag = true
-            while flag && prod([!x.isroot for x in croot])
-                nroot = [x.anc for x in croot] # Ancestors of current label in all trees
-                # Each element of `nroot` defines a set of labels. There are four possibilites
-                # (i) The intersection of those labels is equal to the labels defined by `clabel` (*i.e.* the clade defined by `croot`). This means that the trees completely diverge above `croot` because of recombination. The current clade is an MCC, break.  
-                # (ii) The intersection of those labels defines a coherent resolved clade in *all* trees. In this case, assign the root of this clade to croot, for all trees, and iterate
-                # (iii) The intersection of those labels defines a resolved clade in part of the trees, and an unresolved clade in others. In this case, introduce an internal node to resolve the clades in the non resolved trees. Assign the roots of the already existing and newly formed clades to croot. 
-                # (iv) None of the above: this means  there has been some recombination. We must now try to build a maximally UR clade, pruning the recombinant parts. 
-                # Try to augment the current maximal clade defined by croot by attempting to add each child of each element of `nroot` (one by one). When no more child can be added, the current clade is an MCC, break.  
-                nlabel = intersect(map(r->[x.label for x in node_leavesclade(r)],nroot)...)  
-                nclade = [[node_findlabel(l, r) for l in nlabel] for r in nroot]
-                if nlabel == clabel
-                    flag = false
-                elseif prod([is_coherent_clade_nodelist(c, treelist_) for c in nclade])
-                    croot = [lca(c) for c in nclade]
-                    clabel = nlabel
-                else
-                    flag = false
-                    for r in nroot
-                        for c in r.child
-                            tlabel = intersect(union(clabel, [x.label for x in node_leavesclade(c)]), nlabel)
-                            tclade = [node_findlabel(l, treelist_[1].root) for l in tlabel]
-                            if tlabel != clabel && is_coherent_clade_nodelist(tclade, treelist_)
-                                clabel = tlabel
-                            end
-                        end
-                    end
-                end
-            end
-
-            ###
-            # clabel = map(x->x.label, cclade)
-            map(x->checklist[x]=true, clabel)
-            push!(mc_clades, clabel)
-        end
-        global i+=1
-    end
-    return mc_clades
-end

@@ -125,7 +125,7 @@ function sym_likelihoodratio(tree1::Tree, tree2::Tree)
     return out
 end
 
-function sym_likelihoodratio(n1::Int64,n2::Int64)
+function sym_likelihoodratio(n1::Real,n2::Real)
     if n1 == 0 && n2 == 0 
         return 0
     elseif n1 ==0 && n2 != 0

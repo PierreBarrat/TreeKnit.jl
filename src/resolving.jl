@@ -3,11 +3,11 @@ export resolve_null_branches!
 export is_unresolved_clade
 
 """
-    resolve_trees(t, tref ; label_init=1, rtau = 1. /L/4)
+    resolve_trees(t, tref ; label_init=1, rtau = 1. /L/3)
 
 Resolves clades in `t` using clades in `tref`. Newly introduced nodes are assigned a time `rtau`. 
 """
-function resolve_trees(t, tref ; rtau = 1. /length(t.leaves[1].data.sequence)/4, verbose=true)
+function resolve_trees(t, tref ; rtau = 1. /length(t.leaves[1].data.sequence)/3, verbose=true)
     if !share_labels(t, tref)
         error("`resolve_trees` can only be used on trees that share leaf nodes.")
     end       
@@ -110,7 +110,7 @@ function resolve_trees(treelist ; label_init=1)
                         if isclade(nodes)
                         elseif is_unresolved_clade(nodes, checkclade=false)
                             # println("Resolving nodes $([nlabel])")
-                            make_unresolved_clade!(nodes, label = "RESOLVED_$(label_i)", tau = 1. /L/4)
+                            make_unresolved_clade!(nodes, label = "RESOLVED_$(label_i)", tau = 1. /L/3)
                             rcount += 1
                             label_i += 1
                         else
@@ -130,17 +130,19 @@ end
 
 """
     resolve_null_branches!(t)
+
+Branches shorter than `tau` are set to `tau`. 
 """
-function resolve_null_branches!(t::Tree; tau = 1. /length(t.leaves[1].data.sequence)/4, internal=false)
+function resolve_null_branches!(t::Tree; tau = 1. /length(t.leaves[1].data.sequence)/3, internal=false)
     if !internal
         for n in values(t.leaves)
-            if n.data.tau < tau
+            if !ismissing(n.data.tau) && n.data.tau < tau
                 n.data.tau = tau
             end
         end
     else
         for n in values(t.nodes)
-            if n.data.tau < tau
+            if !ismissing(n.data.tau) && n.data.tau < tau
                 n.data.tau = tau
             end
         end

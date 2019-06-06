@@ -16,15 +16,3 @@ function CrossMutations()
 	return CrossMutations(Dict{Tuple{String, String}, Array{Tuple{Int64, Int64, Int64}, 1}}(), Dict{Tuple{String, String}, Int64}())
 end
 
-"""
-	SupraMCC
-
-Clade consisting of multiple MCCs.
-"""
-mutable struct SupraMCC
-	labels::Set{String} # Ordering does not matter
-	MCC::Set{String}
-end
-function SupraMCC()
-	return SupraMCC(Set{String}(), Set{String}())
-end
