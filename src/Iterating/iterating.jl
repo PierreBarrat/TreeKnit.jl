@@ -2,8 +2,10 @@ module Iterating
 
 using StatsBase, DelimitedFiles
 using TreeTools, RecombTools
+using RecombTools.SplitGraph
 
-global segments = ["ha","na","pb1","pb2","pa"]
+# global segments = ["ha","na","pb1","pb2","pa"]
+global segments = ["ha","na"]
 global root_strain = "A/Victoria/361/2011"
 
 
@@ -12,7 +14,7 @@ export read_trees, _resolve_trees!, _adjust_branchlength!, write_trees, prunetre
 
 """
 """
-function run_it(it::Int64 ; mut=true, irem=true)
+function run_it(it::Int64 ; mut=true, sa=true, irem=false)
 	# Setting up directories
 	println("\n\n ### ITERATION $it ###\n")
 	mkpath("It$(it)")
@@ -29,7 +31,7 @@ function run_it(it::Int64 ; mut=true, irem=true)
 	# Running Augur
 	runaugur(it)
 	# Filtering strains
-	prunetrees(it, mut=mut, irem=irem)
+	prunetrees(it, mut=mut, sa=sa, irem=irem)
 end
 
 """
@@ -68,7 +70,7 @@ end
 - Find suspicious MCCs
 - Filter sequences
 """
-function prunetrees(it::Int64 ; mut=true, irem=true)
+function prunetrees(it::Int64 ; mut=true, sa=true,irem=false)
 	cd("It$(it)/OutData")
 	## Reading trees
 	segtrees = read_trees(segments)
@@ -102,19 +104,27 @@ function prunetrees(it::Int64 ; mut=true, irem=true)
 	tofilter_strains_sup = []
 	tofilter_mccs_sup = []
 	if mut
-		println("\n### Running treetime...###")
+		println("\n### Mutation based procedure...###")
 		tofilter_strains_mut, tofilter_mccs_mut, confidence = prunetrees_mut(segtrees, MCC)		
 	end
 	if irem
 		println("\n### Computing supra MCCs... ###")
 		tofilter_strains_sup, tofilter_mccs_sup = prunetrees_irem(segtrees, jointtree, MCC)
 	end
-	tofilter_strains_all = cat(tofilter_strains_mut,tofilter_strains_sup,dims=1)
-	tofilter_mccs_all = cat(tofilter_mccs_mut,collect(tofilter_mccs_sup),dims=1)
+	if sa
+		println("\n### Local optimization on supra MCCs... ###")
+		tofilter_strains_sa, tofilter_mccs_sa = prunetrees_sa(segtrees, maximal_coherent_clades(collect(values(segtrees))))
+	end
+
+	tofilter_strains_all = cat(tofilter_strains_mut,tofilter_strains_sup,tofilter_strains_sa,dims=1)
+	tofilter_mccs_all = cat(tofilter_mccs_mut,collect(tofilter_mccs_sup),tofilter_mccs_sa,dims=1)
+
 	println("\n### FILTERING ###")
-	println("Based on mutations: Filtering $(length(tofilter_strains_mut)) strains ($(length(tofilter_mccs_mut)) MCCs).")
-	println("Based on supra MCCs: Filtering $(length(tofilter_strains_sup)) strains ($(length(tofilter_mccs_sup)) MCCs).")
+	mut && println("Based on mutations: Filtering $(length(tofilter_strains_mut)) strains ($(length(tofilter_mccs_mut)) MCCs).")
+	irem && println("Based on supra MCCs: Filtering $(length(tofilter_strains_sup)) strains ($(length(tofilter_mccs_sup)) MCCs).")
+	sa && println("Based on local optimization: Filtering $(length(tofilter_strains_sa)) strains ($(length(tofilter_mccs_sa)) MCCs).")
 	println("--> In total: Filtering $(length(tofilter_strains_all)) strains ($(length(tofilter_mccs_all)) MCCs).")
+
 	filter_strains(tofilter_strains_all, tofilter_mccs_all)
 
 	cd("../../")
@@ -153,6 +163,38 @@ function prunetrees_irem(segtrees, jointtree, MCC)
 		append!(toremove, node_leavesclade_labels(segtrees[first(segments)].lnodes[m]))
 	end
 	return toremove, smcc
+end
+
+"""
+"""
+function prunetrees_sa(segtrees, MCC ; maxsize=75)
+	supra = RecombTools.supraMCC(values(segtrees), MCC);
+	torm_strains = Array{String,1}(undef,0)
+	torm_mcc = Array{String,1}(undef,0)
+	println("Found $(length(findall(x->length(x)<maxsize, supra))) common clades amenable for local optimization")
+	i=1
+	for s in supra
+		print("$i/$(length(supra))      	\r")
+		i+=1
+		if length(s) < maxsize
+			# Making subtrees
+			subtrees = Dict{String, Tree}()
+			for (k,t) in segtrees
+				r = lca([t.lnodes[x] for x in s])
+				subtrees[k] = node2tree(prunenode(r)[1])
+			end
+
+			# Optimization
+			out = SplitGraph.opttrees(collect(values(subtrees))..., γ=0.95, Trange = 0.5:-0.01:0.05) 
+			if out[end]
+				append!(torm_strains, cat(out[1]...,dims=1))
+				append!(torm_mcc, out[2])
+			else
+				@warn "SA did not converge"
+			end
+		end
+	end
+	return unique(torm_strains), unique(torm_mcc)
 end
 
 """
@@ -263,6 +305,11 @@ function _resolve_trees!(segtrees, jointtree; verbose=false)
 		t = node2tree(t.root)
 		t = remove_internal_singletons(t)
 		t = resolve_trees(t, jointtree, rtau = 1/L/3, verbose=verbose)
+		for (k2, t2) in segtrees
+			if k!=k2
+				t = resolve_trees(t, t2, rtau = 1/L/3, verbose=verbose)
+			end
+		end
 		resolve_null_branches!(t, tau = 1/L/3)
 		segtrees[k] = t
 	end

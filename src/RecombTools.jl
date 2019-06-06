@@ -9,10 +9,10 @@ include("tools.jl")
 include("MCC.jl")
 include("resolving.jl")
 include("reading.jl")
-include("Iterating/iterating.jl")
 include("SplitGraph/SplitGraph.jl")
+include("Iterating/iterating.jl")
 
-using RecombTools.Iterating
 using RecombTools.SplitGraph
+using RecombTools.Iterating
 
 end
