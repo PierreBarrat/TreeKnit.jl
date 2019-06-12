@@ -22,8 +22,8 @@ function opttrees(γ, Trange, M, t::Vararg{Tree})
 	end
 	g = trees2graph(treelist)
 	oconf, E, F = sa_opt(g, γ=γ, Trange=Trange, M=M)
-	converged = compute_energy(oconf,g)==0
-	return [mcc_names[x] for x in g.labels[.!oconf]], g.labels[.!oconf],E,F,converged
+	converged = compute_energy(oconf[1],g)==0
+	return [[mcc_names[x] for x in g.labels[.!conf]] for conf in oconf], [g.labels[.!conf] for conf in oconf], E, F, converged
 end
 
 end

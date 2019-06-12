@@ -57,14 +57,19 @@ function doMCMC(g::Graph, conf::Array{Bool,1}, M::Int64; T=1, γ=1)
 	ff[1] = F
 	## 
 	Fmin = F
-	oconf = copy(_conf)
+	oconf = [copy(_conf)]
 	for m in 1:M
 		E, F = mcmcstep!(_conf, g, F, T, γ)
 		ee[m+1] = E
 		ff[m+1] = F
+		# If new minimum is found
 		if F < Fmin
 			Fmin = F
-			oconf = copy(_conf)
+			oconf = [copy(_conf)]
+		end
+		# If equal minimum is found
+		if F == Fmin && mapreduce(x->x!=_conf, *, oconf)
+			push!(oconf, copy(_conf))
 		end
 	end
 	return oconf,ee,ff
@@ -88,13 +93,46 @@ end
 """
 """
 function sa_opt(g::Graph ; Trange=1.:-0.01:0.1, γ=1.05, M=1000)
-	confinit = ones(Bool, length(g.leaves))
-	E = []
-	F = []
+	oconf = [ones(Bool, length(g.leaves))]
+	E = [compute_energy(oconf[1],g)]
+	F = Array{Float64,1}([E[1]])
+	Fmin = F[1]
 	for T in Trange
-		confinit, e, f = SplitGraph.doMCMC(g, confinit, M, T=T,γ=γ)
+		tmp_oconf, e, f = SplitGraph.doMCMC(g, oconf[rand(1:length(oconf))], M, T=T,γ=γ)
 		append!(E,e)
 		append!(F,f)
+		# If a better conf is found than all configurations in oconf (which is the min of `f` from doMCMC), completely replace oconf
+		if findmin(f)[1] < Fmin
+			oconf = tmp_oconf
+			Fmin = findmin(F)[1]
+		# If equally good confs have been found
+		elseif findmin(f)[1] == Fmin
+			append!(oconf, tmp_oconf)
+			oconf = unique(oconf)
+		end
 	end
-	return confinit,E,F
+	return oconf,E,F
 end
+
+"""
+"""
+function count_mismatches(g::Graph)
+	conf = ones(Bool, length(g.leaves))
+	return compute_energy(conf, g)
+end
+
+"""
+"""
+function count_mismatches(t::Vararg{Tree})
+	treelist = collect(t)
+	mcc = maximal_coherent_clades(treelist)
+	mcc_names = name_mcc_clades!(treelist, mcc)
+	for (i,t) in enumerate(treelist)
+		treelist[i] = reduce_to_mcc(t, mcc)
+	end
+	g = trees2graph(treelist)
+	conf = ones(Bool, length(g.leaves))
+	return compute_energy(conf, g)
+end
+
+

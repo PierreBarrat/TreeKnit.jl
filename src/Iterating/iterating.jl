@@ -23,6 +23,7 @@ function run_it(it::Int64 ; mut=true, sa=true, irem=false)
 	mkpath("OutData")
 	# Copy data from previous It. 
 	if it != 0
+		println(pwd())
 		for s in segments
 			run(`cp ../It$(it-1)/OutData/outmsas/filtered_h3n2_$(s).fasta InData/h3n2_$(s).fasta`)
 		end
@@ -31,7 +32,7 @@ function run_it(it::Int64 ; mut=true, sa=true, irem=false)
 	# Running Augur
 	runaugur(it)
 	# Filtering strains
-	prunetrees(it, mut=mut, sa=sa, irem=irem)
+	return prunetrees(it, mut=mut, sa=sa, irem=irem)
 end
 
 """
@@ -101,6 +102,8 @@ function prunetrees(it::Int64 ; mut=true, sa=true,irem=false)
 	# Filtering
 	tofilter_strains_mut = []
 	tofilter_mccs_mut =[]
+	tofilter_strains_sa = []
+	tofilter_mccs_sa = []
 	tofilter_strains_sup = []
 	tofilter_mccs_sup = []
 	if mut
@@ -113,7 +116,8 @@ function prunetrees(it::Int64 ; mut=true, sa=true,irem=false)
 	end
 	if sa
 		println("\n### Local optimization on supra MCCs... ###")
-		tofilter_strains_sa, tofilter_mccs_sa = prunetrees_sa(segtrees, maximal_coherent_clades(collect(values(segtrees))))
+		# tofilter_strains_sa, tofilter_mccs_sa = prunetrees_sa(segtrees, maximal_coherent_clades(collect(values(segtrees))))
+		tofilter_strains_sa, tofilter_mccs_sa = prunetrees_sa(segtrees, jointtree)
 	end
 
 	tofilter_strains_all = cat(tofilter_strains_mut,tofilter_strains_sup,tofilter_strains_sa,dims=1)
@@ -126,10 +130,12 @@ function prunetrees(it::Int64 ; mut=true, sa=true,irem=false)
 	println("--> In total: Filtering $(length(tofilter_strains_all)) strains ($(length(tofilter_mccs_all)) MCCs).")
 
 	filter_strains(tofilter_strains_all, tofilter_mccs_all)
-
 	cd("../../")
+	return tofilter_strains_all
 
 end
+
+
 
 
 """
@@ -167,35 +173,109 @@ end
 
 """
 """
-function prunetrees_sa(segtrees, MCC ; maxsize=75)
-	supra = RecombTools.supraMCC(values(segtrees), MCC);
-	torm_strains = Array{String,1}(undef,0)
-	torm_mcc = Array{String,1}(undef,0)
-	println("Found $(length(findall(x->length(x)<maxsize, supra))) common clades amenable for local optimization")
-	i=1
-	for s in supra
-		print("$i/$(length(supra))      	\r")
-		i+=1
-		if length(s) < maxsize
-			# Making subtrees
-			subtrees = Dict{String, Tree}()
-			for (k,t) in segtrees
-				r = lca([t.lnodes[x] for x in s])
-				subtrees[k] = node2tree(prunenode(r)[1])
-			end
+function prunetrees_sa(segtrees, jointtree ; maxsize = 50, verbose=true, NIT = 100)
+	st = deepcopy(segtrees)
+	jt = deepcopy(jointtree)
 
-			# Optimization
-			out = SplitGraph.opttrees(collect(values(subtrees))..., γ=0.95, Trange = 0.5:-0.01:0.05) 
-			if out[end]
-				append!(torm_strains, cat(out[1]...,dims=1))
-				append!(torm_mcc, out[2])
-			else
-				@warn "SA did not converge"
-			end
-		end
+	torm_strains = []
+	torm_mccs = []
+	# Init
+	_resolve_trees!(st, jt);
+	MCC = maximal_coherent_clades(collect(values(st)))
+	_adjust_branchlength!(st, jt, MCC);
+
+	Eold = SplitGraph.count_mismatches(collect(values(st))...)
+	MCC_old = MCC
+	nleaves_old = length(st["ha"].leaves)
+	# Iterating
+	for it in 1:NIT
+	    println("-- SA it.$it --")
+	    supra = unique([Set(x) for x in RecombTools.supraMCC(values(st), MCC)])
+	    # Finding a good supra to work on
+	    flag = false
+	    for s in supra
+	        subtrees = Dict{String, Tree}()
+	        for (k,t) in st
+	            r = lca([t.lnodes[x] for x in s])
+	            if !r.isroot
+	                subtrees[k] = node2tree(prunenode(r)[1])
+	            else
+	                subtrees[k] = deepcopy(st[k])
+	            end
+	        end
+	        locMCC = maximal_coherent_clades(collect(values(subtrees)))
+	        
+	        # 
+	        if length(locMCC) < 50
+	            out = SplitGraph.opttrees(collect(values(subtrees))..., γ=0.95, Trange = .5:-0.01:0.05, M=2500);
+	            torm = unique(cat(cat(out[1]..., dims=1)...,dims=1))
+	            for s in Iterating.segments
+	                st[s] = prunenodes(st[s], torm)
+	            end
+	            jt = prunenodes(jt, torm);
+	
+	            _resolve_trees!(st, jt,verbose=false);
+	            MCC = maximal_coherent_clades(collect(values(st)))
+	            if verbose
+	            	println("Removing $(length(torm)) strains")
+	            	println("Number of mismatches (old/new): ", Eold, " ", SplitGraph.count_mismatches(collect(values(st))...))
+	            	println("Mean size (old/new): ", mean(length(x) for x in MCC_old), " ", mean(length(x) for x in MCC))
+	            	println("# of MCCs (old/new): ", length(MCC_old), " ", length(MCC))
+	            	println("# of strains (old/new): $nleaves_old $(length(st["ha"].leaves))")
+	            end
+	            append!(torm_strains, torm)
+	            append!(torm_mccs, unique(cat(out[2]..., dims=1)))
+	            flag = true
+	            break
+	        end
+	    end
+	    if !flag
+	    	break
+	    end
 	end
-	return unique(torm_strains), unique(torm_mcc)
+
+	return torm_strains, torm_mccs
 end
+
+# """
+# """
+# function prunetrees_sa(segtrees, MCC ; maxsize=50, verbose=true)
+# 	supra = unique(RecombTools.supraMCC(values(segtrees), MCC))
+# 	torm_strains = Array{String,1}(undef,0)
+# 	torm_mcc = Array{String,1}(undef,0)
+# 	i=1
+# 	c = 0
+# 	for s in supra
+# 		verbose && print("$i/$(length(supra))      	\r")
+# 		i+=1
+# 		# Making subtrees
+# 		subtrees = Dict{String, Tree}()
+# 		for (k,t) in segtrees
+# 			r = lca([t.lnodes[x] for x in s])
+# 			if !r.isroot
+# 				subtrees[k] = node2tree(prunenode(r)[1])
+# 			else
+# 				subtrees[k] = deepcopy(segtrees[k])
+# 			end
+# 		end
+# 		locMCC = maximal_coherent_clades(collect(values(subtrees))) # stupid way of checking for length. I should do something smarter
+
+# 		if length(locMCC) < maxsize
+# 			c += 1
+# 			# Optimization
+# 			out = SplitGraph.opttrees(collect(values(subtrees))..., γ=0.99, Trange = .5:-0.01:0.05, M=2500)
+			
+# 			if out[end]
+# 				append!(torm_strains, cat(out[1]...,dims=1))
+# 				append!(torm_mcc, out[2])
+# 			else
+# 				@warn "SA did not converge"
+# 			end
+# 		end
+# 	end
+# 	println("Found $c common clades amenable for local optimization")
+# 	return unique(torm_strains), unique(torm_mcc)
+# end
 
 """
 - Find MCCs
@@ -319,6 +399,7 @@ end
 Write tree, as well as  branch length files for viewing with auspice. 
 """
 function write_trees(tdict)
+	mkpath("trees")
 	for (k,t) in tdict
 		write_newick("trees/tree_resolved_h3n2_$(k).nwk", t)
 		write_branchlength("trees/branchlengths_resolved_$(k).json", t, "results/aligned_simple_h3n2_$(k).fasta", "../trees/tree_resolved_h3n2_$(k).nwk")
@@ -444,7 +525,6 @@ function find_suspicious_mccs_irem(supra, mcc_scores_1, mcc_scores_2, mcc_scores
 	end
 	return smcc
 end
-
 
 
 end
