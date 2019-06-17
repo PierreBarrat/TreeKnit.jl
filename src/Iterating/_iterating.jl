@@ -16,7 +16,7 @@ General structure of an iteration folder Itn
 -- AfterFilter/trees
 - CrossMapping
 
-and text files containing strains that have been removed, with two columns: strain name, and MCC name (so I can group them) 
+and text files containing strains that have been removed, with two columns: strain name, and MCC number (so I can group them) 
 =#
 
 ## A BIG problem that I see right now
@@ -24,9 +24,15 @@ and text files containing strains that have been removed, with two columns: stra
 # But I need it to adjust branch lengths! 
 # I could re-infer only the joint tree, but i'm afraid that might change its MCCs... 
 
+# --> Reinfer a tree for each MCC, using the joint tree! 
+# Use Interfacing.scalebranches for this
+
 global segments = ["ha","na"]
 global root_strain = "A/Victoria/361/2011"
 
+let state = 0
+	global mcc_idx() = (state += 1)
+end
 
 function run_it(it::Int64, cwd::String, segtrees_, jointtree_ ; mut=true, sa=true)
 	segtrees = deepcopy(segtrees_)
@@ -67,41 +73,58 @@ function run_it(it::Int64, cwd::String, segtrees_, jointtree_ ; mut=true, sa=tru
 	return segtrees, jointtree
 end
 
-
-
-
 """
+	removeMCCs!(segtrees, mcclist)
+
+Remove all strains in `mcclist` from `segtrees`. `mcclist` should be an array of arrays of strings. (*i.e.* one element for each MCC to be removed). 
+Removed strains are written to the end of `outfile`. 
 """
-function prunetrees_mut(segtrees, jointtree ; verbose = true)
-
-	## Resolving, finding MCCs, and adjusting branch length to that of the joint tree
-	# resolving
-	_resolve_trees!(segtrees, jointtree);
-	# MCCs
-	MCC = maximal_coherent_clades(collect(values(segtrees)))
-	println("\n### MCCs ###\n")
-	println("Found $(length(MCC)) MCCs of average size $(mean([length(x) for x in MCC]))")
-	# Adjusting branch length in MCCs
-	_adjust_branchlength!(segtrees, jointtree, MCC)
-
-	## Computing ancestral states
-	run_treetime(segtrees)
-
-	## Counting mutations
-	map(s->fasta2tree!(segtrees[s], "CrossMapping/ancestral_tree_$(s)_aln_$(s)/ancestral_sequences.fasta"), segments)
-	segmd_ref = Dict(s=>make_mutdict!(segtrees[s]) for s in segments)
-	crossmuts = compute_crossmuts(segtrees, MCC, segmd_ref)
-
-	## Finding suspicious MCCs
-	fmcc, tofilter, confidence = find_suspicious_mccs(crossmuts, segtrees)
-	iroot = findall(x->x==root_strain, tofilter)
-	for i in iroot
-		splice!(tofilter, i)
-		splice!(confidence, i)
+function removeMCCs!(segtrees, mcclist ; outfile = "StrainsToFilter.txt")
+	out = 
+	for m in mcclist
 	end
-	return tofilter, fmcc, confidence
 end
 
 
+"""
+	_resolve_trees!(segtrees)
+
+Delete null branches above internal nodes. Then, pairwise resolving of trees in `segtrees`. 
+Since I am not re-inferring trees, I cannot use the joint tree to resolve. 
+
+
+### Notes
+Initial null (*i.e.* too short to bear a mutation) branches above internal nodes are not trusted. --> They are set to 0, corresponding internal nodes are removed.  
+Trees are resolved using the joint tree, introducing new very small branches. These are trusted because of topological evidence.  
+Finally, leaves that have too short of a branch are also stretched to a minimum threshold.  
+"""
+function _resolve_trees!(segtrees ; verbose=false)
+	# Removing null branches
+	for (s,t) in segtrees
+		L = length(t.leaves[1].data.sequence)
+		delete_null_branches!(t.root, threshold = 1/L/3)
+		t = node2tree(t.root)
+		t = remove_internal_singletons(t)
+		segtrees[s] = t
+	end
+
+	# Pairwise resolving
+	for (s,t) in segtrees
+		for (s2,t2) in segtrees
+			if s2 != s
+				t = resolve_trees(t, t2, rtau = 1/L/3, verbose=verbose)
+			end
+		end
+		resolve_null_branches!(t, tau = 1/L/3)
+		segtrees[s] = t
+	end
+end
+
+
+
+
+
+include("mutbased.jl")
+include("topologybased.jl")
 
 end
