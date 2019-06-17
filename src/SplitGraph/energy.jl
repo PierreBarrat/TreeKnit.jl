@@ -5,6 +5,9 @@ export compute_energy
 function compute_energy(conf::Array{Bool,1}, g::Graph)
 	length(conf) != length(g.leaves) && error("`conf` and `g` do not have the same length")
 	E = 0
+	if length(g.leaves) + length(g.internals) == 1
+		return E
+	end
 	for (i,s) in enumerate(conf)
 		if s
 			for k1 in 1:g.K

@@ -11,6 +11,7 @@ include("resolving.jl")
 include("reading.jl")
 include("SplitGraph/SplitGraph.jl")
 include("Iterating/iterating.jl")
+include("Interfacing/Interfacing.jl")
 
 using RecombTools.SplitGraph
 using RecombTools.Iterating

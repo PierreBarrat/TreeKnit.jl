@@ -11,10 +11,15 @@ global root_strain = "A/Victoria/361/2011"
 
 export read_trees, _resolve_trees!, _adjust_branchlength!, write_trees, prunetrees_mut, prunetrees_irem
 
+# I should be able to initialize state
+# Some wrapper function should take care of this, as well as segments and root node
+let state = 0
+	global mcc_idx() = (state += 1)
+end
 
 """
 """
-function run_it(it::Int64 ; mut=true, sa=true, irem=false)
+function run_it(it::Int64 ; mut=true, sa=true)
 	# Setting up directories
 	println("\n\n ### ITERATION $it ###\n")
 	mkpath("It$(it)")
@@ -23,7 +28,6 @@ function run_it(it::Int64 ; mut=true, sa=true, irem=false)
 	mkpath("OutData")
 	# Copy data from previous It. 
 	if it != 0
-		println(pwd())
 		for s in segments
 			run(`cp ../It$(it-1)/OutData/outmsas/filtered_h3n2_$(s).fasta InData/h3n2_$(s).fasta`)
 		end
@@ -32,7 +36,7 @@ function run_it(it::Int64 ; mut=true, sa=true, irem=false)
 	# Running Augur
 	runaugur(it)
 	# Filtering strains
-	return prunetrees(it, mut=mut, sa=sa, irem=irem)
+	return prunetrees(it, mut=mut, sa=sa)
 end
 
 """
@@ -71,7 +75,7 @@ end
 - Find suspicious MCCs
 - Filter sequences
 """
-function prunetrees(it::Int64 ; mut=true, sa=true,irem=false)
+function prunetrees(it::Int64 ; mut=true, sa=true)
 	cd("It$(it)/OutData")
 	## Reading trees
 	segtrees = read_trees(segments)
@@ -100,34 +104,28 @@ function prunetrees(it::Int64 ; mut=true, sa=true,irem=false)
 	cd("../OutData")
 
 	# Filtering
-	tofilter_strains_mut = []
+	tofilter_strains_mut = Array{Any,2}(undef, 0, 2)
 	tofilter_mccs_mut =[]
-	tofilter_strains_sa = []
+	tofilter_strains_sa = Array{Any,2}(undef, 0, 2)
 	tofilter_mccs_sa = []
-	tofilter_strains_sup = []
-	tofilter_mccs_sup = []
 	if mut
 		println("\n### Mutation based procedure...###")
-		tofilter_strains_mut, tofilter_mccs_mut, confidence = prunetrees_mut(segtrees, MCC)		
-	end
-	if irem
-		println("\n### Computing supra MCCs... ###")
-		tofilter_strains_sup, tofilter_mccs_sup = prunetrees_irem(segtrees, jointtree, MCC)
+		tofilter_strains_mut, tofilter_mccs_mut, confidence = prunetrees_mut(segtrees, MCC)
 	end
 	if sa
 		println("\n### Local optimization on supra MCCs... ###")
 		# tofilter_strains_sa, tofilter_mccs_sa = prunetrees_sa(segtrees, maximal_coherent_clades(collect(values(segtrees))))
-		tofilter_strains_sa, tofilter_mccs_sa = prunetrees_sa(segtrees, jointtree)
+		tofilter_strains_sa, tofilter_mccs_sa, matched = prunetrees_sa(segtrees, jointtree)
 	end
 
-	tofilter_strains_all = cat(tofilter_strains_mut,tofilter_strains_sup,tofilter_strains_sa,dims=1)
-	tofilter_mccs_all = cat(tofilter_mccs_mut,collect(tofilter_mccs_sup),tofilter_mccs_sa,dims=1)
+	tofilter_strains_all = cat(tofilter_strains_mut, tofilter_strains_sa,dims=1)
+	tofilter_mccs_all = cat(tofilter_mccs_mut, tofilter_mccs_sa,dims=1)
 
 	println("\n### FILTERING ###")
-	mut && println("Based on mutations: Filtering $(length(tofilter_strains_mut)) strains ($(length(tofilter_mccs_mut)) MCCs).")
-	irem && println("Based on supra MCCs: Filtering $(length(tofilter_strains_sup)) strains ($(length(tofilter_mccs_sup)) MCCs).")
-	sa && println("Based on local optimization: Filtering $(length(tofilter_strains_sa)) strains ($(length(tofilter_mccs_sa)) MCCs).")
-	println("--> In total: Filtering $(length(tofilter_strains_all)) strains ($(length(tofilter_mccs_all)) MCCs).")
+	mut && println("Based on mutations: Filtering $(length(tofilter_strains_mut[:,1])) strains ($(length(tofilter_mccs_mut)) MCCs).")
+	sa && println("Based on local optimization: Filtering $(length(tofilter_strains_sa[:,1])) strains ($(length(tofilter_mccs_sa)) MCCs).")
+	println("--> In total: Filtering $(length(tofilter_strains_all[:,1])) strains ($(length(tofilter_mccs_all)) MCCs).")
+	println("--> $(length(segtrees[segments[1]].leaves) - length(tofilter_strains_all[:,1])) strains remaining")
 
 	filter_strains(tofilter_strains_all, tofilter_mccs_all)
 	cd("../../")
@@ -173,11 +171,11 @@ end
 
 """
 """
-function prunetrees_sa(segtrees, jointtree ; maxsize = 50, verbose=true, NIT = 100)
+function prunetrees_sa(segtrees, jointtree ; maxsize = 75, verbose=true, NIT = 100)
 	st = deepcopy(segtrees)
 	jt = deepcopy(jointtree)
-
-	torm_strains = []
+	mathced = false
+	torm_strains = Array{Any,2}(undef, 0, 2)
 	torm_mccs = []
 	# Init
 	_resolve_trees!(st, jt);
@@ -206,35 +204,62 @@ function prunetrees_sa(segtrees, jointtree ; maxsize = 50, verbose=true, NIT = 1
 	        locMCC = maximal_coherent_clades(collect(values(subtrees)))
 	        
 	        # 
-	        if length(locMCC) < 50
+	        if length(locMCC) < maxsize
 	            out = SplitGraph.opttrees(collect(values(subtrees))..., γ=0.95, Trange = .5:-0.01:0.05, M=2500);
-	            torm = unique(cat(cat(out[1]..., dims=1)...,dims=1))
-	            for s in Iterating.segments
-	                st[s] = prunenodes(st[s], torm)
+	            # Adding all solutions found to `torm_strains`
+	            # out[1] is an Array of Array of Array of strings
+	            # solution / mcc removed / list of corresponding strains
+	            mlist = []
+	            torm = Array{Any,2}(undef, 0, 2)
+	            for tmp in out[1]
+	            	for strains in tmp
+	            		m = lca([segtrees[segments[1]].lnodes[x] for x in strains]).label
+	            		if !in(m, mlist)
+	            			torm = [torm ; cat(strains, repeat([mcc_idx()], length(strains)) ,dims=2)]
+	            			push!(mlist, m)
+	            		end
+	            	end
 	            end
-	            jt = prunenodes(jt, torm);
-	
+	            #
+	            for s in Iterating.segments
+	             #    for i in torm[:,1]
+	             #    	println(i)
+	            	# # println(length(st[s].lnodes["A/Centre/2522/2018"].anc.child))
+	            	# # println(length(st[s].lnodes["A/Centre/2522/2018"].anc.anc.child))
+	             #    	st[s] = prunenodes(st[s], [i])
+	             #    end
+	                st[s] = prunenodes(st[s], torm[:,1])
+	            end
+	            jt = prunenodes(jt, torm[:,1]);
+				#
 	            _resolve_trees!(st, jt,verbose=false);
 	            MCC = maximal_coherent_clades(collect(values(st)))
+	            #
 	            if verbose
-	            	println("Removing $(length(torm)) strains")
+	            	println("Converged: $(out[end])")
+	            	println("Removing $(length(torm[:,1])) strains, $(length(unique(torm[:,2]))) MCCs")
 	            	println("Number of mismatches (old/new): ", Eold, " ", SplitGraph.count_mismatches(collect(values(st))...))
 	            	println("Mean size (old/new): ", mean(length(x) for x in MCC_old), " ", mean(length(x) for x in MCC))
 	            	println("# of MCCs (old/new): ", length(MCC_old), " ", length(MCC))
 	            	println("# of strains (old/new): $nleaves_old $(length(st["ha"].leaves))")
 	            end
-	            append!(torm_strains, torm)
 	            append!(torm_mccs, unique(cat(out[2]..., dims=1)))
+	            torm_strains = [torm_strains ; torm]
 	            flag = true
 	            break
 	        end
 	    end
+	    if length(MCC)==1
+           	println("Trees have been completely matched")
+           	torm = [torm ; cat([x.label for x in keys(segtrees[segments[1]].lleaves)], repeat([mcc_idx()], length(segtrees[segments[1]].lleaves)) ,dims=2)]
+           	break
+        end
 	    if !flag
 	    	break
 	    end
 	end
 
-	return torm_strains, torm_mccs
+	return torm_strains, torm_mccs, matched
 end
 
 # """
@@ -347,7 +372,7 @@ function filter_strains(tofilter_strains, tofilter_mccs ; confidence=[])
 	end
 	mkpath("outmsas")
 	for s in segments
-		filter_fasta("../AugurData/results/aligned_h3n2_$(s).fasta", "outmsas/filtered_h3n2_$(s).fasta", tofilter_strains)
+		filter_fasta("../AugurData/results/aligned_h3n2_$(s).fasta", "outmsas/filtered_h3n2_$(s).fasta", tofilter_strains[:,1])
 	end
 end
 
@@ -465,12 +490,14 @@ end
 """
 function find_suspicious_mccs(crossmuts, segtrees)
 	fmcc = []
-	tofilter = []
+	tofilter = Array{Any,2}(undef, 0, 2)
 	confidence = []
-	for (l,cm) in crossmuts
+	for (l,cm) in crossmuts # loop on mccs
 	    if sum(values(cm.suspicious))>0
 	        push!(fmcc, l)
-	        push!(tofilter, [x.label for x in node_leavesclade(segtrees[segments[1]].lnodes[l])]...)
+	        # push!(tofilter, [x.label for x in node_leavesclade(segtrees[segments[1]].lnodes[l])]...)
+	        strains = node_leavesclade_labels(segtrees[segments[1]].lnodes[l])
+	        tofilter = [tofilter ; cat(strains, repeat([mcc_idx()], length(strains)), dims=2)]
         	push!(confidence, repeat([sum(collect(values(cm.suspicious)))], length(node_leavesclade(segtrees[segments[1]].lnodes[l])))...)
 	    end
 	end
