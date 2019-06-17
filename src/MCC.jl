@@ -273,11 +273,33 @@ function supraMCC(treelist, MCC)
 end
 
 """
+   reduce_to_mcc(strainlist, MCC)
+
+Decomposes `strainlist` into mccs that compose it. 
+Errors if not possible 
+"""
+function reduce_to_mcc(strainlist, MCC)
+    mcclist = []
+    for m in MCC
+        tmp = intersect(m,strainlist)
+        if !isempty(tmp)
+            if tmp != m
+                error("`strainlist` not decomposable into mccs\n")
+            else
+                push!(mcclist, m)
+            end
+        end
+    end
+
+    return mcclist
+end
+
+"""
     reduce_to_mcc(tree, MCC)
 
 Reduce `tree` to its MCC. Returns a tree with `length(MCC)` leaves. 
 """
-function reduce_to_mcc(tree, MCC)
+function reduce_to_mcc(tree::Tree, MCC)
     if !assert_mcc((tree,), MCC)
         error("MCC are not consistent with tree.")
     end
@@ -285,7 +307,9 @@ function reduce_to_mcc(tree, MCC)
     out = deepcopy(tree)
     for m in MCC
         r = lca([out.lnodes[x] for x in m])
-        if !r.isleaf
+        if r.isroot
+            return node2tree(TreeNode(isleaf=true, isroot = true, label=r.label, data=r.data))
+        elseif !r.isleaf
             rn = TreeNode(isleaf=true, isroot = true, label=r.label, data=r.data)
             a = r.anc
             prunenode!(r)
@@ -294,6 +318,9 @@ function reduce_to_mcc(tree, MCC)
     end
     return node2tree(out.root)
 end
+
+
+
 
 
 """
