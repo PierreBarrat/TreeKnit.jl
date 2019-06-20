@@ -32,8 +32,9 @@ global root_strain = "A/Victoria/361/2011"
 
 let state = 0
 	global mcc_idx() = (state += 1)
+	global reset_mcc_idx() = (state = 0)
 end
-
+#=
 function run_it(it::Int64, cwd::String, segtrees_, jointtree_ ; mut=true, sa=true)
 	segtrees = deepcopy(segtrees_)
 	jointtree = deepcopy(jointtree_)
@@ -72,6 +73,31 @@ function run_it(it::Int64, cwd::String, segtrees_, jointtree_ ; mut=true, sa=tru
 
 	return segtrees, jointtree
 end
+=#
+
+function run_it(it::Int64, segtrees_, jointMSA ; mut=true, sa=true)
+	println("############# It$it #############")
+	segtrees = deepcopy(segtrees_)
+	if it == 0
+		reset_mcc_idx()
+	end
+	## Arrange directories
+	mkpath("OutData/It$it")
+	## Mutation based pruning
+	if mut
+		println("Pruning based on mutations")
+		# Checking that sequences are present
+		if !prod(prod(!isempty(x.data.sequence) for x in collect(values(segtrees[s].leaves))) for s in segments)
+			error("Trees do not have sequences attached")
+		end
+		segtrees, torm_mccs, mcc_names = prunetrees_mut(segtrees, jointMSA, cwd="OutData/It$it", verbose=true)
+		mcclist = [mcc_names[x] for x in torm_mccs]
+		filtered_strains = removeMCCs!(segtrees, mcclist, outfile="OutData/It$it/FilteredStrains_mut.txt")
+		println("Filtering $(length(mcclist)) MCCs, corresponding to $(length(filtered_strains[:,1])) strains.")
+	end
+	return segtrees
+end
+
 
 """
 	removeMCCs!(segtrees, mcclist)
@@ -80,9 +106,23 @@ Remove all strains in `mcclist` from `segtrees`. `mcclist` should be an array of
 Removed strains are written to the end of `outfile`. 
 """
 function removeMCCs!(segtrees, mcclist ; outfile = "StrainsToFilter.txt")
-	out = 
-	for m in mcclist
+	filtered = Array{Any, 2}(undef, 0, 2)
+	for (i,m) in enumerate(mcclist)
+		idx = mcc_idx()
+		for n in m
+			filtered = [filtered ; [n idx]]
+		end
+		for (s,t) in segtrees
+			segtrees[s] = prunenode(t, m)
+		end
+		# println(i)
+		# println(share_labels(segtrees["ha"], segtrees["na"]))
 	end
+	for (s,t) in segtrees
+		segtrees[s] = remove_internal_singletons(t)
+	end
+	writedlm(outfile, filtered)
+	return filtered
 end
 
 
@@ -102,6 +142,9 @@ function _resolve_trees!(segtrees ; verbose=false)
 	# Removing null branches
 	for (s,t) in segtrees
 		L = length(t.leaves[1].data.sequence)
+		if L == 0 
+			L = 1e4
+		end
 		delete_null_branches!(t.root, threshold = 1/L/3)
 		t = node2tree(t.root)
 		t = remove_internal_singletons(t)
@@ -110,6 +153,10 @@ function _resolve_trees!(segtrees ; verbose=false)
 
 	# Pairwise resolving
 	for (s,t) in segtrees
+		L = length(t.leaves[1].data.sequence)
+		if L == 0
+			L = 1e4
+		end
 		for (s2,t2) in segtrees
 			if s2 != s
 				t = resolve_trees(t, t2, rtau = 1/L/3, verbose=verbose)

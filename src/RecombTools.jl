@@ -10,7 +10,7 @@ include("MCC.jl")
 include("resolving.jl")
 include("reading.jl")
 include("SplitGraph/SplitGraph.jl")
-include("Iterating/iterating.jl")
+include("Iterating/Iterating.jl")
 include("Interfacing/Interfacing.jl")
 
 using RecombTools.SplitGraph

@@ -3,34 +3,41 @@
 2. Find MCCs
 3. Infer common subtrees for MCCs using joint sequences
 """
-function prunetrees_mut(segtrees, jointmsa; verbose = true)
+function prunetrees_mut(_segtrees, jointmsa; verbose = true, cwd="$(pwd())")
+	segtrees = deepcopy(_segtrees)
 
 	## Resolving, finding MCCs, and adjusting branch length to that of the joint tree
 	# resolving
+	verbose && println("Resolving trees...")
 	_resolve_trees!(segtrees);
 	# MCCs
 	MCC = maximal_coherent_clades(collect(values(segtrees)))
-	println("\n### MCCs ###\n")
-	println("Found $(length(MCC)) MCCs of average size $(mean([length(x) for x in MCC]))")
+	verbose && println("Found $(length(MCC)) MCCs of average size $(mean([length(x) for x in MCC]))")
 	# Adjusting branch length in MCCs
+	mcc_names = name_mcc_clades!(collect(values(segtrees)), MCC)
+	verbose && println("Adjusting branch length in MCCs: inferring $(length(MCC)) subtrees using full genome...")
 	_adjust_branchlength!(segtrees, jointmsa, MCC)
 
 	## Computing ancestral states
-	crossmapping(segtrees)
+	verbose && println("Cross-mapping sequences on trees...")
+	crossmapping(segtrees, cwd)
 
 	## Counting mutations
-	map(s->fasta2tree!(segtrees[s], "CrossMapping/ancestral_tree_$(s)_aln_$(s)/ancestral_sequences.fasta"), segments)
+	map(s->fasta2tree!(segtrees[s], "$cwd/CrossMapping/ancestral_tree_$(s)_aln_$(s)/ancestral_sequences.fasta"), segments)
 	segmd_ref = Dict(s=>make_mutdict!(segtrees[s]) for s in segments)
-	crossmuts = compute_crossmuts(segtrees, MCC, segmd_ref)
+	crossmuts = compute_crossmuts(segtrees, MCC, segmd_ref, cwd)
 
 	## Finding suspicious MCCs
-	fmcc, tofilter, confidence = find_suspicious_mccs(crossmuts, segtrees)
-	iroot = findall(x->x==root_strain, tofilter)
-	for i in iroot
-		splice!(tofilter, i)
-		splice!(confidence, i)
+	fmcc = find_suspicious_mccs(crossmuts, segtrees)
+	# iroot = findall(x->x==root_strain, tofilter)
+	for (i,m) in enumerate(fmcc)
+		if in(root_strain, mcc_names[m])
+			println(i)
+			splice!(fmcc,i)
+		end
 	end
-	return tofilter, fmcc, confidence
+	# return tofilter, fmcc, confidence
+	return segtrees, fmcc, mcc_names
 end
 
 
@@ -40,7 +47,7 @@ end
 """
 function _adjust_branchlength!(segtrees, jointmsa, MCC)
 	for (s,t) in segtrees
-		segtrees[s] = _adjust_branchlength(t, jointMSA, MCC)
+		segtrees[s] = _adjust_branchlength(t, jointmsa, MCC)
 	end
 end
 
@@ -55,9 +62,21 @@ Copy `tree`. For all `m` in MCC:
 function _adjust_branchlength(tree::Tree, jointmsa, MCC)
 	t = deepcopy(tree)
 	for m in MCC
-		sub, r = prunesubtree!(t, m)
-		sub = Interfacing.scalebranches(sub, jointmsa)
-		graftnode!(r, sub)
+		if length(m) > 2
+			# Subtree to resclae
+			sub, r = prunesubtree!(t, m);
+			tau = sub.root.data.tau
+			rootlabel = sub.root.label
+			# Rescaling
+			sub = RecombTools.Interfacing.scalebranches(sub, jointmsa);
+			# Rerooting 
+			root = node_findlabel(rootlabel, sub.root)
+			TreeTools.reroot!(root)
+			root.data.tau = tau
+			# Regrafting
+			graftnode!(r, root)
+			t = node2tree(t.root);
+		end
 	end
 	return t
 end
@@ -65,16 +84,16 @@ end
 
 """
 """
-function crossmapping(segtrees)
-	mkpath("CrossMapping")
+function crossmapping(segtrees, cwd::String)
+	mkpath("$cwd/CrossMapping")
 	for (s,t) in segtrees
-		write_newick("CrossMapping/tree_$(s)_adjusted.nwk", t)
+		write_newick("$cwd/CrossMapping/tree_$(s)_adjusted.nwk", t)
 	end
-	map(k->run(`cp msas/aligned_simple_h3n2_$(k).fasta CrossMapping`), collect(keys(segtrees)))
+	map(k->write_fasta("$cwd/CrossMapping/aligned_simple_h3n2_$(k).fasta", segtrees[k], internal=false), collect(keys(segtrees)))
 
 	for s1 in segments
 		for s2 in segments
-			Interfacing.run_treetime(verbose=false, aln="CrossMapping/aligned_simple_h3n2_$(s1).fasta", tree="CrossMapping/tree_$(s2)_adjusted.nwk", out="CrossMapping/ancestral_tree_$(s2)_aln_$(s1)")
+			RecombTools.Interfacing.run_treetime(verbose=false, aln="$cwd/CrossMapping/aligned_simple_h3n2_$(s1).fasta", tree="$cwd/CrossMapping/tree_$(s2)_adjusted.nwk", out="$cwd/CrossMapping/ancestral_tree_$(s2)_aln_$(s1)")
 		end
 	end
 end
@@ -83,12 +102,12 @@ end
 Construct a dictionary of the form `"mcc label"=>CrossMutations`. 
 Expects the directory CrossMapping to exist, containing ancestral sequences for all combinations of segments and trees. 
 """
-function compute_crossmuts(segtrees, MCC, segmd_ref)
+function compute_crossmuts(segtrees, MCC, segmd_ref, cwd)
 	# Building a [tree, aln] dictionary of mutations
 	crossmuts_all = Dict()
 	for a in keys(segtrees)
 	    for t in keys(segtrees)
-	        crossmuts_all[t,a] = parse_nexus("CrossMapping/ancestral_tree_$(t)_aln_$(a)/annotated_tree.nexus")
+	        crossmuts_all[t,a] = parse_nexus("$cwd/CrossMapping/ancestral_tree_$(t)_aln_$(a)/annotated_tree.nexus")
 	    end
 	end
 
@@ -122,12 +141,13 @@ function find_suspicious_mccs(crossmuts, segtrees)
 	confidence = []
 	for (l,cm) in crossmuts # loop on mccs
 	    if sum(values(cm.suspicious))>0
-	        push!(fmcc, node_leavesclade_labels(segtrees[segments[1]].lnodes[l]))
+	        # push!(fmcc, node_leavesclade_labels(segtrees[segments[1]].lnodes[l]))
+	        push!(fmcc, l)
 	        # push!(tofilter, [x.label for x in node_leavesclade(segtrees[segments[1]].lnodes[l])]...)
-	        strains = node_leavesclade_labels(segtrees[segments[1]].lnodes[l])
-	        tofilter = [tofilter ; cat(strains, repeat([mcc_idx()], length(strains)), dims=2)]
-        	push!(confidence, repeat([sum(collect(values(cm.suspicious)))], length(node_leavesclade(segtrees[segments[1]].lnodes[l])))...)
+	        # strains = node_leavesclade_labels(segtrees[segments[1]].lnodes[l])
+	        # tofilter = [tofilter ; cat(strains, repeat([mcc_idx()], length(strains)), dims=2)]
+        	# push!(confidence, repeat([sum(collect(values(cm.suspicious)))], length(node_leavesclade(segtrees[segments[1]].lnodes[l])))...)
 	    end
 	end
-	return fmcc, tofilter, confidence
+	return fmcc
 end
