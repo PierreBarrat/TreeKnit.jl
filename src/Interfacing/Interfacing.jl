@@ -64,8 +64,8 @@ function scalebranches(_tree::Tree, fasta)
 	for n in values(out.leaves)
 		# Replacing 2 first and last _ by / -- iqtree replaces all /s by _s
 		# If a country ever has a _ in its name, I'll turn into the Hulk
-		n.label = replace(n.label, "_"=>"/", count=2)
-		n.label = replace(n.label[end:-1:1], "_"=>"/", count=1)[end:-1:1]
+		# n.label = replace(n.label, "_"=>"/", count=2)
+		# n.label = replace(n.label[end:-1:1], "_"=>"/", count=1)[end:-1:1]
 	end
 	isempty(_tree.leaves[1].data.sequence) ? L = 10000 : L = length(_tree.leaves[1].data.sequence)
 	delete_null_branches!(out.root, threshold = 1/L/3)

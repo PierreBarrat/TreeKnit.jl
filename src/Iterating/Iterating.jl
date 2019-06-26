@@ -28,7 +28,8 @@ and text files containing strains that have been removed, with two columns: stra
 # Use Interfacing.scalebranches for this
 
 global segments = ["ha","na"]
-global root_strain = "A/Victoria/361/2011"
+# global root_strain = "A/Victoria/361/2011"
+global root_strain = "root"
 
 let state = 0
 	global mcc_idx() = (state += 1)
@@ -75,10 +76,10 @@ function run_it(it::Int64, cwd::String, segtrees_, jointtree_ ; mut=true, sa=tru
 end
 =#
 
-function run_it(it::Int64, segtrees_, jointMSA ; mut=true, sa=true)
+function run_it(it::Int64, segtrees_, jointMSA ; mut=true, sa=true, writetrees=true)
 	println("############# It$it #############")
 	segtrees = deepcopy(segtrees_)
-	if it == 0
+	if it == 1
 		reset_mcc_idx()
 	end
 	## Arrange directories
@@ -87,15 +88,35 @@ function run_it(it::Int64, segtrees_, jointMSA ; mut=true, sa=true)
 	if mut
 		println("Pruning based on mutations")
 		# Checking that sequences are present
-		if !prod(prod(!isempty(x.data.sequence) for x in collect(values(segtrees[s].leaves))) for s in segments)
+		if !prod(prod(!isempty(x.data.sequence) for x in collect(values(segtrees[s].leaves))) for s in keys(segtrees))
 			error("Trees do not have sequences attached")
 		end
 		segtrees, torm_mccs, mcc_names = prunetrees_mut(segtrees, jointMSA, cwd="OutData/It$it", verbose=true)
 		mcclist = [mcc_names[x] for x in torm_mccs]
-		filtered_strains = removeMCCs!(segtrees, mcclist, outfile="OutData/It$it/FilteredStrains_mut.txt")
-		println("Filtering $(length(mcclist)) MCCs, corresponding to $(length(filtered_strains[:,1])) strains.")
+		filtered_strains_mut = removeMCCs!(segtrees, mcclist, outfile="OutData/It$it/FilteredStrains_mut.txt")
+		println("Filtering $(length(mcclist)) MCCs, corresponding to $(length(filtered_strains_mut[:,1])) strains.")
+	elseif sa
+		println("Pruning based on topology")
+		segtrees, mcclist = prunetrees_sa(segtrees, verbose=true, maxsize=75)
+		filtered_strains_sa = removeMCCs!(segtrees, mcclist, outfile="OutData/It$it/FilteredStrains_sa.txt")
+		println("Filtering $(length(mcclist)) MCCs, corresponding to $(length(filtered_strains_sa[:,1])) strains.")
 	end
-	return segtrees
+	#
+	for (s,t) in segtrees
+		write_newick("OutData/It$it/tree_$(s)_pruned.nwk", t.root)
+	end
+	#
+	if mut && sa
+		filtered_strains = [filtered_strains_mut, filtered_strains_sa]
+	elseif sa
+		filtered_strains = filtered_strains_sa
+	elseif mut
+		filtered_strains = filtered_strains_mut
+	else
+		filtered_strains = []
+	end
+	#
+	return segtrees, filtered_strains
 end
 
 

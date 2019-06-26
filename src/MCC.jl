@@ -243,10 +243,10 @@ end
 """
     supraMCC(treelist, MCC)
 
-Find supra MCC: clades that are common to all trees in `treelist` and contain as few MCC as possible (i.e. they should be direct ancestors to MCC ideally)
+Find supra MCC: clades that are common to all trees in `treelist` and contain as few MCC as possible (i.e. they should be direct ancestors to MCCs ideally)
 Method: For each `m` in MCC 
 1. Start with the root of `m` in `first(treelist)`: `r` 
-2. The clade `C` defined by `m.anc` is our first candidate to a supraMCC
+2. The clade `C` defined by `r.anc` is our first candidate to a supraMCC
 3. For each tree in `treelist`, check if `C` is a clade. If not, `a = mrca(C)` and `C<--clade(a)`. 
 4. Iterate 3. until `C` is a clade for all trees in `treelist`. `C` is the supraMCC corresponding to `m`
 """

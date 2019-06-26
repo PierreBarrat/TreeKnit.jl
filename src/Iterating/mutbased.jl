@@ -23,8 +23,8 @@ function prunetrees_mut(_segtrees, jointmsa; verbose = true, cwd="$(pwd())")
 	crossmapping(segtrees, cwd)
 
 	## Counting mutations
-	map(s->fasta2tree!(segtrees[s], "$cwd/CrossMapping/ancestral_tree_$(s)_aln_$(s)/ancestral_sequences.fasta"), segments)
-	segmd_ref = Dict(s=>make_mutdict!(segtrees[s]) for s in segments)
+	map(s->fasta2tree!(segtrees[s], "$cwd/CrossMapping/ancestral_tree_$(s)_aln_$(s)/ancestral_sequences.fasta"), collect(keys(segtrees)))
+	segmd_ref = Dict(s=>make_mutdict!(segtrees[s]) for s in keys(segtrees))
 	crossmuts = compute_crossmuts(segtrees, MCC, segmd_ref, cwd)
 
 	## Finding suspicious MCCs
@@ -91,8 +91,8 @@ function crossmapping(segtrees, cwd::String)
 	end
 	map(k->write_fasta("$cwd/CrossMapping/aligned_simple_h3n2_$(k).fasta", segtrees[k], internal=false), collect(keys(segtrees)))
 
-	for s1 in segments
-		for s2 in segments
+	for s1 in keys(segtrees)
+		for s2 in keys(segtrees)
 			RecombTools.Interfacing.run_treetime(verbose=false, aln="$cwd/CrossMapping/aligned_simple_h3n2_$(s1).fasta", tree="$cwd/CrossMapping/tree_$(s2)_adjusted.nwk", out="$cwd/CrossMapping/ancestral_tree_$(s2)_aln_$(s1)")
 		end
 	end
@@ -114,7 +114,7 @@ function compute_crossmuts(segtrees, MCC, segmd_ref, cwd)
 	# Inverting it to have a "per MCC" dictionary of mutations
 	crossmuts_mccs = Dict()
 	for m in MCC
-	    lab = lca([segtrees[segments[1]].lnodes[x] for x in m]).label
+	    lab = lca([first(segtrees)[2].lnodes[x] for x in m]).label
 	    cm = CrossMutations()
 	    for a in keys(segtrees)
 	        for t in keys(segtrees)
@@ -140,7 +140,7 @@ function find_suspicious_mccs(crossmuts, segtrees)
 	tofilter = Array{Any,2}(undef, 0, 2)
 	confidence = []
 	for (l,cm) in crossmuts # loop on mccs
-	    if sum(values(cm.suspicious))>0
+	    if sum(values(cm.suspicious))>1
 	        # push!(fmcc, node_leavesclade_labels(segtrees[segments[1]].lnodes[l]))
 	        push!(fmcc, l)
 	        # push!(tofilter, [x.label for x in node_leavesclade(segtrees[segments[1]].lnodes[l])]...)
