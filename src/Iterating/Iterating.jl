@@ -128,19 +128,26 @@ Removed strains are written to the end of `outfile`.
 """
 function removeMCCs!(segtrees, mcclist ; outfile = "StrainsToFilter.txt")
 	filtered = Array{Any, 2}(undef, 0, 2)
-	for (i,m) in enumerate(mcclist)
-		idx = mcc_idx()
-		for n in m
-			filtered = [filtered ; [n idx]]
+	if mapreduce(x->length(x), +, mcclist, init=0) == length(first(segtrees)[2].leaves)
+		filtered = cat(collect(keys(first(segtrees)[2].lleaves)), repeat([mcc_idx()], length(first(segtrees)[2].leaves)),dims=2)
+		for (s,t) in segtrees
+			segtrees[s] = node2tree(TreeNode())
+		end
+	else
+		for (i,m) in enumerate(mcclist)
+			idx = mcc_idx()
+			for n in m
+				filtered = [filtered ; [n idx]]
+			end
+			for (s,t) in segtrees
+				segtrees[s] = prunenode(t, m)
+			end
+			# println(i)
+			# println(share_labels(segtrees["ha"], segtrees["na"]))
 		end
 		for (s,t) in segtrees
-			segtrees[s] = prunenode(t, m)
+			segtrees[s] = remove_internal_singletons(t)
 		end
-		# println(i)
-		# println(share_labels(segtrees["ha"], segtrees["na"]))
-	end
-	for (s,t) in segtrees
-		segtrees[s] = remove_internal_singletons(t)
 	end
 	writedlm(outfile, filtered)
 	return filtered

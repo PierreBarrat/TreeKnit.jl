@@ -7,6 +7,10 @@ function prunetrees_sa(segtrees ; maxsize = 50, verbose=true)
 	MCC_init = maximal_coherent_clades(collect(values(st)))
 	verbose && println("Found $(length(MCC_init)) MCCs of average size $(mean([length(x) for x in MCC_init]))")
 	mcc_names = name_mcc_clades!(collect(values(st)), MCC_init)
+	if length(MCC_init) == 1
+		println("Found only one MCC, nothing to prune.")
+		return segtrees, [MCC_init[1]]
+	end
 	supra = unique([Set(x) for x in RecombTools.supraMCC(values(st), MCC_init)])
 	verbose && println("Found $(length(supra)) common clades from MCCs")
 

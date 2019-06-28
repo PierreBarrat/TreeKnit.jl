@@ -21,11 +21,15 @@ end
 
 """
 Assuming we know the *real* label of internal nodes in all trees. 
-If two nodes have the same mrca in all trees, they belong to the same MCC. 
+If two nodes have the same mrca in all trees, they belong to the same MCC.
+Only works correctly for two trees right now. 
 """
 function realMCCs(trees::Vararg{Tree})
 	# Label nodes based on being common in all tree and having a recombination above. 
-	# i.e. --> being the root of an MCC! 
+	# i.e. --> being the root of an MCC!
+	if length(trees) > 2 
+		@warn "realMCCs only functionnal for 2 trees"
+	end
 	nd = Dict()
 	tref = first(trees)
 	for l in keys(tref.lnodes)
@@ -33,10 +37,21 @@ function realMCCs(trees::Vararg{Tree})
 		common = prod(haskey(t.lnodes, l) for t in trees)
 		if common
 			recomb = false
-			if prod(t.lnodes[l].isroot for t in trees) 
+			if |([t.lnodes[l].isroot for t in trees]...)
 				nd[l] = true
 			elseif length(unique([t.lnodes[l].anc.label for t in trees]))!=1
-				nd[l] = true
+				alist = [t.lnodes[l].anc for t in trees]
+				if length(alist)==2
+					a1 = alist[1]
+					a2 = alist[2]
+					la1 = node_ancestor_list(a1)
+					la2 = node_ancestor_list(a2)
+					if !in(a1.label, la2) && !in(a2.label, la1)
+						nd[l] = true
+					end
+				else
+					@warn "realMCCs only functionnal for 2 trees"
+				end
 			end
 		end
 	end
@@ -52,5 +67,18 @@ function realMCCs(trees::Vararg{Tree})
 		push!(mcc[cl], l)
 	end
 	return mcc
+end
+
+
+"""
+"""
+function unname_nodes(t::Tree)
+	tt = deepcopy(t)
+	for n in values(tt.nodes)
+		if !n.isleaf
+			n.label = ""
+		end
+	end
+	return node2tree(tt.root)
 end
 

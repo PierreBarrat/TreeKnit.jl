@@ -9,22 +9,29 @@ global augur = "/home/pierrebc/miniconda3/envs/augur/bin/augur"
 global iqtree = "/home/pierrebc/miniconda3/envs/augur/bin/iqtree"
 global treetime = "/home/pierrebc/miniconda3/envs/augur/bin/treetime"
 
-function infertree(alignment::String, outfile::String, opt::Vararg{String})
+"""
+	infertree(alignment::String, outfile::String, options::Vararg{String})
+
+Run `iqtree` on `alignment`. Only the newick file is kept, all other outputs of `iqtree` are discarded. 
+`options` should be of the form `"-X","ArgToX",...` for options with arguments. 
+"""
+function infertree(alignment::String, outfile::String, options::Vararg{String})
 	# Setting up temporary directory
 	mkpath("tmp_infertree")
 	run(`cp $alignment tmp_infertree`)
 
-
+	aln = basename(alignment)
 	# Inferring
-	base = ["-redo", "-s", "tmp_infertree/$alignment"]
-	for x in opt
+	base = ["-redo", "-s", "tmp_infertree/$aln"]
+	for x in options
 		push!(base, x)
 	end
-	run(pipeline(`$iqtree $base`), stdout="tmp_infertree/log.txt")
+	run(pipeline(`$iqtree $base`, stdout="tmp_infertree/log.txt"))
 
 	# Moving results
-	run(`mv tmp_infertree/$alignment.treefile $outfile`)
+	run(`mv tmp_infertree/$aln.treefile $outfile`)
 	run(`rm -rd tmp_infertree`)
+	return nothing
 end
 
 """

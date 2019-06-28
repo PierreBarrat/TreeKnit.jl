@@ -12,9 +12,13 @@ function prunetrees_mut(_segtrees, jointmsa; verbose = true, cwd="$(pwd())")
 	_resolve_trees!(segtrees);
 	# MCCs
 	MCC = maximal_coherent_clades(collect(values(segtrees)))
-	verbose && println("Found $(length(MCC)) MCCs of average size $(mean([length(x) for x in MCC]))")
-	# Adjusting branch length in MCCs
 	mcc_names = name_mcc_clades!(collect(values(segtrees)), MCC)
+	verbose && println("Found $(length(MCC)) MCCs of average size $(mean([length(x) for x in MCC]))")
+	if length(MCC) == 1
+		println("Found only one MCC, nothing to prune.")
+		return segtrees, collect(keys(mcc_names)[1]), mcc_names
+	end
+	# Adjusting branch length in MCCs
 	verbose && println("Adjusting branch length in MCCs: inferring $(length(MCC)) subtrees using full genome...")
 	_adjust_branchlength!(segtrees, jointmsa, MCC)
 
