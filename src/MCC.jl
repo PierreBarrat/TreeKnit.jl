@@ -20,7 +20,7 @@ All the trees of `treelist` should share the same leaf nodes.
 # Note
 In this version, the function does not attempt to
 - Resolve clades. Since we should already be resolving clade using the information of all segments, resolving them here just makes the code more complex
-- Increasing MCC by adding children of multiforcations one by one. I wish to keep this code as basic as possible: it should just find regions of perfect topologic compatibility in all trees of `treelist`. The rest can use another function, maybe a `combine_mcc` one. 
+- Increase MCC by adding children of multiforcations one by one. I wish to keep this code as basic as possible: it should just find regions of perfect topologic compatibility in all trees of `treelist`. The rest can use another function, maybe a `combine_mcc` one. 
 """
 function maximal_coherent_clades(treelist)
     # Checking that trees have the same label for leaf nodes
