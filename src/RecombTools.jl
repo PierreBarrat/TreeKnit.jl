@@ -13,6 +13,7 @@ include("SplitGraph/SplitGraph.jl")
 include("Iterating/Iterating.jl")
 include("Interfacing/Interfacing.jl")
 include("ArtificialData/ArtificialData.jl")
+include("ARGTools/ARGTools.jl")
 
 using RecombTools.SplitGraph
 using RecombTools.Iterating
