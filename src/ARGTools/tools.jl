@@ -125,7 +125,8 @@ end
 Count the number of nodes in `arg` that have more than one ancestor.
 """
 function count_reassortments(arg::ARG)
-	return count(x->length(x[2].anc) > 1, arg.nodes)
+	rea = [k for (k,v) in arg.nodes if length(v.anc) > 1]
+	return length(rea), rea
 end
 
 """
@@ -197,7 +198,7 @@ a1***
 |	a2
 |	*
 n****
-where "|" and "*" are two colors. Fix it. 
+where "|" and "*" are two colors. Fix it. (See source code of function help for correct display)
 
 ## Method
 Find triplets `(n, a1, a2)` such that `a1, a2` are ancestors of `n`, and `a1` is an ancestor of `a2` for `colors`. 
@@ -239,12 +240,12 @@ end
 	fix_trivial_loop!(A::ARGNode, B::ARGNode, C::ARGNode, clr_1::Int64, clr_2::Int64)
 
 Place `C` on the branch going up from `B` to `A` for `color`. Obviously, `C` should not already be of color `color`.  
-A***			A
-|  *			|*
-|  C   -->  	C
-|  *			|*
-B***			B
-With "|" corresponding to `clr_1` and "*" to `clr_2`. 
+A***			A     
+|  *			|*  
+|  C   -->  	C  
+|  *			|*  
+B***			B  
+With "|" corresponding to `clr_1` and "*" to `clr_2`. (See source code of function help for correct display)
 ## Steps
 - Set `C.color[clr_1]` to `true`
 - Set branch from `C` to `A` to `clr_1` on top of `clr_2`. 

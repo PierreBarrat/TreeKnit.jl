@@ -1,5 +1,11 @@
 export compute_energy
 
+let n::Int64=0
+	global increment_n() = (n+=1)
+	global reset_n() = (n=0)
+	global get_n() = n
+end
+
 """
 """
 function compute_energy(conf::Array{Bool,1}, g::Graph)
@@ -15,13 +21,13 @@ function compute_energy(conf::Array{Bool,1}, g::Graph)
 				a1 = g.leaves[i].anc[k1]
 				# If ancestor is identical to leaf for given configuration (i.e. only one spin up), go up
 				# @time a1.conf[conf]
-				while !a1.isroot && sum(a1.conf[conf]) == 1
-					a1 = a1.anc
+				while !a1.isroot && nspinup(a1.conf, conf) == 1
+					a1 = a1.anc::SplitNode
 				end
 				for k2 in (k1+1):g.K
 					# Same for 
 					a2 = g.leaves[i].anc[k2]
-					while !a2.isroot && a2.conf[conf] == g.leaves[i].conf[conf]
+					while !a2.isroot && nspinup(a2.conf, conf) == 1
 						a2 = a2.anc
 					end
 					# Mismatch
@@ -32,12 +38,45 @@ function compute_energy(conf::Array{Bool,1}, g::Graph)
 					# 	println(a2.conf[conf])
 					# 	println()
 					# end
-					E += (a1.conf[conf] != a2.conf[conf] && !isnothing(findfirst(x->x==-1, a1.conf[conf] - a2.conf[conf])) &&  !isnothing(findfirst(x->x==-1, a2.conf[conf] - a1.conf[conf])) )
+					# if a1.conf[conf] and a2.conf[conf] are disjoint or if one contains the other, E=0
+					# @time E += (a1.conf[conf] != a2.conf[conf] && !isnothing(findfirst(x->x==-1, a1.conf[conf] - a2.conf[conf])) &&  !isnothing(findfirst(x->x==-1, a2.conf[conf] - a1.conf[conf])) )
+					if !are_disjoint(a1.conf, a2.conf, conf) && !is_contained(a1.conf, a2.conf, conf) && !is_contained(a2.conf, a1.conf, conf)
+						E += 1
+					end
 				end
 			end
 		end
 	end
 	return E
+end
+function nspinup(nodeconf, conf)
+	n = 0
+	for i in 1:length(nodeconf)
+		if nodeconf[i] && conf[i]
+			n += 1
+		end
+	end
+	return n
+end
+function are_disjoint(nconf1, nconf2, conf)
+	for (i,s) in enumerate(conf)
+		if s 
+			if nconf1[i] === nconf2[i]
+				return false
+			end
+		end
+	end
+	return true
+end
+function is_contained(nconf1, nconf2, conf) # is 1 in 2 ? 
+	for (i,s) in enumerate(conf)
+		if s 
+			if nconf1[i] && !nconf2[i]
+				return false
+			end
+		end
+	end
+	return true
 end
 
 """

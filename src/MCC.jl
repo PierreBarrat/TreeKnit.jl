@@ -79,6 +79,7 @@ function maximal_coherent_clades(treelist)
     end
     return mc_clades
 end
+maximal_coherent_clades(t...) = maximal_coherent_clades(collect(t))
 
 
 """
@@ -88,7 +89,7 @@ ii. Find the common ancestor to `nodelist`.
 iii. Check whether this common ancestor is a coherent clade  
 All members of `nodelist` should be leaves.
 """
-function is_coherent_clade_nodelist(nodelist::Array{TreeNode,1}, treelist)
+function is_coherent_clade_nodelist(nodelist::Array{<:TreeNode,1}, treelist)
     if !mapreduce(x->x.isleaf, *, nodelist)
         error("All nodes in `nodelist` should be leaves.")
     end
@@ -142,6 +143,8 @@ end
 
 
 """
+    name_mcc_clades!(treelist, MCC)
+    
 For each clade `m` in `MCC`: 
 - Rename the root `r` of `m` to `MCC_\$(i)` or (`\$(r.label)` if `r` is a leaf) where `i` is an integer starting at `label_init`.
 - Rename each non-leaf internal node of `m` to `shared_\$i_\$j` where `j` is an index specific to `m`.  
@@ -308,9 +311,9 @@ function reduce_to_mcc(tree::Tree, MCC)
     for m in MCC
         r = lca([out.lnodes[x] for x in m])
         if r.isroot
-            return node2tree(TreeNode(isleaf=true, isroot = true, label=r.label, data=r.data))
+            return node2tree(TreeNode(r.data, isleaf=true, isroot = true, label=r.label))
         elseif !r.isleaf
-            rn = TreeNode(isleaf=true, isroot = true, label=r.label, data=r.data)
+            rn = TreeNode(r.data, isleaf=true, isroot = true, label=r.label)
             a = r.anc
             prunenode!(r)
             graftnode!(a, rn)

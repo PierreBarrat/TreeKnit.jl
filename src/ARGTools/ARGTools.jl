@@ -21,7 +21,7 @@ mutable struct ARGNode
 	color::Array{Bool}
 	degree::Int64
 	label::String
-	data::Array{NodeData}
+	data::Array{TreeTools.EvoData}
 	isroot::Array{Bool}
 	isleaf::Bool
 end
@@ -31,7 +31,7 @@ function ARGNode(; degree=1,
 	children = Array{ARGNode}(undef, 0), 
 	color = ones(Bool, degree),
 	label = "",
-	data = Array{NodeData}(undef, 0),
+	data = Array{TreeTools.EvoData}(undef, 0),
 	isroot = ones(Bool, degree),
 	isleaf = true
 	)
@@ -70,6 +70,7 @@ function ARG(; degree=1,
 end
 
 include("tools.jl")
+
 
 end
 
