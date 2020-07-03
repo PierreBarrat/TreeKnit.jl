@@ -20,7 +20,7 @@ function compute_energy(conf::Array{Bool,1}, g::Graph)
 				# Ancestors in tree k1
 				a1 = g.leaves[i].anc[k1]
 				# If ancestor is identical to leaf for given configuration (i.e. only one spin up), go up
-				# @time a1.conf[conf]
+				# ie go up to the first non trivial split
 				while !a1.isroot && nspinup(a1.conf, conf) == 1
 					a1 = a1.anc::SplitNode
 				end
@@ -31,15 +31,7 @@ function compute_energy(conf::Array{Bool,1}, g::Graph)
 						a2 = a2.anc
 					end
 					# Mismatch
-					# println(a1.conf[conf] != a2.conf[conf] , " ", !isnothing(findfirst(x->x==-1, a1.conf[conf] - a2.conf[conf])) ||  !isnothing(findfirst(x->x==-1, a2.conf[conf] - a1.conf[conf])))
-					# E += (a1.conf[conf] != a2.conf[conf])
-					# if a1.conf[conf] != a2.conf[conf] 
-					# 	println(a1.conf[conf])
-					# 	println(a2.conf[conf])
-					# 	println()
-					# end
 					# if a1.conf[conf] and a2.conf[conf] are disjoint or if one contains the other, E=0
-					# @time E += (a1.conf[conf] != a2.conf[conf] && !isnothing(findfirst(x->x==-1, a1.conf[conf] - a2.conf[conf])) &&  !isnothing(findfirst(x->x==-1, a2.conf[conf] - a1.conf[conf])) )
 					if !are_disjoint(a1.conf, a2.conf, conf) && !is_contained(a1.conf, a2.conf, conf) && !is_contained(a2.conf, a1.conf, conf)
 						E += 1
 					end
@@ -81,7 +73,7 @@ end
 
 """
 """
-function compute_F(conf::Array{Bool,1}, g::Graph, γ::Real) #this is a mu O_o
+function compute_F(conf::Array{Bool,1}, g::Graph, γ::Real)
 	E = compute_energy(conf, g)
 	return E + γ*(length(conf) - sum(conf))
 end

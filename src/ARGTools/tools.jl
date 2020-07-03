@@ -1,151 +1,29 @@
-"""
-	ARG_from_known_trees(trees::Vararg{Tree})
-
-Construct an `ARG` from *known* trees. 
-Labels of internal nodes in all input trees should correspond to an individual in the past population. Nodes with the same labels in different trees will be matched to the same `ARGNode` object. 
-
-## Method 
-Take `first(trees)` as a base `ARG`, and glue others to it. 
-"""
-function ARG_from_known_trees(trees::Vararg{Tree})
-	reftree = trees[1]
-	degree = length(trees)
-	arg = ARG_from_tree(reftree, degree = degree)
-	for i in 2:length(trees)
-		glue_tree_to_ARG!(arg, trees[i], i)
+function regraft!(n::ARGNode, oldanc::ARGNode, newanc::ARGNode, color::Array{Bool,1})
+	for c in findall(color)
+		regraft!(n, oldanc, newanc, c)
 	end
-	return arg
 end
-
-function glue_tree_to_ARG!(arg::ARG, tree::Tree, color::Int64)
-	glue_node_to_ARG!(arg, tree.root, nothing, color)
-end
-
-function glue_node_to_ARG!(arg::ARG, tn::TreeNode, ARGanc::Union{ARGNode, Nothing}, color::Int64)
-	if haskey(arg.nodes, tn.label)
-		# Update already existing ARG node
-		an = arg.nodes[tn.label]
-		an.color[color] = true
-		# Special case of the root --> can't check label of ancestor in this case
-		if isnothing(ARGanc)
-			i = findfirst(x->x==nothing, an.anc)
-			if !isnothing(i)
-				an.anccolor[i][color] = true
-			else
-				push!(an.anc, ARGanc)
-				push!(an.anccolor, _color(color, arg.degree))
-			end
-		else
-			i = findfirst(x->x==ARGanc.label, [x.label for x in an.anc]) 
-			if !isnothing(i)
-				# if `ARGanc` is already the ancestor of `an`, set corresponding color to true
-				an.anccolor[i][color] = true
-			else
-				# Else, add a new ancestor to `an`
-				push!(an.anc, ARGanc)
-				push!(an.anccolor, _color(color, arg.degree))
-			end
-		end
-		push!(an.data, tn.data)
-		push!(an.isroot, tn.isroot)
-		an.isleaf = tn.isleaf
-	else
-		# Create a new ARG node
-		an = ARGNode(degree=arg.degree,
-			anc = [ARGanc],
-			anccolor = [_color(color, arg.degree)],
-			color = _color(color, arg.degree), 
-			label = tn.label,
-			data = [tn.data],
-			isroot = _color(color, arg.degree)*tn.isroot,
-			isleaf = tn.isleaf)
-		arg.nodes[an.label] = an
-	end
-	# 
-	for c in tn.child
-		cn = glue_node_to_ARG!(arg, c, an, color)
-		if !in(cn.label, [x.label for x in an.children])
-			push!(an.children, cn)
-		end
-	end
-	return an
-end
-
 """
-	ARG_from_tree(tree::Tree ; degree = 1)
-
-Build an `ARG` from a single tree. If `degree > 1`, the output will not be a valid `ARG` object. 
-"""
-function ARG_from_tree(tree::Tree ; degree = 1)
-	# Root
-	arg = ARG(degree=degree)
-	root = ARGNode(degree = degree,
-		anc = [nothing], 
-		anccolor = [_color(1, degree)],
-		color = _color(1, degree),
-		label = tree.root.label,
-		data = [tree.root.data],
-		isroot = _color(1, degree), 
-		isleaf = tree.root.isleaf
-		)
-	arg.root[1] = root
-	arg.nodes[root.label] = root
-	# 
-	for c in tree.root.child
-		nc = ARGNode_from_TreeNode!(arg, c, root, degree=degree)
-		push!(root.children, nc)
-		arg.nodes[nc.label] = nc
-	end
-	return arg
-end
-
-"""
-	ARGNode_from_TreeNode(tn::TreeNode, ARGanc::ARGNode; degree = 1)
-
-Simple `ARGNode` from a `TreeNode` object, with ancestor `ARGanc` as first ancestor. If `degree > 1`, the first element of color is true and the others are false. 
-"""
-function ARGNode_from_TreeNode!(arg::ARG, tn::TreeNode, ARGanc::ARGNode; degree = 1)
-	n = ARGNode(degree=degree,
-		anc = [ARGanc],
-		anccolor = [_color(1, degree)],
-		color = _color(1, degree), 
-		label = tn.label,
-		data = [tn.data],
-		isroot = _color(1, degree)*tn.isroot,
-		isleaf = tn.isleaf)
-	for c in tn.child
-		nc = ARGNode_from_TreeNode!(arg, c, n, degree = degree)
-		push!(n.children, nc)
-		arg.nodes[nc.label] = nc
-	end
-	return n
-end
-
-"""
-Count the number of nodes in `arg` that have more than one ancestor.
-"""
-function count_reassortments(arg::ARG)
-	rea = [k for (k,v) in arg.nodes if length(v.anc) > 1]
-	return length(rea), rea
-end
-
-"""
+	regraft!(n::ARGNode, oldanc::ARGNode, newanc::ARGNode, color::Array{Bool,1})
 	regraft!(n::ARGNode, oldanc::ARGNode, newanc::ARGNode, color::Int64)
 
 Regraft node `n` from `oldanc` to `newanc` for color `color`. Base routine. 
 ## Note
 - `oldanc` has to be an ancestor of `n` for color `color`
 - `newanc` and `n` have to be of color `color`
+## Warning  
+Does not handle `Nothing`. Regrafting a root node **or** to `Nothing` will fail. 
 """
-function regraft!(n::ARGNode, oldanc::ARGNode, newanc::ARGNode, color::Int64)
-	i_old = findfirst(x->x.label==oldanc.label, n.anc)
-	i_child = findfirst(x->x.label==n.label, oldanc.children)
+function regraft!(n::ARGNode, oldanc::ARGNode, newanc::ARGNode, color::Int64; w=false)
+	i_old = findfirst(x->x==oldanc, n.anc)
+	i_child = findfirst(x->x==n, oldanc.children)
+	# n.label=="internal_23" && println(n.anc)
 	if isnothing(i_old)
 		error("Attempting to regraft node from uncorrect ancestor: $(oldanc.label) not ancestor of $(n.label)")
 	elseif isnothing(i_child)
 		error("Attempting to regraft node from uncorrect ancestor: $(n.label) not child of $(oldanc.label)")
 	elseif length(oldanc.children) == 1
-		error("Removing unique child from internal node ($(oldanc.label), $(n.label))")
+		w && @warn "Removing unique child from internal node ($(oldanc.label), $(n.label))"
 	end
 	if !n.anccolor[i_old][color]
 		error("Attempting to regraft node from uncorrect ancestor: branch from $(n.label) to $(oldanc.label) is not of color $color.")
@@ -155,7 +33,7 @@ function regraft!(n::ARGNode, oldanc::ARGNode, newanc::ARGNode, color::Int64)
 	elseif !n.color[color]
 		error("Attempting to regraft node for the wrong color.")
 	end
-
+	#
 	regraft!(n, oldanc, newanc, color, i_old)
 end
 """
@@ -164,125 +42,204 @@ end
 Core function for regrafting. Does not handle errors.
 """
 function regraft!(n::ARGNode, oldanc::ARGNode, newanc::ARGNode, color::Int64, i_old::Int64)
-	# Changes for n
-	i_new = findfirst(x->x.label==newanc.label, n.anc) # Was `newanc` already an ancestor of `n` for another color? 
-	spliceflag = sum(n.anccolor[i_old]) == 1 # Was `oldanc` the ancestor for `color` only? If yes, should be removed. If not, should be kept
-	if isnothing(i_new) # We have to create a new ancestor for `n`
-		push!(n.anc, newanc)
-		push!(n.anccolor, _color(color))
+	# n.label == "internal_32" && println(n)
+	# Changes for n and newanc
+	graft!(n, newanc, color) 
+	# Changes for n and oldanc
+	cut_branch!(n, i_old, color)
+end
+"""
+	graft!(n::ARGNode, a::ARGNode, clr::Int64)
+
+Graft `n` onto `a` for color `clr`. 
+"""
+function graft!(n::ARGNode, a::ARGNode, clr::Int64)
+	# Changes for `a`
+	if !isnothing(a) && !is_ancestor(a, n)[1]
+		push!(a.children, n)
+	end
+	# Changes for `n`
+	ia = findfirst(x->x==a, n.anc) # Was `a` already an ancestor of `n` for another color? 
+	if isnothing(ia) # We have to create a new ancestor for `n`
+		push!(n.anc, a)
+		push!(n.anccolor, _color(clr, length(n.color)))
 	else # Just set the branch of the right color
-		n.anccolor[i_new][color] = true
-	end
-	if !spliceflag 
-		n.anccolor[i_old][color] = false
-	else
-		splice!(n.anccolor, i_old)
-		splice!(n.anc, i_old)
-	end
-
-	# Changes for oldanc
-	i_child = findfirst(x->x.label==n.label, oldanc.children)
-	splice!(oldanc.children, i_child)
-
-	# Changes for newanc
-	i_child = findfirst(x->x.label==n.label, newanc.children)
-	if isnothing(i_child) 
-		push!(newanc.children, n)
+		n.anccolor[ia][clr] = true
 	end
 end
 
 """
-Find the below situation
-a1***
-|	*
-|	a2
-|	*
-n****
-where "|" and "*" are two colors. Fix it. (See source code of function help for correct display)
+	prune!(n::ARGNode; nochildren=true)
 
-## Method
-Find triplets `(n, a1, a2)` such that `a1, a2` are ancestors of `n`, and `a1` is an ancestor of `a2` for `colors`. 
-Then, the triplet is validated if the following conditions are met for two colors `clr1` and `clr2` of `n`. 
-- `a1` is an ancestor of `n` for `clr1`. 
-- `a2` is an ancestor of `n` for `clr2`. 
-- `a1` is an ancestor of `a2` for `clr2`. 
-- `a2` is *not* of color `clr1`. 
+Prune `n`. Return `n`. If `nochildren`, `n` should not have children when pruned. 
 """
-function find_trivial_loop!(arg::ARG)
-	nloops = 0
-	for n in values(arg.nodes)
-		# Finding loops that need fixing, then fixing. Fixing loops modifies indices of ancestors, so I have to proceed this way. 
-		loops_to_fix = Array{Tuple{String, String, Int64, Int64},1}(undef, 0)
-		for (i1, a1) in enumerate(n.anc)
-			for (i2, a2) in enumerate(n.anc)
-				flag, colors = is_ancestor(a1, a2)
-				if flag # `a1` is an ancestor of `a2` for `colors`
-					for clr1 in findall(n.color)
-						for clr2 in findall(n.color)
-							if n.anccolor[i1][clr1] && n.anccolor[i2][clr2] && colors[clr2] && !a2.color[clr1]
-								nloops += 1
-								push!(loops_to_fix, (a1.label, a2.label, clr1, clr2))
-							end
-						end
-					end
-				end
+function prune!(arg::ARG, n::ARGNode)
+	if length(n.children)>0
+		@error "Trying to prune node `n.label` with children."
+	end
+	while !isempty(n.anc)
+		for c in findall(n.anccolor[1])
+			cut_branch!(n, 1, c)
+		end
+	end
+	delete!(arg.nodes, n.label)
+	return n
+end
+
+"""
+Cut branch from `n` to `n.anc[i]` for color `clr`. Color of `n.anc[i]` is changed if necessary. 1
+# Note
+`n` is not regrafted and may not have any ancestor left after this.   
+`n.anc` may have no child after this. 
+"""
+function cut_branch!(n::ARGNode, i::Int64, clr::Int64)
+	# Checks
+	length(n.anc) < i && @error "Cannot delete anc #$i from $(n.label): too few ancestors"
+	# Delete branches
+	a = n.anc[i]
+	n.anccolor[i][clr] = false
+	if !(|)(n.anccolor[i]...)
+		deleteat!(n.anc, i)
+		deleteat!(n.anccolor, i)
+		if !isnothing(a)
+			ic = findfirst(x->x.label==n.label, a.children)
+			deleteat!(a.children, ic)
+		end
+	end
+	# Correct colors if necessary
+	correct_color!(a)
+end
+function cut_branch!(n::ARGNode, idx::Array{Int64}, clr::Int64)
+	length(n.anc) < max(idx...) && @error "Cannot delete anc #$(max(idx...)) from $(n.label): too few ancestors"
+	# 
+	todel = Int64[]
+	alist = []
+	for i in idx
+		a = n.anc[i]
+		push!(alist, a)
+		n.anccolor[i][clr] = false
+		if !(|)(n.anccolor[i]...)
+			push!(todel, i)
+			if !isnothing(a)
+				ic = findfirst(x->x.label==n.label, a.children)
+				deleteat!(a.children, ic)
 			end
 		end
-		for (l1, l2, clr1, clr2) in loops_to_fix
-			println("Fixing loop ($l1, $(n.label), $l2, $clr1, $clr2) ")
-			fix_trivial_loop!(arg.nodes[l1], n, arg.nodes[l2], clr1, clr2)
+	end
+	deleteat!(n.anc, todel)
+	deleteat!(n.anccolor, todel)
+	for a in alist
+		correct_color!(a)
+	end
+end
+
+###
+###
+
+
+function correct_color!(n::ARGNode)
+	if !n.isleaf
+		x = zeros(Bool, length(n.color))
+		for c in n.children
+			i = findfirst(x->x==n, c.anc)
+			x .= (|).(x, c.anccolor[i])
+		end
+		n.color = x
+	end
+end
+correct_color!(n::Nothing) = nothing
+
+"""
+	has_singletons(arg)
+
+Singletons are nodes `n` such that `length(n.children) == 1`.
+"""
+function has_singletons(arg)
+	for n in values(arg.nodes)
+		if length(n.children) == 1
+			return true
 		end
 	end
-	println("`find_trivial_loop!`: Found $nloops loops to fix.")
+	return false
+end
+"""
+	prune_singletons!(arg::ARG; v=false)
+
+Singletons are nodes `n` such that `length(n.children) == 1`.  
+"""
+function prune_singletons!(arg::ARG; v=false, Nit=1e3)
+	npruned = 1
+	nit = 0
+	while has_singletons(arg) && nit < Nit
+		for n in values(arg.nodes)
+			if length(n.children) == 1
+				# Graft the child onto ancestors
+				v && println("Pruned $(n.label).\n Ancestors $([x.label for x in n.anc]).\n Child $(n.children[1].label).")
+				for (i,a) in enumerate(n.anc)
+					clr = n.anccolor[i]
+					regraft!(n.children[1], n, a, clr)
+				end
+				prune!(arg, n)
+				npruned += 1
+			end
+		end
+		if length(arg.nodes) == 1
+			@warn "ARG with one node only."
+			break
+		end
+		nit += 1
+	end
+	# check_arg(arg)
+	v && println("Pruned $npruned nodes")
+	return nothing
 end
 
 """
-	fix_trivial_loop!(A::ARGNode, B::ARGNode, C::ARGNode, clr_1::Int64, clr_2::Int64)
+	has_lone_nodes(arg::ARG)
 
-Place `C` on the branch going up from `B` to `A` for `color`. Obviously, `C` should not already be of color `color`.  
-A***			A     
-|  *			|*  
-|  C   -->  	C  
-|  *			|*  
-B***			B  
-With "|" corresponding to `clr_1` and "*" to `clr_2`. (See source code of function help for correct display)
-## Steps
-- Set `C.color[clr_1]` to `true`
-- Set branch from `C` to `A` to `clr_1` on top of `clr_2`. 
-- Regraft `B` onto `C` for color `clr_1`. 
-## Checks to perform
-- `C` must be of color `clr_2` and not of `clr_1`. 
-- `A` and `B` must be of color `clr_1` and `clr_2`.
-- `B` must be a child of `A` and `C` for resp. `clr_1` and `clr_2`
-- `C` must be a child of `A` for `clr_2`. 
+A lone node `n` is such that `!n.isleaf && length(n.children)==0`. This can arise when simulating an ARG.
 """
-function fix_trivial_loop!(A::ARGNode, B::ARGNode, C::ARGNode, clr_1::Int64, clr_2::Int64)
-	# Checks
-	flag = true
-	if !((!C.color[clr_1]) && C.color[clr_2])
-		println("`C` is not of the correct color")
-		flag = false
+function has_lone_nodes(arg::ARG)
+	for n in values(arg.nodes)
+		if !n.isleaf && length(n.children) == 0
+			return true
+		end
 	end
-	flag *= A.color[clr_1] && A.color[clr_2] && B.color[clr_1] && B.color[clr_2]
-	flag *= is_ancestor(A, B, clr_1)
-	flag *= is_ancestor(C, B, clr_2)
-	flag *= is_ancestor(A, C, clr_2)
-	if !flag
-		error("Conditions for fixing trivial loop are not met.")
-	end
+	return false
+end
+"""
+	prune_lone_nodes!(arg::ARG; v=false)
 
-	# Fixing
-	C.color[clr_1] = true
-	i = findfirst(x->x.label==A.label, C.anc)
-	C.anccolor[i][clr_1] = true
-	regraft!(B, A, C, clr_1)
+A lone node `n` is such that `!n.isleaf && length(n.children)==0`. This can arise when simulating an ARG.
+"""
+function prune_lone_nodes!(arg::ARG; v=false, Nit=1e3)
+	npruned = 1
+	nit = 0
+	while has_lone_nodes(arg) && nit < Nit
+		for n in values(arg.nodes)
+			if !n.isleaf && length(n.children) == 0
+				prune!(arg, n)
+				npruned += 1
+			end
+		end
+		if length(arg.nodes) == 1
+			@warn "ARG with one node only."
+			break
+		end
+		nit += 1
+	end
+	v && println("Pruned $npruned nodes")
+	return nothing
 end
 
+
 """
+	is_ancestor(a::ARGNode, c::ARGNode, color::Vararg{Int64})
 
 Check if `a` is an ancestor of `c` for colors in `color`. Also check whether `c` is in `a.children`. 		
 """
 function is_ancestor(a::ARGNode, c::ARGNode, color::Vararg{Int64})
+
 	i_anc = findfirst(x->!isnothing(x) && x.label==a.label, c.anc)
 	flag = !isnothing(i_anc) && !isnothing(findfirst(x->x.label==c.label, a.children)) 
 	if flag
@@ -292,8 +249,8 @@ function is_ancestor(a::ARGNode, c::ARGNode, color::Vararg{Int64})
 	end
 	return flag
 end
-
 """
+	is_ancestor(a::ARGNode, c::ARGNode)
 
 Check if `a` is an ancestor of `c`. Return a `Bool` as well as an array of colors for which `a` is an ancestor of `c`. 		
 """
@@ -308,21 +265,119 @@ function is_ancestor(a::ARGNode, c::ARGNode)
 	end
 	return flag, out
 end
+is_ancestor(a::Nothing, c::ARGNode) = ((|)(c.isroot...), c.isroot)
+is_ancestor(a::Nothing, c::Nothing) = (false, zeros(Bool, 0))
+is_ancestor(a::ARGNode, c::Nothing) = (false, zeros(Bool, 0))
 
 """
+	get_children_index(a::ARGNode, clr::Int64)
+
+Get index of children of `a` for color `clr`. 
 """
-function is_ancestor(a::Nothing, c::ARGNode)
-	flag = false
-	out = zeros(Bool, c.degree)
-	for i in findall(c.isroot)
-		flag = true
-		out[findall(c.anccolor[i])] .= true
+function get_children_index(a::ARGNode, clr::Int64)
+	idx = Int64[]
+	if !a.color[clr]
+		error("$(a.label) is not of color $clr")
 	end
-	return flag, out
+	for (ic,c) in enumerate(a.children)
+		i = findfirst(x->x==a, c.anc)
+		if c.anccolor[i][clr]
+			push!(idx, ic)
+		end
+	end
+	return idx
 end
-function is_ancestor(a::Nothing, c::Nothing)
-	return false, zeros(Bool, 0)
-end
-function is_ancestor(a::ARGNode, c::Nothing)
-	return false, zeros(Bool, 0)
-end
+"""
+	get_children(a::ARGNode, clr::Int64)
+
+Get children of `a` for color `clr`. 
+"""
+get_children(a::ARGNode, clr::Int64) = a.children[get_children_index(a, clr)]
+
+#########
+# """
+# Find the below situation
+# a1***
+# |	*
+# |	a2
+# |	*
+# n****
+# where "|" and "*" are two colors. This is a trivial and useless split and coalescence. Fix it. (See source code of function help for correct display of above situation)
+
+# ## Method
+# Find triplets `(n, a1, a2)` such that `a1, a2` are ancestors of `n`, and `a1` is an ancestor of `a2` for `colors`. 
+# Then, the triplet is validated if the following conditions are met for two colors `clr1` and `clr2` of `n`. 
+# - `a1` is an ancestor of `n` for `clr1`. 
+# - `a2` is an ancestor of `n` for `clr2`. 
+# - `a1` is an ancestor of `a2` for `clr2`. 
+# - `a2` is *not* of color `clr1`. 
+# """
+# function find_trivial_loop!(arg::ARG)
+# 	nloops = 0
+# 	for n in values(arg.nodes)
+# 		# Find loops that need fixing, then fix. Fixing loops modifies indices of ancestors, so I have to proceed this way. 
+# 		loops_to_fix = Array{Tuple{String, String, Int64, Int64},1}(undef, 0)
+# 		for (i1, a1) in enumerate(n.anc)
+# 			for (i2, a2) in enumerate(n.anc)
+# 				flag, colors = is_ancestor(a1, a2)
+# 				if flag && !isnothing(a1) # `a1` is an ancestor of `a2` for `colors`
+# 					for clr1 in findall(n.color)
+# 						for clr2 in findall(n.color)
+# 							if n.anccolor[i1][clr1] && n.anccolor[i2][clr2] && colors[clr2] && !a2.color[clr1]
+# 								nloops += 1
+# 								push!(loops_to_fix, (a1.label, a2.label, clr1, clr2))
+# 							end
+# 						end
+# 					end
+# 				end
+# 			end
+# 		end
+# 		for (l1, l2, clr1, clr2) in loops_to_fix
+# 			println("Fixing loop ($l1, $(n.label), $l2, $clr1, $clr2) ")
+# 			fix_trivial_loop!(arg.nodes[l1], n, arg.nodes[l2], clr1, clr2)
+# 		end
+# 	end
+# 	println("`find_trivial_loop!`: Found $nloops loops to fix.")
+# end
+
+# """
+# 	fix_trivial_loop!(A::ARGNode, B::ARGNode, C::ARGNode, clr_1::Int64, clr_2::Int64)
+
+# Place `C` on the branch going up from `B` to `A` for `color`. Obviously, `C` should not already be of color `color`.  
+# A***			A     
+# |  *			|*  
+# |  C   -->  	C  
+# |  *			|*  
+# B***			B  
+# With "|" corresponding to `clr_1` and "*" to `clr_2`. (See source code of function help for correct display)
+# ## Steps
+# - Set `C.color[clr_1]` to `true`
+# - Set branch from `C` to `A` to `clr_1` on top of `clr_2`. 
+# - Regraft `B` onto `C` for color `clr_1`. 
+# ## Checks to perform
+# - `C` must be of color `clr_2` and not of `clr_1`. 
+# - `A` and `B` must be of color `clr_1` and `clr_2`.
+# - `B` must be a child of `A` and `C` for resp. `clr_1` and `clr_2`
+# - `C` must be a child of `A` for `clr_2`. 
+# """
+# function fix_trivial_loop!(A::ARGNode, B::ARGNode, C::ARGNode, clr_1::Int64, clr_2::Int64)
+# 	# Checks
+# 	flag = true
+# 	if !((!C.color[clr_1]) && C.color[clr_2])
+# 		println("`C` is not of the correct color")
+# 		flag = false
+# 	end
+# 	flag *= A.color[clr_1] && A.color[clr_2] && B.color[clr_1] && B.color[clr_2]
+# 	flag *= is_ancestor(A, B, clr_1)
+# 	flag *= is_ancestor(C, B, clr_2)
+# 	flag *= is_ancestor(A, C, clr_2)
+# 	if !flag
+# 		error("Conditions for fixing trivial loop are not met.")
+# 	end
+
+# 	# Fixing
+# 	C.color[clr_1] = true
+# 	i = findfirst(x->x.label==A.label, C.anc)
+# 	C.anccolor[i][clr_1] = true
+# 	regraft!(B, A, C, clr_1)
+# end

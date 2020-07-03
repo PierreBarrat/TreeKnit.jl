@@ -322,7 +322,35 @@ function reduce_to_mcc(tree::Tree, MCC)
     return node2tree(out.root)
 end
 
+"""
+    is_in_mcc(n::TreeNode, mccs::Dict)
+    is_in_mcc(n::TreeNode, mccs::Array)
 
+
+Is the branch from `n` to `n.anc` in an MCC?   
+The clade defined `n` has to intersect with an MCC, and this intersection should be strictly smaller than the mcc itself.
+
+# Note
+This can be proven. The MCC found is unique, and `n` belongs to it. 
+"""
+function is_in_mcc(n::TreeNode, mccs::Dict)
+    cl = TreeTools.node_leavesclade_labels(n)
+    for mcc in values(mccs)
+        if !isempty(intersect(cl, mcc)) && !isempty(setdiff(mcc, intersect(cl, mcc)))
+            return true
+        end
+    end
+    return false
+end
+function is_in_mcc(n::TreeNode, mccs::Array)
+    cl = TreeTools.node_leavesclade_labels(n)
+    for mcc in mccs
+        if !isempty(intersect(cl, mcc)) && !isempty(setdiff(mcc, intersect(cl, mcc)))
+            return true
+        end
+    end
+    return false
+end
 
 
 

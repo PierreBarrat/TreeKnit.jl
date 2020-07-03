@@ -11,6 +11,11 @@ include("energy.jl")
 
 
 """
+	opttrees!(t... ; γ=1.05, Trange=0.5:-0.01:0.05, M = 1000)
+
+Return a list of MCCs for input trees. 
+Output:
+1. 
 """
 opttrees!(t... ; γ=1.05, Trange=0.5:-0.01:0.05, M = 1000) = opttrees!(γ, Trange, M, t...)
 function opttrees!(γ, Trange, M, t::Vararg{Tree})
