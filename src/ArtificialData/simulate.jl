@@ -55,11 +55,10 @@ function simulate(param::SimParam;
 	simstate = initiate(param)
 	reset_discrete_t()
 	reset_exact_t()
-	ρ = param.ρ
 	# for i in 1:param.Tmax
 	sim = true
 	while sim
-		τ, etype = choose_event(ρ, length(simstate.eligible_for_coalescence), length(simstate.eligible_for_reassortment))
+		τ, etype = choose_event(param.r, param.N, length(simstate.eligible_for_coalescence), length(simstate.eligible_for_reassortment))
 		v() && println("Event : $etype - Time $τ")
 		if etype == :coa
 			do_coalescence!(simstate, τ)
@@ -123,14 +122,14 @@ function halt_condition(simstate::SimState, Tmax::Int64)
 end
 
 """
-	choose_event(ρ, n::Int, nr::Int)
+	choose_event(r::Real, N::Real, n::Int, nr::Int)
 
 Choose type of the next event. Return the time to the time to next event as well as its type `:coa` or `:split`.  
 ρ, n and nr are resp. the population reassortment rate, the number of nodes available for coalescence and the number of nodes available for reassortment. 
 """
-function choose_event(ρ, n::Int, nr::Int)
-	iTr = (ρ*nr)
-	iTc = (n*(n-1)/2.)
+function choose_event(r::Real, N::Real, n::Int, nr::Int)
+	iTr = r*nr
+	iTc = n*(n-1) /2. /N
 	t = Distributions.rand(Distributions.Exponential(1. /(iTr + iTc)) )
 	if rand() < iTc/iTr
 		etype = :coa
