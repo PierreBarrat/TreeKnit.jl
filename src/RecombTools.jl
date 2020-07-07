@@ -1,6 +1,6 @@
 module RecombTools
 
-using TreeTools
+using TreeTools, ARGTools
 using Distributions
 using StatsBase
 

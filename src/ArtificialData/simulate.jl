@@ -97,8 +97,10 @@ function initiate(param::SimParam)
 		an = ARGNode(degree=K, 
 			anc = Array{Union{ARGNode,Nothing}}(nothing, 0),
 			label="$(i)_0",
-			isroot = zeros(Bool, K))
+			isroot = zeros(Bool, K),
+			isleaf = true)
 		arg.nodes[an.label] = an
+		arg.leaves[an.label] = an
 	end
 
 	return SimState(arg, 
