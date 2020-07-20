@@ -28,6 +28,14 @@ function opttrees!(γ, Trange, M, t::Vararg{Tree})
 	g = trees2graph(treelist)
 	oconf, E, F = sa_opt(g, γ=γ, Trange=Trange, M=M)
 	converged = compute_energy(oconf[1],g)==0
+	# Note
+	# If !converged, then oconf does not represent an overarching MCC, but rather a collection of MCCs
+	# In this case, my MCCs should be 
+	# 1. [mcc_names[x] for x in g.labels[.!conf]], that is all the MCCs that are *not* in oconf
+	# 2. The MCCs that I find by keeping only leaves that are in oconf. This could very well be *less* than sum(oconf), since some mismatches may have been removed. 
+	# This means that I should start at high γ, find an oconf such that sum(oconf)!=L, and this way I can confidently remove mccs corresponding to 1.
+	# I can then iterate this process, *updating* my definition of MCCs as I go. 
+	# This requires a meta-optmization that recomputes MCCs every time.  
 	return [[mcc_names[x] for x in g.labels[.!conf]] for conf in oconf], [g.labels[.!conf] for conf in oconf], E, F, converged
 end
 

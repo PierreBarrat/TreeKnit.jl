@@ -26,7 +26,7 @@ const global K = 2 # Two trees
 
 # What matters is n/(N*r) where n is the size of the current ancestry
 # If 2/(Nr) is small, it's likely that a split happens before a coalescence before the last two ancestors coalesce. 
-struct SimParam 
+struct SimParam
 	N::Int64 # Global pop. size
 	r::Float64 # Per individual recombination rate
 	ρ::Float64 # Population reassortment rate (i.e. N*r)
@@ -49,8 +49,10 @@ end
 function simulate(param::SimParam; 
 	verbose=false, 
 	vverbose = false,
-	prune_singletons=true)
+	prune_singletons=true,
+	popvar=t->1)
 	set_verbose(verbose)
+	set_vverbose(vverbose)
 	# 
 	simstate = initiate(param)
 	reset_discrete_t()
@@ -58,7 +60,9 @@ function simulate(param::SimParam;
 	# for i in 1:param.Tmax
 	sim = true
 	while sim
-		τ, etype = choose_event(param.r, param.N, length(simstate.eligible_for_coalescence), length(simstate.eligible_for_reassortment))
+		N = param.N * popvar(get_exact_t())
+		v() && println("Population size: $N")
+		τ, etype = choose_event(param.r, N, length(simstate.eligible_for_coalescence), length(simstate.eligible_for_reassortment))
 		v() && println("Event : $etype - Time $τ")
 		if etype == :coa
 			do_coalescence!(simstate, τ)
@@ -67,8 +71,8 @@ function simulate(param::SimParam;
 		end
 		inc_discrete_t()
 		inc_exact_t(τ)
-		vv() && println("Eligible for coalescence: $(simstate.eligible_for_coalescence)")
-		vv() && println("Eligible for reassortment: $(simstate.eligible_for_reassortment)")
+		vv() && println("Eligible for coalescence: $(length(simstate.eligible_for_coalescence)) nodes - $(simstate.eligible_for_coalescence)")
+		vv() && println("Eligible for reassortment: $(length(simstate.eligible_for_reassortment)) nodes - $(simstate.eligible_for_reassortment)")
 		# Stop ? 
 		if halt_condition(simstate, param.Tmax)
 			sim = false
@@ -82,7 +86,15 @@ function simulate(param::SimParam;
 	ARGTools.check_arg(simstate.arg)
 	return simstate.arg
 end
-simulate(N,r,n0,Tmax; verbose=false) = simulate(SimParam(N,r,N*r,n0,Tmax), verbose=verbose)
+simulate(N,r,n0,Tmax; 
+	verbose=false, 
+	vverbose=false, 
+	popvar=t->1, 
+	prune_singletons=true) = simulate(SimParam(N,r,N*r,n0,Tmax), 
+										verbose=verbose, 
+										vverbose=vverbose, 
+										popvar=popvar, 
+										prune_singletons=prune_singletons)
 
 
 """
@@ -131,7 +143,7 @@ function choose_event(r::Real, N::Real, n::Int, nr::Int)
 	iTr = r*nr
 	iTc = n*(n-1) /2. /N
 	t = Distributions.rand(Distributions.Exponential(1. /(iTr + iTc)) )
-	if rand() < iTc/iTr
+	if rand() <= iTc/(iTr + iTc)
 		etype = :coa
 	else
 		etype = :split
