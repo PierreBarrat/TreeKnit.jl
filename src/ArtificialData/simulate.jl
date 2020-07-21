@@ -41,6 +41,15 @@ mutable struct SimState
 	eligible_for_reassortment::Array{String,1} # Nodes of the arg eligible for reassortment
 	eligible_for_coalescence::Array{String,1} # 
 end
+mutable struct SimSnapshot # Used to record history of the simulation
+	N::Real # Population size
+	nc::Int64 # Number of nodes eligible for coalescence
+	nr::Int64 # Number of nodes eligible for reassortment
+	pop_per_color::Array{Int64,1} # Number of nodes per color
+	event::Union{Symbol, Nothing} # :coa or :split 
+	discrete_t::Int64 # Number of the event
+	exact_t::Float64 # Time of the event
+end
 
 """
 	simulate(param::SimParam)
@@ -50,14 +59,20 @@ function simulate(param::SimParam;
 	verbose=false, 
 	vverbose = false,
 	prune_singletons=true,
-	popvar=t->1)
+	popvar=t->1, 
+	output_history = false)
 	set_verbose(verbose)
 	set_vverbose(vverbose)
 	# 
 	simstate = initiate(param)
 	reset_discrete_t()
 	reset_exact_t()
-	# for i in 1:param.Tmax
+	simhistory = SimSnapshot[SimSnapshot(param.N, length(simstate.eligible_for_coalescence), 
+		length(simstate.eligible_for_reassortment), 
+		simstate.pop_per_color,
+		nothing,
+		get_discrete_t(),
+		get_exact_t())]
 	sim = true
 	while sim
 		N = param.N * popvar(get_exact_t())
@@ -73,6 +88,13 @@ function simulate(param::SimParam;
 		inc_exact_t(τ)
 		vv() && println("Eligible for coalescence: $(length(simstate.eligible_for_coalescence)) nodes - $(simstate.eligible_for_coalescence)")
 		vv() && println("Eligible for reassortment: $(length(simstate.eligible_for_reassortment)) nodes - $(simstate.eligible_for_reassortment)")
+		# Storing Snapshot
+		push!(simhistory, SimSnapshot(N, length(simstate.eligible_for_coalescence), 
+			length(simstate.eligible_for_reassortment), 
+			simstate.pop_per_color,
+			etype,
+			get_discrete_t(),
+			get_exact_t()))
 		# Stop ? 
 		if halt_condition(simstate, param.Tmax)
 			sim = false
@@ -84,17 +106,23 @@ function simulate(param::SimParam;
 	set_roots_ancestry!(simstate.arg)
 	prune_singletons && ARGTools.prune_singletons!(simstate.arg)
 	ARGTools.check_arg(simstate.arg)
-	return simstate.arg
+	if output_history
+		return simstate.arg, simhistory
+	else
+		return simstate.arg
+	end
 end
 simulate(N,r,n0,Tmax; 
 	verbose=false, 
 	vverbose=false, 
 	popvar=t->1, 
-	prune_singletons=true) = simulate(SimParam(N,r,N*r,n0,Tmax), 
+	prune_singletons=true,
+	output_history=false) = simulate(SimParam(N,r,N*r,n0,Tmax), 
 										verbose=verbose, 
 										vverbose=vverbose, 
 										popvar=popvar, 
-										prune_singletons=prune_singletons)
+										prune_singletons=prune_singletons,
+										output_history = output_history)
 
 
 """
