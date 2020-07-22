@@ -29,7 +29,7 @@ function opttrees!(γ, Trange, M, t::Vararg{Tree})
 	oconf, E, F = sa_opt(g, γ=γ, Trange=Trange, M=M)
 	converged = compute_energy(oconf[1],g)==0
 	# Note
-	# If !converged, then oconf does not represent an overarching MCC, but rather a collection of MCCs
+	# If !converged, then oconf does not represent an overarching MCC, but rather a collection of MCCs that do not include the root node
 	# In this case, my MCCs should be 
 	# 1. [mcc_names[x] for x in g.labels[.!conf]], that is all the MCCs that are *not* in oconf
 	# 2. The MCCs that I find by keeping only leaves that are in oconf. This could very well be *less* than sum(oconf), since some mismatches may have been removed. 
@@ -38,5 +38,26 @@ function opttrees!(γ, Trange, M, t::Vararg{Tree})
 	# This requires a meta-optmization that recomputes MCCs every time.  
 	return [[mcc_names[x] for x in g.labels[.!conf]] for conf in oconf], [g.labels[.!conf] for conf in oconf], E, F, converged
 end
+
+"""
+	pruneconf!(clades, trees::Vararg{Tree})
+
+Prune `clades` from `trees...`. 
+"""
+function pruneconf!(clades, trees::Vararg{Tree})
+	for t in trees
+		for st in clades
+			TreeTools.prunesubtree!(t, st, clade_only=true)
+		end
+	end
+end
+pruneconf!(trees, clades) = pruneconf!(clades, trees...)
+"""
+	pruneconf!(trees, mcc_names, mcc_conf)
+
+Prune MCCs `mcc_names[x]` for all `x` in `mcc_conf` from trees `t...`. 
+"""
+pruneconf!(trees, mcc_names, mcc_conf) = pruneconf!([mcc_names[x] for x in mcc_conf], trees...)
+
 
 end

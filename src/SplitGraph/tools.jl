@@ -41,7 +41,7 @@ Add internal nodes of `t` to `Graph` `g`. `g` should already have fields `leaves
 Call `tree2splitnodes(g, t.root, SplitNode(), k)` to start the process. 
 """
 function tree2graph!(g::Graph, t::TreeTools.Tree, k::Int64)
-	length(t.leaves) == length(g.leaves) || @error("`t.leaves` and `g.leaves` do not have the same length. Graph was not initialized?")
+	length(t.lleaves) == length(g.leaves) || @error("`t.lleaves` and `g.leaves` do not have the same length. Graph was not initialized?")
 	tree2splitnodes!(g, t.root, SplitNode(), k)
 end
 

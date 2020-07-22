@@ -74,13 +74,21 @@ function maximal_coherent_clades(treelist)
             ###
             # clabel = map(x->x.label, cclade)
             map(x->checklist[x]=true, [c for c in clabel])
-            push!(mc_clades, [c for c in clabel])
+            push!(mc_clades, sort([c for c in clabel]))
         end
     end
-    return mc_clades
+    return sort(mc_clades, lt = clt)
 end
 maximal_coherent_clades(t...) = maximal_coherent_clades(collect(t))
-
+function clt(x,y)
+    if length(x) < length(y)
+        return true
+    elseif length(x) > length(y)
+        return false
+    else
+        return x[1] < y[1]
+    end
+end
 
 """
 Check whether a `nodelist` forms a coherent clade in all trees of `treelist`. 
@@ -156,7 +164,7 @@ function name_mcc_clades!(treelist, MCC)
     # Finding initial label
     label_init = 1
     for t in treelist
-        for n in values(t.nodes)
+        for n in values(t.lnodes)
             if match(r"MCC", n.label)!=nothing && parse(Int64, n.label[5:end]) >= label_init
                 label_init = parse(Int64, n.label[5:end]) + 1
             end
