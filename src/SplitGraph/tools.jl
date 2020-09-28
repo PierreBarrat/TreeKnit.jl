@@ -1,6 +1,17 @@
-
 export trees2graph
 
+"""
+	coarsegrain_trees2graph(t::Vararg{TreeTools.Tree})
+"""
+function coarsegrain_trees2graph(t::Vararg{TreeTools.Tree})
+	treelist = collect(t)
+	mcc = maximal_coherent_clades(treelist)
+	mcc_names = name_mcc_clades!(treelist, mcc)
+	for (i,t) in enumerate(treelist)
+		treelist[i] = reduce_to_mcc(t, mcc)
+	end
+	return trees2graph(treelist)
+end
 
 """
 	trees2graph(t::Vararg{TreeTools.Tree})

@@ -112,7 +112,8 @@ function simulate(param::SimParam;
 		return simstate.arg
 	end
 end
-simulate(N,r,n0,Tmax; 
+simulate(N,r,n0; 
+	Tmax=1e6,
 	verbose=false, 
 	vverbose=false, 
 	popvar=t->1, 

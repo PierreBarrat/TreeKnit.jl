@@ -21,24 +21,25 @@ function compute_energy(conf::Array{Bool,1}, g::Graph)
 				a1 = g.leaves[i].anc[k1]
 				# If ancestor is identical to leaf for given configuration (i.e. only one spin up), go up
 				# ie go up to the first non trivial split
-				while !a1.isroot && nspinup(a1.conf, conf) == 1
+				while onespinup(a1.conf, conf) && !a1.isroot 
 					a1 = a1.anc::SplitNode
 				end
 				for k2 in (k1+1):g.K
 					# Same for 
 					a2 = g.leaves[i].anc[k2]
-					while !a2.isroot && nspinup(a2.conf, conf) == 1
+					while onespinup(a2.conf, conf) && !a2.isroot 
 						a2 = a2.anc
 					end
 					# Mismatch
 					# if a1.conf[conf] and a2.conf[conf] are disjoint or if one contains the other, E=0
 					# Question: how would it even be possible that `are_disjoint` is true? a1.conf and a2.conf share leaf `i`...
-					if are_disjoint(a1.conf, a2.conf, conf)
-						println(a1.conf)
-						println(a2.conf)
-						println(conf)
-					end
-					if !are_disjoint(a1.conf, a2.conf, conf) && !is_contained(a1.conf, a2.conf, conf) && !is_contained(a2.conf, a1.conf, conf)
+					# if are_disjoint(a1.conf, a2.conf, conf)
+					# 	println(a1.conf)
+					# 	println(a2.conf)
+					# 	println(conf)
+					# end
+					# if !is_contained(a1.conf, a2.conf, conf) && !is_contained(a2.conf, a1.conf, conf) 
+					if !are_equal(a1.conf, a2.conf, conf)
 						E += 1
 					end
 				end
@@ -47,6 +48,19 @@ function compute_energy(conf::Array{Bool,1}, g::Graph)
 	end
 	return E
 end
+function onespinup(nodeconf, conf)
+	n = 0
+	for i in 1:length(conf)
+		if nodeconf[i] && conf[i]
+			n += 1
+			if n > 1 
+				return false
+			end
+		end
+	end
+	return true
+end
+
 function nspinup(nodeconf, conf)
 	n = 0
 	for i in 1:length(nodeconf)
@@ -67,16 +81,21 @@ function are_disjoint(nconf1, nconf2, conf)
 	return true
 end
 function is_contained(nconf1, nconf2, conf) # is 1 in 2 ? 
-	for (i,s) in enumerate(conf)
-		if s 
-			if nconf1[i] && !nconf2[i]
-				return false
-			end
+	for i in 1:length(conf)
+		if conf[i] &&  nconf1[i] && !nconf2[i]
+			return false
 		end
 	end
 	return true
 end
-
+function are_equal(nconf1, nconf2, conf) # is 1 in 2 ? 
+	for i in 1:length(conf)
+		if conf[i] &&  (nconf1[i] != nconf2[i])
+			return false
+		end
+	end
+	return true
+end
 """
 """
 function compute_F(conf::Array{Bool,1}, g::Graph, γ::Real)

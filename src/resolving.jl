@@ -7,7 +7,7 @@ export is_unresolved_clade
 
 Resolves clades in `t` using clades in `tref`. Newly introduced nodes are assigned a time `rtau`. 
 """
-function resolve_trees(t, tref ; rtau = 1. /length(t.leaves[1].data.sequence)/3, verbose=true)
+function resolve_trees(t, tref ; rtau = 1. /max(1, length(first(t.lleaves)[2].data.sequence)/3), verbose=false)
     if !share_labels(t, tref)
         error("`resolve_trees` can only be used on trees that share leaf nodes.")
     end       
@@ -21,7 +21,7 @@ function resolve_trees(t, tref ; rtau = 1. /length(t.leaves[1].data.sequence)/3,
     end
 
 
-    L = length(tt.leaves[1].data.sequence)
+    L = length(first(tt.lleaves)[2].data.sequence)
     label_i = label_init
     rcount = 0
     for (i,cl) in enumerate(keys(tref.lleaves))
@@ -58,15 +58,13 @@ function resolve_trees(t, tref ; rtau = 1. /length(t.leaves[1].data.sequence)/3,
             end
         end
     end
-    if verbose
-        println("\n$rcount clades have been resolved.\n")
-    end
+    verbose && println("\n$rcount clades have been resolved.\n")
     return node2tree(tt.root)
 end
 
 """
 """
-function resolve_trees(treelist ; label_init=1)
+function resolve_trees(treelist ; label_init=1, verbose=false)
     flag = true
     for t1 in treelist
         for t2 in treelist
@@ -82,11 +80,11 @@ function resolve_trees(treelist ; label_init=1)
     rcount = 0
     # Use clades of each tree `t` to resolve other trees
     for t in treelist_    
-        L = length(t.leaves[1].data.sequence)
-        # checklist = Dict(k=>false for k in keys(t.lleaves))   
-        println("\n#######################################")
+        L = max(1, length(first(t.lleaves)[2].data.sequence)
+)        # checklist = Dict(k=>false for k in keys(t.lleaves))   
+        verbose && println("\n#######################################")
         for (i,cl) in enumerate(keys(t.lleaves))
-            print("$i/$(length(t.lleaves)) -- $cl                                \r")
+            verbose && print("$i/$(length(t.lleaves)) -- $cl                                \r")
             # println("\nStarting from $(cl)")
             croot = t.lleaves[cl]
             clabel = [cl]
@@ -124,7 +122,7 @@ function resolve_trees(treelist ; label_init=1)
             end
         end
     end
-    println("\n$rcount clades have been resolved.\n")
+    verbose && println("\n$rcount clades have been resolved.\n")
     return [node2tree(t.root) for t in treelist_]
 end
 
@@ -133,9 +131,9 @@ end
 
 Branches shorter than `tau` are set to `tau`. 
 """
-function resolve_null_branches!(t::Tree; tau = 1. /length(t.leaves[1].data.sequence)/3, internal=false)
+function resolve_null_branches!(t::Tree; tau = 1. /max(1, length(first(t.lleaves)[2].data.sequence)/3), internal=false)
     if !internal
-        for n in values(t.leaves)
+        for n in values(t.lleaves)
             if !ismissing(n.data.tau) && n.data.tau < tau
                 n.data.tau = tau
             end

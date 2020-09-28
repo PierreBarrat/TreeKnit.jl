@@ -89,6 +89,10 @@ function clt(x,y)
         return x[1] < y[1]
     end
 end
+function sort_mccs(mccs)
+    return sort([sort(x) for x in mccs], lt=clt)
+end
+
 
 """
 Check whether a `nodelist` forms a coherent clade in all trees of `treelist`. 
