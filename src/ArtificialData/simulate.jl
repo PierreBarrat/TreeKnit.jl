@@ -53,14 +53,15 @@ end
 
 """
 	simulate(param::SimParam)
-	simulate(N,r,n0,Tmax)
+	simulate(N,r,n0)
 """
 function simulate(param::SimParam; 
 	verbose=false, 
 	vverbose = false,
 	prune_singletons=true,
 	popvar=t->1, 
-	output_history = false)
+	output_history = false,
+	simtype = :kingman)
 	set_verbose(verbose)
 	set_vverbose(vverbose)
 	# 
@@ -77,7 +78,10 @@ function simulate(param::SimParam;
 	while sim
 		N = param.N * popvar(get_exact_t())
 		v() && println("Population size: $N")
-		τ, etype = choose_event(param.r, N, length(simstate.eligible_for_coalescence), length(simstate.eligible_for_reassortment))
+		τ, etype = choose_event(param.r, N, 
+			length(simstate.eligible_for_coalescence), 
+			length(simstate.eligible_for_reassortment),
+			simtype)
 		v() && println("Event : $etype - Time $τ")
 		if etype == :coa
 			do_coalescence!(simstate, τ)
@@ -118,12 +122,14 @@ simulate(N,r,n0;
 	vverbose=false, 
 	popvar=t->1, 
 	prune_singletons=true,
-	output_history=false) = simulate(SimParam(N,r,N*r,n0,Tmax), 
+	output_history=false,
+	simtype=:kingman) = simulate(SimParam(N,r,N*r,n0,Tmax), 
 										verbose=verbose, 
 										vverbose=vverbose, 
 										popvar=popvar, 
 										prune_singletons=prune_singletons,
-										output_history = output_history)
+										output_history = output_history,
+										simtype=simtype)
 
 
 """
@@ -166,11 +172,16 @@ end
 	choose_event(r::Real, N::Real, n::Int, nr::Int)
 
 Choose type of the next event. Return the time to the time to next event as well as its type `:coa` or `:split`.  
-ρ, n and nr are resp. the population reassortment rate, the number of nodes available for coalescence and the number of nodes available for reassortment. 
+r, n and nr are resp. the population reassortment rate, the number of nodes available for coalescence and the number of nodes available for reassortment. 
 """
-function choose_event(r::Real, N::Real, n::Int, nr::Int)
+function choose_event(r::Real, N::Real, n::Int, nr::Int, simtype::Symbol)
 	iTr = r*nr
-	iTc = n*(n-1) /2. /N
+	if simtype == :kingman 
+		iTc = n*(n-1) /2. /N
+	elseif simtype == :yule
+		iTc = (n-1)/2. /N
+	end
+
 	t = Distributions.rand(Distributions.Exponential(1. /(iTr + iTc)) )
 	if rand() <= iTc/(iTr + iTc)
 		etype = :coa

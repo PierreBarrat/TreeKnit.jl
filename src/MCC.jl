@@ -365,6 +365,40 @@ function is_branch_in_mcc(n::TreeNode, mccs::Array)
 end
 
 """
+    is_branch_in_mcc(n::TreeNode, mcc::Array{<:AbstractString})
+
+Is the branch from `n` to `n.anc` in `mcc`? 
+"""
+function is_branch_in_mcc(n::TreeNode, mcc::Array{<:AbstractString,1})
+    cl = TreeTools.node_leavesclade_labels(n)
+    return !isempty(intersect(cl, mcc)) && !isempty(setdiff(mcc, intersect(cl, mcc)))
+end
+"""
+    find_mcc_with_branch(n::TreeNode, mccs::Dict)
+
+Find the mcc to which the branch from `n` to `n.anc` belongs. If `mccs` is an array, return the pair `(index, value)`. If it is a dictionary, return the pair `(key, value)`. If no such mcc exists, return `nothing`.   
+Based on the same idea that `is_branch_in_mcc`. 
+"""
+function is_branch_in_mcc(n::TreeNode, mccs::Dict)
+    cl = TreeTools.node_leavesclade_labels(n)
+    for (key,mcc) in mccs
+        if !isempty(intersect(cl, mcc)) && !isempty(setdiff(mcc, intersect(cl, mcc)))
+            return (key, mcc)
+        end
+    end
+    return nothing
+end
+function find_mcc_with_branch(n::TreeNode, mccs::Array)
+    cl = TreeTools.node_leavesclade_labels(n)
+    for (i,mcc) in enumerate(mccs)
+        if !isempty(intersect(cl, mcc)) && !isempty(setdiff(mcc, intersect(cl, mcc)))
+            return (i,mcc)
+        end
+    end
+    return nothing
+end
+
+"""
     is_linked_pair(n1, n2, mccs)
 
 Can I join `n1` and `n2` through common branches only? Equivalent to: is there an `m` in `mccs` such that `in(n1,m) && in(n2,m)`? 

@@ -11,16 +11,99 @@ include("objects.jl")
 include("tools.jl")
 include("energy.jl")
 
+"""
+	runopt(t::Vararg{Tree}; 
+	γ=1.1, M=200, 
+	itmax=50, stop_when_stuck=true, 
+	Trange=reverse(0.01:0.2:1.1), verbose=false)
+
+	runopt(γ::Real, M::Int64, t::Vararg{Tree}; 
+	stop_when_stuck = true, 
+	itmax=50, 
+	Trange=reverse(0.01:0.2:1.1), 
+	verbose=false)
+
+Run optimization at constant γ
+"""
+runopt(t::Vararg{Tree}; γ=1.1, M=200, 
+	itmax=50, Mmax = 10_000, 
+	Trange=reverse(0.01:0.2:1.1), verbose=false) = runopt(γ, M, t..., 
+	itmax=round(Int64, length(first(t).lleaves)/4), 
+	Trange=Trange, verbose=verbose)
+
+function runopt(γ::Real, M::Int64, t::Vararg{Tree}; 
+	Mmax = 2_000, 
+	itmax=50, 
+	Trange=reverse(0.01:0.2:1.1), 
+	verbose=false)
+	ot = deepcopy(collect(t))
+	df = DataFrame(nleaves=Int64[length(ot[1].lleaves)],
+		γ=Any[missing], M=Any[missing], 
+		E=Any[missing], F=Any[missing])
+	MCCs = []
+	#
+	for i in 1:itmax
+		flag = :init
+		verbose && println("\n --- \nIteration $i/$(itmax) - $(df.nleaves[end]) leaves remaining")
+		# Optimization
+		oconf, tmp, Evals, Fvals = opttrees!(ot..., γ=γ, M=M)
+		if maximum([length(x) for x in oconf]) != 0
+			flag = :found
+		end
+		# Sorting configurations
+		sortedconfs = sortconf(oconf)
+		mccs = sortedconfs[1][1]
+		E = Evals[sortedconfs[2]][1]
+		F = Fvals[sortedconfs[2]][1]
+
+		# Checks
+		!prod([check_tree(t) for t in ot]) && @error "Problem in one of the trees"
+
+		# Actions if a solution is found
+		if flag == :found && E == 0. # There is the chance that the algorithm converged
+			verbose && println("$flag: temporary solution found")
+			append!(MCCs, mccs)
+			if sum(length(m) for m in mccs) != length(ot[1].lleaves)
+				pruneconf!(mccs, ot...)
+				if complete_mccs!(MCCs, ot)
+					verbose && println("$flag: all mccs have been found")
+					break
+				end
+			end
+		elseif flag == :found && E != 0.
+			verbose && println("$flag: temporary solution found")
+			pruneconf!(mccs, ot...)
+			append!(MCCs, mccs)
+		end
+
+		# Updating df based on found solution
+		update_df!(df, ot[1], γ, M, E, F)
+
+		# Actions if no solution is found
+		if i == itmax
+			verbose && println("Maximum number of iterations reached - stop")
+			complete_mccs!(MCCs, ot, force=true)
+		elseif flag != :found && M <= Mmax
+			M *= 2
+		elseif flag !=:found && M > Mmax
+			verbose && println("Maximum M reached without converging - stop")
+			complete_mccs!(MCCs, ot, force=true)
+			break
+		end
+		
+	end
+	return RecombTools.sort_mccs(MCCs), df
+end
 
 """
 	runopt(t::Vararg{Tree}; γinit=5.1, dγ=0.5, γmin=1., M=200, itmax=50, Trange=reverse(0.01:0.2:1.1), verbose=false)
 	runopt(γinit::Real, dγ::Real, γmin::Real, M::Int64, t::Vararg{Tree}; itmax=50, Trange=reverse(0.01:0.2:1.1), verbose=false)
 """
-runopt(t::Vararg{Tree}; γinit=4.1, dγ=0.25, γmin=1., M=200, 
-	itmax=50, stop_when_stuck=true, 
-	Trange=reverse(0.01:0.2:1.1), verbose=false) = runopt(γinit, dγ, γmin, M, t..., 
-	stop_when_stuck=stop_when_stuck, itmax=itmax, 
-	Trange=Trange, verbose=verbose)
+# runopt(t::Vararg{Tree}; γinit=4.1, dγ=0.25, γmin=1., M=200, 
+# 	itmax=50, stop_when_stuck=true, 
+# 	Trange=reverse(0.01:0.2:1.1), verbose=false) = runopt(γinit, dγ, γmin, M, t..., 
+# 	stop_when_stuck=stop_when_stuck, itmax=itmax, 
+# 	Trange=Trange, verbose=verbose)
 
 function runopt(γinit::Real, dγ::Real, γmin::Real, M::Int64, t::Vararg{Tree}; 
 	stop_when_stuck = true, 
@@ -94,32 +177,17 @@ function runopt(γinit::Real, dγ::Real, γmin::Real, M::Int64, t::Vararg{Tree};
 end
 """
 """
-function complete_mccs!(MCCs, ot)
+function complete_mccs!(MCCs, ot; force=false)
 	final_mccs = maximal_coherent_clades(ot)
 	if length(final_mccs) != 1
+		force && append!(MCCs, final_mccs)
 		return false
 	else
 		append!(MCCs, final_mccs)
 		return true
 	end
 end
-# function complete_mccs!(MCCs, leaves)
-# 	new_mcc = String[]
-# 	for l in leaves
-# 		found = false
-# 		for m in MCCs
-# 			if in(l,m)
-# 				found=true
-# 				break
-# 			end
-# 		end
-# 		if !found
-# 			push!(new_mcc, l)
-# 		end
-# 	end
-# 	append!(MCCs, [new_mcc])
-# 	return new_mcc
-# end
+
 """
 	γrun!(γi, dγ, γmin, M, t::Vararg{Tree}; verbose=false, itmax = 50)
 
@@ -239,6 +307,10 @@ end
 update_df!(df::DataFrame, t::Tree, γf, γi, dγ, γmin, M, E, F) = push!(df, Dict(:nleaves=>length(t.lleaves), 
 												:γf=>γf, :γi=>γi, :γmin=>γmin, :dγ=>dγ, :M=>M,
 												:E=>E, :F=>F))
+
+update_df!(df::DataFrame, t::Tree, γ, M, E, F) = push!(df, 
+	Dict(:nleaves=>length(t.lleaves), :γ=>γ, :M=>M, :E=>E, :F=>F))
+
 """
 	update_γrun1(γ, dγ, γmin, M)
 
