@@ -379,7 +379,7 @@ end
 Find the mcc to which the branch from `n` to `n.anc` belongs. If `mccs` is an array, return the pair `(index, value)`. If it is a dictionary, return the pair `(key, value)`. If no such mcc exists, return `nothing`.   
 Based on the same idea that `is_branch_in_mcc`. 
 """
-function is_branch_in_mcc(n::TreeNode, mccs::Dict)
+function find_mcc_with_branch(n::TreeNode, mccs::Dict)
     cl = TreeTools.node_leavesclade_labels(n)
     for (key,mcc) in mccs
         if !isempty(intersect(cl, mcc)) && !isempty(setdiff(mcc, intersect(cl, mcc)))
