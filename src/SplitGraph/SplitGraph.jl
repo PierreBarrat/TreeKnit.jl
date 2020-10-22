@@ -49,51 +49,52 @@ function runopt(γ::Real, M::Int64, t::Vararg{Tree};
 	ot = deepcopy(collect(t))
 	df = DataFrame(nleaves=Int64[length(ot[1].lleaves)],
 		γ=Any[missing], M=Any[missing], 
-		E=Any[missing], F=Any[missing])
+		E=Any[missing], F=Any[missing],
+		Efinal=Any[count_mismatches(t...)], Ffinal=Any[count_mismatches(t...)],
+		removedMCCs=Any[missing])
 	MCCs = []
 
 	set_verbose(verbose)
+	# Energy for the initial state
+
 	#
 	for i in 1:itmax
 		flag = :init
 		v() && println("\n --- \nIteration $i/$(itmax) - $(df.nleaves[end]) leaves remaining")
 		# Optimization
-		mccs, E, F = opttrees!(ot..., γ=γ, M=M)
+		mccs, Efinal, Ffinal, E, F = opttrees!(ot..., γ=γ, M=M)
 		# if maximum([length(x) for x in oconf]) != 0
 		if length(mccs) != 0
 			flag = :found
 		end
-		# # Sorting configurations
-		# sortedconfs = sortconf(oconf)
-		# mccs = sortedconfs[1][1]
-		# E = Evals[sortedconfs[2]][1]
-		# F = Fvals[sortedconfs[2]][1]
 
 		# Checks
 		!prod([check_tree(t) for t in ot]) && @error "Problem in one of the trees"
 
 		# Actions if a solution is found
-		if flag == :found && E == 0. # There is the chance that the algorithm converged
-			v() && println("$flag: temporary solution found")
+		if flag == :found && Efinal == 0. # There is the chance that the algorithm converged
+			v() && println("$flag: temporary solution found - `E == 0.`")
 			append!(MCCs, mccs)
 			if sum(length(m) for m in mccs) != length(ot[1].lleaves)
 				pruneconf!(mccs, ot...)
 				if complete_mccs!(MCCs, ot)
 					v() && println("$flag: all mccs have been found")
+					update_df!(df, ot[1], γ, M, E, F, Efinal, Ffinal, mccs)
 					break
 				end
 			else # Found mccs cover all leaves
 				v() && println("$flag: all mccs have been found")
+				update_df!(df, ot[1], γ, M, E, F, Efinal, Ffinal, mccs)
 				break
 			end
-		elseif flag == :found && E != 0.
-			v() && println("$flag: temporary solution found")
+		elseif flag == :found && Efinal != 0.
+			v() && println("$flag: temporary solution found - `E != 0.`")
 			pruneconf!(mccs, ot...)
 			append!(MCCs, mccs)
 		end
 
 		# Updating df based on found solution
-		update_df!(df, ot[1], γ, M, E, F)
+		update_df!(df, ot[1], γ, M, E, F, Efinal, Ffinal, mccs)
 
 		# Actions if no solution is found
 		if i == itmax
@@ -209,14 +210,9 @@ Prune MCCs `mcc_names[x]` for all `x` in `mcc_conf` from trees `t...`.
 pruneconf!(trees, mcc_names, mcc_conf) = pruneconf!([mcc_names[x] for x in mcc_conf], trees...)
 
 
-"""
-"""
-update_df!(df::DataFrame, t::Tree, γf, γi, dγ, γmin, M, E, F) = push!(df, Dict(:nleaves=>length(t.lleaves), 
-												:γf=>γf, :γi=>γi, :γmin=>γmin, :dγ=>dγ, :M=>M,
-												:E=>E, :F=>F))
-
-update_df!(df::DataFrame, t::Tree, γ, M, E, F) = push!(df, 
-	Dict(:nleaves=>length(t.lleaves), :γ=>γ, :M=>M, :E=>E, :F=>F))
+update_df!(df::DataFrame, t::Tree, γ, M, E, F, Efinal, Ffinal, rMCCs) = push!(df, 
+	Dict(:nleaves=>length(t.lleaves), :γ=>γ, :M=>M, :E=>E, :F=>F, 
+		:Efinal=>Efinal, :Ffinal=>Ffinal, :removedMCCs=>rMCCs))
 
 
 

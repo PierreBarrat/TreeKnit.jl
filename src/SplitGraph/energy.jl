@@ -182,7 +182,7 @@ end
 	count_mismatches(t::Vararg{Tree})
 """
 function count_mismatches(t::Vararg{Tree})
-	treelist = collect(t)
+	treelist = deepcopy(collect(t))
 	mcc = maximal_coherent_clades(treelist)
 	mcc_names = name_mcc_clades!(treelist, mcc)
 	for (i,t) in enumerate(treelist)

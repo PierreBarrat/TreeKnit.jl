@@ -64,6 +64,7 @@ function simulate(param::SimParam;
 	simtype = :kingman)
 	set_verbose(verbose)
 	set_vverbose(vverbose)
+	v() && println("Simulating an ARG (simtype $simtype)")
 	# 
 	simstate = initiate(param)
 	reset_discrete_t()
