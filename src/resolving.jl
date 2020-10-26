@@ -14,7 +14,7 @@ function resolve_trees(t, tref ; rtau = 1. /max(1, length(first(t.lleaves)[2].da
     tt = deepcopy(t)
     # Getting starting index for node labeling
     label_init = 1
-    for n in values(t.nodes)
+    for n in values(t.lnodes)
         if match(r"RESOLVED", n.label)!=nothing && parse(Int64, n.label[10:end]) >= label_init
             label_init = parse(Int64, n.label[10:end]) + 1
         end
@@ -64,7 +64,7 @@ end
 
 """
 """
-function resolve_trees(treelist ; label_init=1, verbose=false)
+function resolve_trees(treelist ; label_init=1, verbose=false, τ=missing)
     flag = true
     for t1 in treelist
         for t2 in treelist
@@ -80,8 +80,9 @@ function resolve_trees(treelist ; label_init=1, verbose=false)
     rcount = 0
     # Use clades of each tree `t` to resolve other trees
     for t in treelist_    
-        L = max(1, length(first(t.lleaves)[2].data.sequence)
-)        # checklist = Dict(k=>false for k in keys(t.lleaves))   
+        L = max(1, length(first(t.lleaves)[2].data.sequence))
+        ismissing(τ) ? τe = 1/L/3 : τe = τ
+        # checklist = Dict(k=>false for k in keys(t.lleaves))   
         verbose && println("\n#######################################")
         for (i,cl) in enumerate(keys(t.lleaves))
             verbose && print("$i/$(length(t.lleaves)) -- $cl                                \r")
@@ -108,7 +109,7 @@ function resolve_trees(treelist ; label_init=1, verbose=false)
                         if isclade(nodes)
                         elseif is_unresolved_clade(nodes, checkclade=false)
                             # println("Resolving nodes $([nlabel])")
-                            make_unresolved_clade!(nodes, label = "RESOLVED_$(label_i)", tau = 1. /L/3)
+                            make_unresolved_clade!(nodes, label = "RESOLVED_$(label_i)", tau = τe)
                             rcount += 1
                             label_i += 1
                         else

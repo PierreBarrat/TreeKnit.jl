@@ -31,11 +31,10 @@ function compute_energy(conf::Array{Bool,1}, g::Graph)
 						a2 = a2.anc
 					end
 					# Mismatch
-					# if a1.conf[conf] and a2.conf[conf] are disjoint or if one contains the other, E=0
-					# Question: how would it even be possible that `are_disjoint` is true? a1.conf and a2.conf share leaf `i`...
-					# if !is_contained(a1.conf, a2.conf, conf) && !is_contained(a2.conf, a1.conf, conf) 
 					if !are_equal(a1.conf, a2.conf, conf)
 						E += 1
+					else
+						println(g.labels[i])
 					end
 				end
 			end

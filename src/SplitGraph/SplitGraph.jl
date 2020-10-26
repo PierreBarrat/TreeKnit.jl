@@ -35,35 +35,33 @@ end
 
 Run optimization at constant γ
 """
-runopt(t::Vararg{Tree}; γ=1.1, M=200, 
+runopt(t::Vararg{Tree}; γ=1.1, M=2000, 
 	itmax=50, Mmax = 10_000, 
 	Trange=reverse(0.01:0.2:1.1), verbose=false) = runopt(γ, M, t..., 
-	itmax=round(Int64, length(first(t).lleaves)/4), 
+	itmax=itmax, Mmax=Mmax, 
 	Trange=Trange, verbose=verbose)
 
 function runopt(γ::Real, M::Int64, t::Vararg{Tree}; 
-	Mmax = 2_000, 
+	Mmax = 100_000, 
 	itmax=50, 
 	Trange=reverse(0.01:0.2:1.1), 
 	verbose=false)
 	ot = deepcopy(collect(t))
 	df = DataFrame(nleaves=Int64[length(ot[1].lleaves)],
+		nMCCs=length(maximal_coherent_clades(ot)),
 		γ=Any[missing], M=Any[missing], 
-		E=Any[missing], F=Any[missing],
 		Efinal=Any[count_mismatches(t...)], Ffinal=Any[count_mismatches(t...)],
 		removedMCCs=Any[missing])
 	MCCs = []
-
+	Evals = Any[]
+	Fvals = Any[]
 	set_verbose(verbose)
-	# Energy for the initial state
-
 	#
 	for i in 1:itmax
 		flag = :init
 		v() && println("\n --- \nIteration $i/$(itmax) - $(df.nleaves[end]) leaves remaining")
 		# Optimization
-		mccs, Efinal, Ffinal, E, F = opttrees!(ot..., γ=γ, M=M)
-		# if maximum([length(x) for x in oconf]) != 0
+		mccs, Efinal, Ffinal, E, F = opttrees!(ot..., γ=γ, M=M, Trange=Trange)
 		if length(mccs) != 0
 			flag = :found
 		end
@@ -94,7 +92,10 @@ function runopt(γ::Real, M::Int64, t::Vararg{Tree};
 		end
 
 		# Updating df based on found solution
-		update_df!(df, ot[1], γ, M, E, F, Efinal, Ffinal, mccs)
+		nMCCs = length(maximal_coherent_clades(ot))
+		update_df!(df, length(ot[1].lleaves), nMCCs, γ, M, Efinal, Ffinal, mccs)
+		push!(Evals, E)
+		push!(Fvals, F)
 
 		# Actions if no solution is found
 		if i == itmax
@@ -109,7 +110,7 @@ function runopt(γ::Real, M::Int64, t::Vararg{Tree};
 		end
 		
 	end
-	return RecombTools.sort_mccs(MCCs), df
+	return RecombTools.sort_mccs(MCCs), df, Evals, Fvals
 end
 
 
@@ -210,8 +211,8 @@ Prune MCCs `mcc_names[x]` for all `x` in `mcc_conf` from trees `t...`.
 pruneconf!(trees, mcc_names, mcc_conf) = pruneconf!([mcc_names[x] for x in mcc_conf], trees...)
 
 
-update_df!(df::DataFrame, t::Tree, γ, M, E, F, Efinal, Ffinal, rMCCs) = push!(df, 
-	Dict(:nleaves=>length(t.lleaves), :γ=>γ, :M=>M, :E=>E, :F=>F, 
+update_df!(df::DataFrame, nleaves::Int64, nMCCs::Int64, γ, M, Efinal, Ffinal, rMCCs) = push!(df, 
+	Dict(:nleaves=>nleaves, :nMCCs=>nMCCs, :γ=>γ, :M=>M,
 		:Efinal=>Efinal, :Ffinal=>Ffinal, :removedMCCs=>rMCCs))
 
 
