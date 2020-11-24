@@ -25,6 +25,9 @@ function conf_likelihood(conf::Array{Bool,1}, g::Graph, μ, trees; v=false, mode
 end
 
 """
+	conf_likelihood_(divfunction, conf::Array{Bool,1}, g::Graph, μ, trees; v=false)
+
+For each leaf `n` remaining in `conf`, find the first non-trivial ancestors in graph `g`. For each pair of ancestors `a1` and `a2`, compare the likelihood  that the real branch length from `n` to `a1` and `a2` is the same, with the likelihood that it is different. 
 """
 function conf_likelihood_(divfunction, conf::Array{Bool,1}, g::Graph, μ, trees; v=false)
 	L = 0.
@@ -33,7 +36,7 @@ function conf_likelihood_(divfunction, conf::Array{Bool,1}, g::Graph, μ, trees;
 	end
 	for (i,s) in enumerate(conf)
 		if s
-			# Similar to compute energy
+			# Similar to compute_energy 
 			for k1 in 1:g.K
 				# Tree node of k1 corresponding to graph leaf i
 				tn1 = trees[k1].lleaves[g.labels[i]]
@@ -55,7 +58,8 @@ function conf_likelihood_(divfunction, conf::Array{Bool,1}, g::Graph, μ, trees;
 						ta2 = ta2.anc
 					end
 					# If a1.conf and a2.conf are equal, we just inferred that this branch is common to trees k1 and k2
-					if are_equal(a1.conf, a2.conf, conf)
+					# if are_equal(a1.conf, a2.conf, conf)
+					if are_equal_with_resolution(g, a1.conf, a2.conf, conf, k1, k2)
 						n1 = divfunction(tn1, ta1)
 						n2 = divfunction(tn2, ta2)
 						v && println("No inconsistency for leaf $i ($(g.labels[i]))")

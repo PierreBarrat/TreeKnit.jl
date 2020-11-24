@@ -35,27 +35,30 @@ end
 
 Run optimization at constant γ
 """
-runopt(t::Vararg{Tree}; γ=1.1, M=2000, 
-	itmax=50, Mmax = 10_000, 
-	Trange=reverse(0.01:0.2:1.1), verbose=false) = runopt(γ, M, t..., 
+runopt(t::Vararg{Tree}; γ=1.1, M=200, 
+	itmax=50, Mmax = 2_000, 
+	Trange=reverse(0.01:0.2:1.1), verbose=false, vv=false) = runopt(γ, Int64(M), t..., 
 	itmax=itmax, Mmax=Mmax, 
-	Trange=Trange, verbose=verbose)
+	Trange=Trange, verbose=verbose, vv=vv)
 
 function runopt(γ::Real, M::Int64, t::Vararg{Tree}; 
-	Mmax = 100_000, 
+	Mmax = 2_000, 
 	itmax=50, 
 	Trange=reverse(0.01:0.2:1.1), 
-	verbose=false)
+	verbose=false, vv=false)
 	ot = deepcopy(collect(t))
+	resolve_trees!(ot...);
+	nMCC = maximal_coherent_clades(ot)
 	df = DataFrame(nleaves=Int64[length(ot[1].lleaves)],
-		nMCCs=length(maximal_coherent_clades(ot)),
+		nMCCs=length(nMCC),
 		γ=Any[missing], M=Any[missing], 
 		Efinal=Any[count_mismatches(t...)], Ffinal=Any[count_mismatches(t...)],
-		removedMCCs=Any[missing])
+		removedMCCs=Any[missing], all_removedMCCs=Any[missing], remainingMCCs=Any[nMCC])
 	MCCs = []
 	Evals = Any[]
 	Fvals = Any[]
 	set_verbose(verbose)
+	set_vverbose(vv)
 	#
 	for i in 1:itmax
 		flag = :init
@@ -64,6 +67,8 @@ function runopt(γ::Real, M::Int64, t::Vararg{Tree};
 		mccs, Efinal, Ffinal, E, F = opttrees!(ot..., γ=γ, M=M, Trange=Trange)
 		if length(mccs) != 0
 			flag = :found
+		else
+			v() && println("No solution found in current iteration")
 		end
 
 		# Checks
@@ -77,12 +82,16 @@ function runopt(γ::Real, M::Int64, t::Vararg{Tree};
 				pruneconf!(mccs, ot...)
 				if complete_mccs!(MCCs, ot)
 					v() && println("$flag: all mccs have been found")
-					update_df!(df, ot[1], γ, M, E, F, Efinal, Ffinal, mccs)
+					resolve_trees!(ot...)
+					nMCCs = maximal_coherent_clades(ot)
+					update_df!(df, length(ot[1].lleaves), length(nMCCs), γ, M, Efinal, Ffinal, mccs, MCCs, nMCCs)
 					break
 				end
 			else # Found mccs cover all leaves
 				v() && println("$flag: all mccs have been found")
-				update_df!(df, ot[1], γ, M, E, F, Efinal, Ffinal, mccs)
+				resolve_trees!(ot...)
+				nMCCs = maximal_coherent_clades(ot)
+				update_df!(df, length(ot[1].lleaves), length(nMCCs), γ, M, Efinal, Ffinal, mccs, MCCs, nMCCs)
 				break
 			end
 		elseif flag == :found && Efinal != 0.
@@ -91,9 +100,10 @@ function runopt(γ::Real, M::Int64, t::Vararg{Tree};
 			append!(MCCs, mccs)
 		end
 
-		# Updating df based on found solution
-		nMCCs = length(maximal_coherent_clades(ot))
-		update_df!(df, length(ot[1].lleaves), nMCCs, γ, M, Efinal, Ffinal, mccs)
+		# Updating df based on found solution -- will also update if no solution was found
+		resolve_trees!(ot...)
+		nMCCs = maximal_coherent_clades(ot)
+		update_df!(df, length(ot[1].lleaves), length(nMCCs), γ, M, Efinal, Ffinal, mccs, MCCs, nMCCs)
 		push!(Evals, E)
 		push!(Fvals, F)
 
@@ -108,9 +118,8 @@ function runopt(γ::Real, M::Int64, t::Vararg{Tree};
 			complete_mccs!(MCCs, ot, force=true)
 			break
 		end
-		
 	end
-	return RecombTools.sort_mccs(MCCs), df, Evals, Fvals
+	return RecombTools.sort_mccs(MCCs), df, ot, Evals, Fvals
 end
 
 
@@ -186,7 +195,7 @@ function sortconf(oconfs, trees, g::Graph, μ, mcc_names)
 		# L = [conf_likelihood(conf, g, μ, trees) for conf in oconfs_]
 		vv() && println("Confs: ", [[mcc_names[x] for x in g.labels[.!conf]] for conf in oconfs_])
 		v() && println("Likelihoods: ", L)
-		return oconfs[findmax(L)[2]]
+		return oconfs_[findmax(L)[2]]
 	end
 end	
 
@@ -211,9 +220,9 @@ Prune MCCs `mcc_names[x]` for all `x` in `mcc_conf` from trees `t...`.
 pruneconf!(trees, mcc_names, mcc_conf) = pruneconf!([mcc_names[x] for x in mcc_conf], trees...)
 
 
-update_df!(df::DataFrame, nleaves::Int64, nMCCs::Int64, γ, M, Efinal, Ffinal, rMCCs) = push!(df, 
+update_df!(df::DataFrame, nleaves::Int64, nMCCs::Int64, γ, M, Efinal, Ffinal, rMCCs, arMCCs, remainingMCCs) = push!(df, 
 	Dict(:nleaves=>nleaves, :nMCCs=>nMCCs, :γ=>γ, :M=>M,
-		:Efinal=>Efinal, :Ffinal=>Ffinal, :removedMCCs=>rMCCs))
+		:Efinal=>Efinal, :Ffinal=>Ffinal, :removedMCCs=>rMCCs, :all_removedMCCs=>arMCCs, :remainingMCCs=>remainingMCCs))
 
 
 

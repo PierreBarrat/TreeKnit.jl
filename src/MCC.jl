@@ -43,17 +43,17 @@ function maximal_coherent_clades(treelist)
         # print("$i/$(length(t.lleaves)) -- $cl  --     Found $(sum(values(checklist)))/$(length(t.lleaves))            \r")
         if !v # If leave not already visited
             # We're going to go up in all trees at the same time
-            croot = map(x->x.lleaves[cl], treelist_) 
+            croot = [t.lleaves[cl] for t in treelist_] # Root of current maximal clade, in all trees 
             clabel = [cl]
             # Initial individual, always a common clade in all trees since it's a leaf. 
             flag = true
             while flag && prod([!x.isroot for x in croot])
-                nroot = [x.anc for x in croot] # Ancestors of current label in all trees
-                # Each element of `nroot` defines a set of labels. There are two possibilites 
+                nroot = [x.anc for x in croot] # Ancestors of current maximal clade in all trees
+                # Each element of `nroot` defines a new set of labels corresponding to one tree. There are two possibilites 
                 # (i) Those sets of labels match. In this case, we have a potential consistent clade. To check further, call `is_coherent_clade`. 
                 # (ii) Otherwise, the topology of trees in `treelist` is inconsistent above `croot`. `croot` is an MCC, break.  
                 nlabel = [Set(x.label for x in node_leavesclade(r)) for r in nroot] # List of sets of labels
-                if prod([nlabel[i]==nlabel[1] for i in 1:length(nlabel)])
+                if prod([nlabel[i]==nlabel[1] for i in 1:length(nlabel)]) # case (i)
                     nclade = [[node_findlabel(l, r) for l in nlabel[1]] for r in nroot]
                     if prod([is_coherent_clade_nodelist(c, treelist_) for c in nclade])
                         tcroot = [lca(c) for c in nclade]
@@ -403,10 +403,32 @@ end
 
 Can I join `n1` and `n2` through common branches only? Equivalent to: is there an `m` in `mccs` such that `in(n1,m) && in(n2,m)`? 
 """
+function is_linked_pair(n1::T, n2::T, mccs::Dict{Any,Array{T,1}}) where T
+    for mcc in values(mccs)
+        if in(n1, mcc)
+            return in(n2, mcc)
+        elseif in(n2, mcc)
+            return false
+        end
+    end
+    return false
+end
 function is_linked_pair(n1, n2, mccs)
     for mcc in values(mccs)
-        if in(n1, mcc) && in(n2, mcc)
-            return true
+        if in(n1, mcc)
+            return in(n2, mcc)
+        elseif in(n2, mcc)
+            return false
+        end
+    end
+    return false
+end
+function is_linked_pair(n1::T, n2::T, mccs::Array{Array{T,1},1}) where T
+    for mcc in mccs
+        if in(n1, mcc)
+            return in(n2, mcc)
+        elseif in(n2, mcc)
+            return false
         end
     end
     return false

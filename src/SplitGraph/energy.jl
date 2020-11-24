@@ -31,10 +31,19 @@ function compute_energy(conf::Array{Bool,1}, g::Graph)
 						a2 = a2.anc
 					end
 					# Mismatch
-					if !are_equal(a1.conf, a2.conf, conf)
+					# if !are_equal(a1.conf, a2.conf, conf)
+					# 	if is_contained(a1.conf, a2.conf, conf) 
+					# 		!are_equal_with_resolution(g, a1.conf, a2.conf, k2, conf) && (E += 1)
+					# 	elseif is_contained(a2.conf, a1.conf, conf)
+					# 		!are_equal_with_resolution(g, a2.conf, a1.conf, k1, conf) && (E += 1)
+					# 	else 
+					# 		E += 1
+					# 	end
+					# end
+					if !are_equal_with_resolution(g, a1.conf, a2.conf, conf, k1, k2)
 						E += 1
 					else
-						println(g.labels[i])
+						# println(g.labels[i])
 					end
 				end
 			end
@@ -42,6 +51,50 @@ function compute_energy(conf::Array{Bool,1}, g::Graph)
 	end
 	return E
 end
+
+"""
+	are_equal_with_resolution(g, aconf1, aconf2, conf, k1, k2)
+"""
+function are_equal_with_resolution(g::SplitGraph.Graph, aconf1, aconf2, conf, k1::Int64, k2::Int64)
+	if are_equal(aconf1, aconf2, conf)
+		return true
+	elseif is_contained(aconf1, aconf2, conf) && are_equal_with_resolution(g, aconf1, aconf2, k2, conf)
+		return true
+	elseif is_contained(aconf2, aconf1, conf) && are_equal_with_resolution(g, aconf2, aconf1, k1, conf)
+		return true
+	end
+	return false
+end
+
+"""
+	are_equal_with_resolution(g, aconf1, aconf2, k2, conf)
+
+For every leaf `n` in `a1.conf`, all the ancestors of `n` in tree `k2` up to `a2` should have a split that is contained in `a1.conf`, for `conf` as a leaves state. If so, the split `a1.conf` (for `conf`) can be transformed into a clade in the other tree (`k2`) by adding one internal node.  
+
+**Expects `is_contained(a1.conf, a2.conf, conf)` to return `true`.**  
+"""
+function are_equal_with_resolution(g::SplitGraph.Graph, aconf1, aconf2, k2::Int64, conf)
+	for (i,s) in enumerate(aconf1)
+		if s && conf[i]
+			a = g.leaves[i].anc[k2]
+			while !are_equal(a.conf, aconf2)
+				if !is_contained(a.conf, aconf1, conf)
+					return false
+				end
+				if isnothing(a.anc)
+					println(a.conf)
+					println(aconf2)
+					println(g.leaves[i].anc[1].conf)
+					println(g.leaves[i].anc[2].conf)
+					println(g.leaves[i].anc[k2].conf)
+				end
+				a = a.anc::SplitNode
+			end
+		end
+	end
+	return true
+end
+
 function onespinup(nodeconf, conf)
 	n = 0
 	for i in 1:length(conf)
@@ -82,7 +135,7 @@ function is_contained(nconf1, nconf2, conf) # is 1 in 2 ?
 	end
 	return true
 end
-function are_equal(nconf1, nconf2, conf) # is 1 in 2 ? 
+function are_equal(nconf1, nconf2, conf) 
 	for i in 1:length(conf)
 		if conf[i] &&  (nconf1[i] != nconf2[i])
 			return false
@@ -90,6 +143,15 @@ function are_equal(nconf1, nconf2, conf) # is 1 in 2 ?
 	end
 	return true
 end
+function are_equal(nconf1, nconf2)
+	for (i,s) in enumerate(nconf1)
+		if s != nconf2[i]
+			return false
+		end
+	end
+	return true
+end
+
 """
 """
 function compute_F(conf::Array{Bool,1}, g::Graph, γ::Real)
