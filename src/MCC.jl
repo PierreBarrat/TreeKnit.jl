@@ -1,11 +1,6 @@
 export maximal_coherent_clades
-# export is_coherent_clade_nodelist
-# export is_coherent_clade
 export name_mcc_clades!
 export adjust_branchlength!
-export supraMCC
-export prune_mcc_scores
-export prune_mcc_scores_pairs, prune_mcc_scores_triplets
 export reduce_to_mcc
 
 """
@@ -23,38 +18,33 @@ In this version, the function does not attempt to
 - Increase MCC by adding children of multiforcations one by one. I wish to keep this code as basic as possible: it should just find regions of perfect topologic compatibility in all trees of `treelist`. The rest can use another function, maybe a `combine_mcc` one. 
 """
 function maximal_coherent_clades(treelist)
+
     # Checking that trees have the same label for leaf nodes
-    flag = true
-    for t1 in treelist
-        for t2 in treelist
-            flag *= share_labels(t1,t2)
-        end
-    end
-    if !flag
-        error("`maximal_common_clades` can only be used on trees that share leaf nodes.")
-    end
+    sh = mapreduce(t->share_labels(t[1],t[2]), *, zip(treelist[1:end-1], treelist[2:end]))
+    !sh && error("Can only be used on trees that share leaf nodes.")
+
     # List of already visited nodes
     treelist_ = deepcopy(treelist)
-    t = treelist_[1]
-    checklist = Dict(k=>false for k in keys(t.lleaves))
-    # Explore one leave at a time
+    tref = treelist_[1]
+    checklist = Dict(k=>false for k in keys(tref.lleaves))
+
+    # Explore one leaf at a time
     mc_clades = []
     for (cl,v) in checklist
-        # print("$i/$(length(t.lleaves)) -- $cl  --     Found $(sum(values(checklist)))/$(length(t.lleaves))            \r")
         if !v # If leave not already visited
             # We're going to go up in all trees at the same time
-            croot = [t.lleaves[cl] for t in treelist_] # Root of current maximal clade, in all trees 
+            croot = [tref.lleaves[cl] for t in treelist_] # Root of current maximal clade, in all trees 
             clabel = [cl]
             # Initial individual, always a common clade in all trees since it's a leaf. 
             flag = true
-            while flag && prod([!x.isroot for x in croot])
+            while flag && prod(!x.isroot for x in croot)
                 nroot = [x.anc for x in croot] # Ancestors of current maximal clade in all trees
                 # Each element of `nroot` defines a new set of labels corresponding to one tree. There are two possibilites 
                 # (i) Those sets of labels match. In this case, we have a potential consistent clade. To check further, call `is_coherent_clade`. 
                 # (ii) Otherwise, the topology of trees in `treelist` is inconsistent above `croot`. `croot` is an MCC, break.  
-                nlabel = [Set(x.label for x in node_leavesclade(r)) for r in nroot] # List of sets of labels
-                if prod([nlabel[i]==nlabel[1] for i in 1:length(nlabel)]) # case (i)
-                    nclade = [[node_findlabel(l, r) for l in nlabel[1]] for r in nroot]
+                nlabel = [Set(x.label for x in POTleaves(r)) for r in nroot] # List of sets of labels
+                if prod(nlabel[i]==nlabel[1] for i in 2:length(nlabel)) # case (i)
+                    nclade = [node_leavesclade(r) for r in nroot]
                     if prod([is_coherent_clade_nodelist(c, treelist_) for c in nclade])
                         tcroot = [lca(c) for c in nclade]
                         if tcroot == croot # Singleton in the tree, or clade with a single node --> the algorithm is getting stuck on this node
@@ -70,8 +60,7 @@ function maximal_coherent_clades(treelist)
                     flag = false
                 end
             end
-
-            ###
+            # 
             # clabel = map(x->x.label, cclade)
             map(x->checklist[x]=true, [c for c in clabel])
             push!(mc_clades, sort([c for c in clabel]))
@@ -129,7 +118,7 @@ function is_coherent_clade(node::TreeNode, treelist)
         return true
     end
     # Is `node` a common clade to all trees? 
-    cl = map(x->x.label, node_leavesclade(node))
+    cl = map(x->x.label, POTleaves(node))
     if !is_common_clade(cl, treelist)
         return false
     end
@@ -223,7 +212,7 @@ function adjust_branchlength!(treelist, tref, MCC)
     # Adjusting branch length
     for m in MCC
         r = lca([tref.lnodes[x] for x in m])
-        for n in node_clade(r)
+        for n in POT(r)
             if n != r
                 llist = [x.label for x in node_leavesclade(n)]
                 for t in treelist
@@ -252,41 +241,6 @@ function assert_mcc(treelist, MCC)
     return flag
 end
 
-
-
-
-"""
-    supraMCC(treelist, MCC)
-
-Find supra MCC: clades that are common to all trees in `treelist` and contain as few MCC as possible (i.e. they should be direct ancestors to MCCs ideally)
-Method: For each `m` in MCC 
-1. Start with the root of `m` in `first(treelist)`: `r` 
-2. The clade `C` defined by `r.anc` is our first candidate to a supraMCC
-3. For each tree in `treelist`, check if `C` is a clade. If not, `a = mrca(C)` and `C<--clade(a)`. 
-4. Iterate 3. until `C` is a clade for all trees in `treelist`. `C` is the supraMCC corresponding to `m`
-"""
-function supraMCC(treelist, MCC)
-    supra = Array{Array{String,1},1}(undef, length(MCC))
-    for (i,m) in enumerate(MCC)
-        r = lca([first(treelist).lnodes[x] for x in m]).anc # Ancestor of `m` in one of the trees
-        llist = node_leavesclade_labels(r)
-        flag = true
-        while flag
-            flag = false
-            for t in treelist
-                mapr = [t.lnodes[x] for x in llist]
-                if !isclade(mapr)
-                    flag = true
-                    r = lca(mapr)
-                    llist = node_leavesclade_labels(r)
-                end
-            end
-        end
-        supra[i] = llist
-    end
-    return supra
-end
-
 """
    reduce_to_mcc(strainlist, MCC)
 
@@ -308,6 +262,7 @@ function reduce_to_mcc(strainlist, MCC)
 
     return mcclist
 end
+
 
 """
     reduce_to_mcc(tree, MCC)
@@ -400,6 +355,8 @@ end
 
 """
     is_linked_pair(n1, n2, mccs)
+    is_linked_pair(n1::T, n2::T, mccs::Dict{Any,Array{T,1}}) where T
+    is_linked_pair(n1::T, n2::T, mccs::Array{Array{T,1},1}) where T
 
 Can I join `n1` and `n2` through common branches only? Equivalent to: is there an `m` in `mccs` such that `in(n1,m) && in(n2,m)`? 
 """
@@ -434,6 +391,21 @@ function is_linked_pair(n1::T, n2::T, mccs::Array{Array{T,1},1}) where T
     return false
 end
 
+"""
+    find_mcc_with_node(n::String, mccs::Array{Array{T,1},1}) where T
+
+Find MCC to which `n` belongs.
+"""
+function find_mcc_with_node(n::String, mccs::Array{Array{T,1},1}) where T
+    for m in mccs
+        if in(n, m)
+            return m
+        end
+    end
+    return nothing
+end
+find_mcc_with_node(n::TreeNode, mccs) = find_mcc_with_node(n1.label, mccs)
+find_mcc_with_node(n::ARGNode, mccs) = find_mcc_with_node(n1.label, mccs)
 
 
 

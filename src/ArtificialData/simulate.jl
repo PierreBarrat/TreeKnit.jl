@@ -22,7 +22,7 @@ let disc_t::Int64, exact_t::Float64
 	global inc_exact_t(t) = (exact_t += t)
 	global get_exact_t() = (exact_t)
 end
-const global K = 2 # Two trees
+# const global K = 2 # Two trees
 
 # What matters is n/(N*r) where n is the size of the current ancestry
 # If 2/(Nr) is small, it's likely that a split happens before a coalescence before the last two ancestors coalesce. 
@@ -32,6 +32,7 @@ struct SimParam
 	ρ::Float64 # Population reassortment rate (i.e. N*r)
 	n0::Int64 # Initial sample size
 	Tmax::Int64 # Maximal number of generations
+	K::Int64 # Degree of the ARG
 end
 mutable struct SimState
 	arg::ARG
@@ -78,11 +79,11 @@ function simulate(param::SimParam;
 	sim = true
 	while sim
 		N = param.N * popvar(get_exact_t())
-		v() && println("Population size: $N")
 		τ, etype = choose_event(param.r, N, 
 			length(simstate.eligible_for_coalescence), 
 			length(simstate.eligible_for_reassortment),
 			simtype)
+		vv() && println()
 		v() && println("Event : $etype - Time $τ")
 		if etype == :coa
 			do_coalescence!(simstate, τ)
@@ -118,13 +119,14 @@ function simulate(param::SimParam;
 	end
 end
 simulate(N,r,n0; 
+	K=2, 
 	Tmax=1e6,
 	verbose=false, 
 	vverbose=false, 
 	popvar=t->1, 
 	prune_singletons=true,
 	output_history=false,
-	simtype=:kingman) = simulate(SimParam(N,r,N*r,n0,Tmax), 
+	simtype=:kingman) = simulate(SimParam(N,r,N*r,n0,Tmax,K), 
 										verbose=verbose, 
 										vverbose=vverbose, 
 										popvar=popvar, 
@@ -139,12 +141,12 @@ simulate(N,r,n0;
 Create `param.n0` `ARGNode` structures with uninitialized parents. 
 """
 function initiate(param::SimParam)
-	arg = ARG(degree=K)
+	arg = ARG(degree=param.K)
 	for i in 1:param.n0
-		an = ARGNode(degree=K, 
-			anc = Array{Union{ARGNode,Nothing}}(nothing, 0),
+		an = ARGNode(degree=param.K, 
+			anc = Array{Union{ARGNode{TreeTools.TimeData},Nothing}}(nothing, 0),
 			label="$(i)_0",
-			isroot = zeros(Bool, K),
+			isroot = zeros(Bool, param.K),
 			isleaf = true)
 		arg.nodes[an.label] = an
 		arg.leaves[an.label] = an
@@ -152,8 +154,8 @@ function initiate(param::SimParam)
 
 	return SimState(arg, 
 			Dict(x=>0. for x in keys(arg.nodes)),
-			zeros(Bool,K),
-			param.n0*ones(Int64,K),
+			zeros(Bool,param.K),
+			param.n0*ones(Int64,param.K),
 			collect(keys(arg.nodes)),
 			collect(keys(arg.nodes)))
 end
@@ -253,10 +255,10 @@ function do_coalescence!(arg::ARG, n1::ARGNode, n2::ARGNode, t1, t2, simstate)
 	vv() && println("Attempting to coalesce $(n1.label) and $(n2.label)")
 	# Parent node
 	new_label = "internal_$(get_discrete_t())"
-	new_color = n1.color .| n2.color
+	new_color = convert(Array{Bool,1}, n1.color .| n2.color)
 	new_color .*= (!).(simstate.found_color_root) # Colors of roots don't propagate up
 	new_node = ARGNode(children = [n1,n2],
-		anc = Array{Union{ARGNode,Nothing}}(nothing, 0),
+		anc = Array{Union{ARGNode{TreeTools.TimeData},Nothing}}(nothing, 0),
 		color = new_color,
 		degree = sum(new_color),
 		label=new_label,
@@ -266,7 +268,7 @@ function do_coalescence!(arg::ARG, n1::ARGNode, n2::ARGNode, t1, t2, simstate)
 	# Children nodes
 	for (n,t) in zip((n1,n2),(t1,t2))
 		push!(n.anc, new_node)	# Pushing in case n is the root node of some color. In this case it already has an ancestor (nothing)
-		push!(n.data, TreeTools.EvoData(tau=t))
+		push!(n.data, TreeTools.TimeData(tau=t))
 		push!(n.anccolor, copy(n.color) .* new_node.color)
 	end
 	#
@@ -321,14 +323,14 @@ function do_split!(n::ARGNode, c1::Array{Int64,1}, c2::Array{Int64,1}, t)
 	new_clr1 = ARGTools._color(c1, length(n.color))
 	new_clr2 = ARGTools._color(c2, length(n.color))
 	a1 = ARGNode(children = [n],
-		anc = Array{Union{ARGNode,Nothing}}(nothing, 0),
+		anc = Array{Union{ARGNode{TreeTools.TimeData},Nothing}}(nothing, 0),
 		color = new_clr1,
 		degree = sum(new_clr1),
 		label = new_label1,
 		isroot=zeros(Bool, length(new_clr1)),
 		isleaf = false)
 	a2 = ARGNode(children = [n],
-		anc = Array{Union{ARGNode,Nothing}}(nothing, 0),
+		anc = Array{Union{ARGNode{TreeTools.TimeData},Nothing}}(nothing, 0),
 		color = new_clr2,
 		degree = sum(new_clr2),
 		label = new_label2,
@@ -338,15 +340,15 @@ function do_split!(n::ARGNode, c1::Array{Int64,1}, c2::Array{Int64,1}, t)
 	push!(n.anc, a1)
 	push!(n.anccolor, copy(new_clr1))
 	if length(n.anccolor[end]) != 2 
-		@warn "$(n.color)"
+		# @warn "$(n.color)"
 	end
-	push!(n.data, EvoData(tau=t))
+	push!(n.data, TreeTools.TimeData(tau=t))
 	push!(n.anc, a2)
 	push!(n.anccolor, copy(new_clr2))
 	if length(n.anccolor[end]) != 2 
-		@warn "$(n.color)"
+		# @warn "$(n.color)"
 	end
-	push!(n.data, EvoData(tau=t))
+	push!(n.data, TreeTools.TimeData(tau=t))
 	return a1, a2
 end
 
@@ -366,7 +368,7 @@ function set_roots_ancestry!(arg::ARG)
 		# Adding `nothing` as ancestor
 		push!(ar.anc, nothing)
 		push!(ar.anccolor, ARGTools._color(c, arg.degree))
-		push!(ar.data, EvoData(tau=missing))
+		push!(ar.data, TreeTools.TimeData(tau=missing))
 	end
 	ARGTools.prune_lone_nodes!(arg)
 end
