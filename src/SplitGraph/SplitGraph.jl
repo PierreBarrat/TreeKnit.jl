@@ -23,7 +23,7 @@ end
 
 """
 	runopt(t::Vararg{Tree}; 
-	γ=1.1, M=200, 
+	γ=3., M=200, 
 	itmax=50, stop_when_stuck=true, 
 	Trange=reverse(0.01:0.2:1.1), verbose=false)
 
@@ -35,7 +35,7 @@ end
 
 Run optimization at constant γ
 """
-runopt(t::Vararg{Tree}; γ=1.1, M=200, 
+runopt(t::Vararg{Tree}; γ=3., M=200, 
 	itmax=50, Mmax = 2_000, 
 	Trange=reverse(0.01:0.2:1.1), verbose=false, vv=false) = runopt(γ, Int64(M), t..., 
 	itmax=itmax, Mmax=Mmax, 
