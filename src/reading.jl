@@ -1,5 +1,26 @@
 export parse_nexus
 
+function resolve_trees(treefiles::Vararg{String}; rtau=:ref, verbose=false, suffix="resolved", prune=(threshold=0.,))
+	trees = [read_tree(f) for f in treefiles]
+	# Deleting null branches
+	if prune.threshold > 0.
+		for t in trees
+			delete_null_branches!(t; prune...)
+		end
+	end
+	# 
+	resolve_trees!(trees..., rtau=rtau, verbose=verbose)
+	outfiles = map(treefiles) do f 
+		if !occursin(r".nwk$", f)
+			@error f
+		end
+		replace(f, ".nwk"=>"_$(suffix).nwk")
+	end
+	for (f,t) in zip(outfiles,trees)
+		write_newick(f,t)
+	end
+end
+
 """
 Read mutations from treetime built nexus file. Return a dictionnary "node label" => (mutations, ...)
 """
