@@ -3,7 +3,7 @@ export resolve_null_branches!
 export is_unresolved_clade
 
 """
-    resolve_trees_ref!(t, tref; rtau = :ref verbose=false)
+    resolve_trees_ref!(t, tref; rtau = :ref, verbose=false)
 
 Resolve clades in place in `t` using clades in `tref`. Newly introduced nodes are assigned a time `rtau`. If `rtau==:ref`, the time found in `tref` is used. 
 """
@@ -51,7 +51,85 @@ function resolve_trees(treelist::Vararg{Tree}; rtau=:ref, verbose=false)
     return ntl
 end
 
-function _resolve_trees_ref!(t, tref, rtau)
+function resolve_trees_joint!(treelist::Vararg{Tree}; verbose=false)
+    found_resolution = true
+    while found_resolution
+        flag = false
+        for (itar, targettree) in enumerate(treelist)
+            tref = [x[2] for x in Iterators.filter(x->x[1]!=itar, enumerate(treelist))]
+            verbose && println("\nTarget: $itar")
+            rcount = resolve_trees_target!(targettree, tref..., verbose=verbose)
+            rcount > 0 && (flag = true)
+            verbose && rcount > 0 && println("Resolved $rcount clades in tree $itar.")
+        end
+        found_resolution = flag
+    end
+end
+"""
+    resolve_trees_target!(t::Tree, tref::Vararg{Tree}; verbose=false)
+
+Resolve target tree `t` using trees in `tref`. Only non-conflicting resolutions are kept. Time of introduced branches are the average of the times of roots of clades in guiding trees. 
+"""
+function resolve_trees_target!(t::Tree, tref::Vararg{Tree}; verbose=false)
+    # Get starting index for node labeling
+    label_i = 1
+    for n in values(t.lnodes)
+        if match(r"RESOLVED", n.label)!=nothing && parse(Int64, n.label[10:end]) >= label_i
+            label_i = parse(Int64, n.label[10:end]) + 1
+        end
+    end
+    # 
+    resolvable_clades = _resolve_trees_target(t, tref..., verbose=verbose)
+    tau = 0.
+    Z = 0
+    for c in resolvable_clades
+        # Getting an appropriate time
+        for tr in tref
+            clade = [tr.lleaves[x] for x in c]
+            if isclade(clade)
+                a = lca(clade)
+                !ismissing(a) && (tau+=a.data.tau; Z += 1)
+            end
+        end
+        Z == 0. ? (tau = missing) : (tau/=Z)
+        # Resolving
+        make_unresolved_clade!([t.lleaves[x] for x in c], label = "RESOLVED_$(label_i)", tau=tau, safe=false)
+        label_i += 1
+    end
+    node2tree!(t, t.root)
+    check_tree(t)
+    return length(resolvable_clades)
+end
+"""
+    _resolve_trees_target(t::Tree, tref::Vararg{Tree}; verbose=false)
+
+Return resolvable clades in target tree `t` using trees in `tref`. Only non-conflicting resolutions are kept. 
+"""
+function _resolve_trees_target(t::Tree, tref::Vararg{Tree}; verbose=false)
+
+    resolved_clades = unique(vcat([sort(_resolve_trees_ref(t, tr)) for tr in tref]...))
+    # Of all these clades, keep only ones that do not intersect 
+    todel = Int64[]
+    for (i,c1) in enumerate(resolved_clades), (j,c2) in enumerate(resolved_clades[i+1:end])
+        if !isempty(intersect(c1,c2)) && intersect(c1,c2) != c1 && intersect(c1,c2) != c2
+            push!(todel, i)
+            push!(todel, j+i)
+        end
+    end
+    sort!(todel); unique!(todel)
+    verbose && println("$(length(todel)) clades have resolution conflicts")
+    deleteat!(resolved_clades, todel)
+    verbose && println("$(length(resolved_clades)) clade can be resolved")
+    # 
+    return resolved_clades
+end
+
+"""
+    _resolve_trees_ref!(t::Tree, tref::Tree, rtau)
+
+Return resolvable clades in  `t` using `tref`. Clades in `tref` that could be made clades in `t` by adding one internal node are resolved. 
+"""
+function _resolve_trees_ref!(t::Tree, tref::Tree, rtau)
     
     !share_labels(t, tref) && @error "Can only resolve trees that share leaf nodes."
     
@@ -79,7 +157,7 @@ function _resolve_trees_ref!(t, tref, rtau)
             # iii. Neither
             # --> Break, go to next leaf. 
             nodes = [t.lleaves[x] for x in nlabel]
-            if !isclade(nodes) && is_unresolved_clade(nodes) 
+            if !isclade(nodes) && is_unresolved_clade(nodes, checkclade=false) 
                 tau = (rtau == :ref) ? nroot.data.tau : rtau
                 make_unresolved_clade!(nodes, label = "RESOLVED_$(label_i)", tau = tau, safe=false)
                 rcount += 1
@@ -92,6 +170,91 @@ function _resolve_trees_ref!(t, tref, rtau)
     node2tree!(t, t.root)
     return rcount
 end
+
+"""
+    _resolve_trees_ref(t::Tree, tref::Tree)
+
+Return resolvables clades in `t` using `tref`. Similar to `_resolve_trees_ref!` but return clades as label lists instead of changing `t`. 
+"""
+function _resolve_trees_ref(t::Tree, tref::Tree)
+    
+    !share_labels(t, tref) && @error "Can only resolve trees that share leaf nodes."
+    #
+    resolved_clades = Array{String,1}[]
+    for (i,cl) in enumerate(keys(tref.lleaves))
+        nroot = tref.lleaves[cl]
+        while !nroot.isroot 
+            # Go up one clade in `tref`
+            nroot = nroot.anc
+            nlabel = node_leavesclade_labels(nroot) # Clade in `tref`
+            nodes = [t.lleaves[x] for x in nlabel]
+            if !isclade(nodes) && is_unresolved_clade(nodes, checkclade=false) 
+                push!(resolved_clades, sort([x.label for x in nodes]))
+            else
+                break
+            end
+        end
+    end
+    return unique(resolved_clades) # Note: the same clade may appear multiple times here, since we can reach it from different leaves.
+end
+
+# """
+#     _resolve_trees_ref!(tref::Tree, rtau, trees::Vararg{Tree})
+
+# Resolve trees in `trees` using `tref`. Clades in `tref` that are or could be made clades in all trees of `trees` by adding one internal node are resolved. 
+# """
+# function _resolve_trees_ref!(tref::Tree, rtau, trees::Vararg{Tree})
+
+#     prof(!share_labels(t, tref) for t in trees) && @error "Can only resolve trees that share leaf nodes."
+    
+#     # Get starting index for node labeling
+#     label_init = 1
+#     for t in trees, n in values(t.lnodes)
+#         if match(r"RESOLVED", n.label)!=nothing && parse(Int64, n.label[10:end]) >= label_init
+#             label_init = parse(Int64, n.label[10:end]) + 1
+#         end
+#     end
+#     #
+#     label_i = label_init
+#     rcount = 0
+#     flags = zeros(Int64, length(trees)) # States i. ii. and ii. from below 
+#     for (i,cl) in enumerate(keys(tref.lleaves))
+#         nroot = tref.lleaves[cl]
+#         while !nroot.isroot 
+#             # Go up one clade in `tref`
+#             nroot = nroot.anc
+#             nlabel = node_leavesclade_labels(nroot) # Clade in `tref`
+#             # Three cases for each tree
+#             # i. `nlabel` is a clade in `t` as well.  
+#             # ii. `nlabel` is an unresolved clade in `t`. 
+#             # iii. Neither
+#             # If only i. and ii. for all trees, resolve ii.s 
+#             nodes = [[t.lleaves[x] for x in nlabel] for t in trees]
+#             for (i,t) in enumerate(trees)
+#                 if isclade(nodes[i])
+#                     flags[i] = 1
+#                 elseif is_unresolved_clade(nodes[i])
+#                     flags[i] = 2
+#                 else
+#                     flags[i] = 3
+#                 end
+#             end
+#             # Resolve or break
+#             if in(3, flags)
+#                 break
+#             else
+#                 for i in findall(==(2), flags)
+#                     tau = (rtau == :ref) ? nroot.data.tau : rtau
+#                     make_unresolved_clade!(nodes[i], label = "RESOLVED_$(label_i)", tau = tau, safe=false)
+#                     rcount += 1
+#                     label_i += 1                
+#                 end
+#             end
+#         end
+#     end
+#     node2tree!(t, t.root)
+#     return rcount
+# end
 
 """
     resolve_null_branches!(t)

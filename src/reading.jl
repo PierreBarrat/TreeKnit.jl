@@ -1,5 +1,8 @@
 export parse_nexus
 
+"""
+	resolve_trees(treefiles::Vararg{String}; rtau=:ref, verbose=false, suffix="resolved", prune=(threshold=0.,))
+"""
 function resolve_trees(treefiles::Vararg{String}; rtau=:ref, verbose=false, suffix="resolved", prune=(threshold=0.,))
 	trees = [read_tree(f) for f in treefiles]
 	# Deleting null branches
@@ -10,6 +13,30 @@ function resolve_trees(treefiles::Vararg{String}; rtau=:ref, verbose=false, suff
 	end
 	# 
 	resolve_trees!(trees..., rtau=rtau, verbose=verbose)
+	outfiles = map(treefiles) do f 
+		if !occursin(r".nwk$", f)
+			@error f
+		end
+		replace(f, ".nwk"=>"_$(suffix).nwk")
+	end
+	for (f,t) in zip(outfiles,trees)
+		write_newick(f,t)
+	end
+end
+
+"""
+	resolve_trees_joint(treefiles::Vararg{String};verbose=false, suffix="resolved", prune=(threshold=0.,))
+"""
+function resolve_trees_joint(treefiles::Vararg{String}; rtau=:ref, verbose=false, suffix="resolved", prune=(threshold=0.,))
+	trees = [read_tree(f) for f in treefiles]
+	# Deleting null branches
+	if prune.threshold > 0.
+		for t in trees
+			delete_null_branches!(t; prune...)
+		end
+	end
+	# 
+	resolve_trees_joint!(trees..., verbose=verbose)
 	outfiles = map(treefiles) do f 
 		if !occursin(r".nwk$", f)
 			@error f

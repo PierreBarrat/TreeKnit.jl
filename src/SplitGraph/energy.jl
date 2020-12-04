@@ -41,6 +41,7 @@ function compute_energy(conf::Array{Bool,1}, g::Graph)
 					# 	end
 					# end
 					if !are_equal_with_resolution(g, a1.conf, a2.conf, conf, k1, k2)
+					# if !are_equal(a1.conf, a2.conf, conf)
 						E += 1
 					else
 						# println(g.labels[i])

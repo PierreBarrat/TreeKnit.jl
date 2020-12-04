@@ -23,7 +23,7 @@ end
 
 """
 	runopt(t::Vararg{Tree}; 
-	γ=3., M=200, 
+	γ=3., M=100, 
 	itmax=50, stop_when_stuck=true, 
 	Trange=reverse(0.01:0.2:1.1), verbose=false)
 
@@ -35,19 +35,25 @@ end
 
 Run optimization at constant γ
 """
-runopt(t::Vararg{Tree}; γ=3., M=200, 
+runopt(t::Vararg{Tree}; γ=3., M=100, 
 	itmax=50, Mmax = 2_000, 
-	Trange=reverse(0.01:0.2:1.1), verbose=false, vv=false) = runopt(γ, Int64(M), t..., 
-	itmax=itmax, Mmax=Mmax, 
-	Trange=Trange, verbose=verbose, vv=vv)
+	Trange=reverse(0.01:0.05:1.1), verbose=false, vv=false, 
+	guidetrees=(), likelihood_sort=true) = runopt(γ, Int64(M), t..., 
+	itmax=itmax, Mmax=Mmax, Trange=Trange, 
+	guidetrees=guidetrees, likelihood_sort=likelihood_sort,
+	verbose=verbose, vv=vv)
 
 function runopt(γ::Real, M::Int64, t::Vararg{Tree}; 
-	Mmax = 2_000, 
-	itmax=50, 
-	Trange=reverse(0.01:0.2:1.1), 
-	verbose=false, vv=false)
+		Mmax = 2_000, 
+		itmax=50, 
+		Trange=reverse(0.01:0.05:1.1), 
+		verbose=false, vv=false, 
+		guidetrees=(), likelihood_sort=true)
+	#
 	ot = deepcopy(collect(t))
-	resolve_trees!(ot...);
+	gt = deepcopy(collect(guidetrees))
+	resolve_trees!(vcat(ot,gt)...)
+
 	nMCC = maximal_coherent_clades(ot)
 	df = DataFrame(nleaves=Int64[length(ot[1].lleaves)],
 		nMCCs=length(nMCC),
@@ -64,7 +70,7 @@ function runopt(γ::Real, M::Int64, t::Vararg{Tree};
 		flag = :init
 		v() && println("\n --- \nIteration $i/$(itmax) - $(df.nleaves[end]) leaves remaining")
 		# Optimization
-		mccs, Efinal, Ffinal, E, F = opttrees!(ot..., γ=γ, M=M, Trange=Trange)
+		mccs, Efinal, Ffinal, E, F = opttrees!(ot..., γ=γ, M=M, Trange=Trange, likelihood_sort=likelihood_sort)
 		if length(mccs) != 0
 			flag = :found
 		else
@@ -73,23 +79,24 @@ function runopt(γ::Real, M::Int64, t::Vararg{Tree};
 
 		# Checks
 		!prod([check_tree(t) for t in ot]) && @error "Problem in one of the trees"
-
+		
 		# Actions if a solution is found
 		if flag == :found && Efinal == 0. # There is the chance that the algorithm converged
 			v() && println("$flag: temporary solution found - `E == 0.`")
 			append!(MCCs, mccs)
 			if sum(length(m) for m in mccs) != length(ot[1].lleaves)
 				pruneconf!(mccs, ot...)
+				pruneconf_guidetrees!(mccs, gt...)
 				if complete_mccs!(MCCs, ot)
 					v() && println("$flag: all mccs have been found")
-					resolve_trees!(ot...)
+					resolve_trees!(vcat(ot,gt)...)
 					nMCCs = maximal_coherent_clades(ot)
 					update_df!(df, length(ot[1].lleaves), length(nMCCs), γ, M, Efinal, Ffinal, mccs, MCCs, nMCCs)
 					break
 				end
 			else # Found mccs cover all leaves
 				v() && println("$flag: all mccs have been found")
-				resolve_trees!(ot...)
+				resolve_trees!(vcat(ot,gt)...)
 				nMCCs = maximal_coherent_clades(ot)
 				update_df!(df, length(ot[1].lleaves), length(nMCCs), γ, M, Efinal, Ffinal, mccs, MCCs, nMCCs)
 				break
@@ -97,11 +104,12 @@ function runopt(γ::Real, M::Int64, t::Vararg{Tree};
 		elseif flag == :found && Efinal != 0.
 			v() && println("$flag: temporary solution found - `E != 0.`")
 			pruneconf!(mccs, ot...)
+			pruneconf_guidetrees!(mccs, gt...)
 			append!(MCCs, mccs)
 		end
 
 		# Updating df based on found solution -- will also update if no solution was found
-		resolve_trees!(ot...)
+		resolve_trees!(vcat(ot,gt)...)
 		nMCCs = maximal_coherent_clades(ot)
 		update_df!(df, length(ot[1].lleaves), length(nMCCs), γ, M, Efinal, Ffinal, mccs, MCCs, nMCCs)
 		push!(Evals, E)
@@ -144,8 +152,8 @@ Return a list of MCCs for input trees.
 Output:
 1. 
 """
-opttrees!(t... ; γ=1.05, μ=ones(Float64, length(t)), Trange=reverse(0.01:0.2:1.1), M = 200) = opttrees!(γ, Trange, M, μ, t...)
-function opttrees!(γ, Trange, M, μ, t::Vararg{Tree})
+opttrees!(t... ; γ=1.05, μ=ones(Float64, length(t)), Trange=reverse(0.01:0.05:1.1), M = 1000, likelihood_sort=true) = opttrees!(γ, Trange, M, μ, t...; likelihood_sort=likelihood_sort)
+function opttrees!(γ, Trange, M, μ, t::Vararg{Tree}; likelihood_sort=true)
 	# length(μ) != length(collect(t)) && @error "`μ` and `trees` do not have the same length."
 	#
 	treelist = collect(t)
@@ -164,7 +172,9 @@ function opttrees!(γ, Trange, M, μ, t::Vararg{Tree})
 	# Computing likelihoods
 	if length(oconfs) != 1
 		v() && println("Sorting $(length(oconfs)) topologically equivalent configurations.")
-		oconf = sortconf(oconfs, treelist, g, μ, mcc_names)
+		# println(oconfs)
+		# println(g.labels)
+		oconf = sortconf(oconfs, treelist, g, μ, mcc_names, likelihood_sort)
 	else
 		oconf = oconfs[1]
 	end
@@ -175,14 +185,17 @@ function opttrees!(γ, Trange, M, μ, t::Vararg{Tree})
 end
 
 
-function sortconf(oconfs, trees, g::Graph, μ, mcc_names)
+function sortconf(oconfs, trees, g::Graph, μ, mcc_names, likelihood)
 	# Only considering configurations of lowest energies
 	E = [compute_energy(conf,g) for conf in oconfs]
 	Emin = minimum(E)
 	oconfs_ = oconfs[findall(x->x==Emin, E)]
 	v() && println("Removing ", length(oconfs) - length(oconfs_), " configurations using energy.")
 	# Sorting the remaining configurations using Poisson likelihood ratios
-	if length(oconfs_) == 1
+	if length(oconfs_) == 1 
+		return oconfs_[1]
+	elseif !likelihood
+		v() && println("Picking first configuration among remaining ones")
 		return oconfs_[1]
 	else
 		v() && println("Comparing $(length(oconfs_)) configurations using likelihood")
@@ -218,6 +231,15 @@ end
 Prune MCCs `mcc_names[x]` for all `x` in `mcc_conf` from trees `t...`. 
 """
 pruneconf!(trees, mcc_names, mcc_conf) = pruneconf!([mcc_names[x] for x in mcc_conf], trees...)
+
+function pruneconf_guidetrees!(clades, trees::Vararg{Tree})
+	for t in trees
+		for c in clades
+			TreeTools.prunenode!(t, c, propagate=true)
+		end
+		TreeTools.remove_internal_singletons!(t, ptau=true)
+	end
+end
 
 
 update_df!(df::DataFrame, nleaves::Int64, nMCCs::Int64, γ, M, Efinal, Ffinal, rMCCs, arMCCs, remainingMCCs) = push!(df, 
