@@ -35,9 +35,9 @@ end
 
 Run optimization at constant γ
 """
-runopt(t::Vararg{Tree}; γ=3., M=100, 
-	itmax=50, Mmax = 2_000, 
-	Trange=reverse(0.01:0.05:1.1), verbose=false, vv=false, 
+runopt(t::Vararg{Tree}; γ=3., M=500, 
+	itmax=50, Mmax = 1_000, 
+	Trange=reverse(0.01:0.02:1.1), verbose=false, vv=false, 
 	guidetrees=(), likelihood_sort=true) = runopt(γ, Int64(M), t..., 
 	itmax=itmax, Mmax=Mmax, Trange=Trange, 
 	guidetrees=guidetrees, likelihood_sort=likelihood_sort,
@@ -172,9 +172,9 @@ function opttrees!(γ, Trange, M, μ, t::Vararg{Tree}; likelihood_sort=true)
 	# Computing likelihoods
 	if length(oconfs) != 1
 		v() && println("Sorting $(length(oconfs)) topologically equivalent configurations.")
-		# println(oconfs)
-		# println(g.labels)
-		oconf = sortconf(oconfs, treelist, g, μ, mcc_names, likelihood_sort)
+		vv() && println("Configurations\n", oconfs)
+		vv() && println(g.labels)
+		oconf = sortconf(oconfs, treelist, g, μ, mcc_names, likelihood_sort, false)
 	else
 		oconf = oconfs[1]
 	end
@@ -185,23 +185,26 @@ function opttrees!(γ, Trange, M, μ, t::Vararg{Tree}; likelihood_sort=true)
 end
 
 
-function sortconf(oconfs, trees, g::Graph, μ, mcc_names, likelihood)
-	# Only considering configurations of lowest energies
-	E = [compute_energy(conf,g) for conf in oconfs]
-	Emin = minimum(E)
-	oconfs_ = oconfs[findall(x->x==Emin, E)]
-	v() && println("Removing ", length(oconfs) - length(oconfs_), " configurations using energy.")
+function sortconf(oconfs, trees, g::Graph, μ, mcc_names, likelihood_sort, E_sort)
+	if E_sort # Only considering configurations of lowest energies
+		E = [compute_energy(conf,g) for conf in oconfs]
+		Emin = minimum(E)
+		oconfs_ = oconfs[findall(x->x==Emin, E)]
+		v() && println("Removing ", length(oconfs) - length(oconfs_), " configurations using energy.")
+	else # Removing configurations where nothing is removed
+		oconfs_ = oconfs[findall(c->sum(c)<length(c), oconfs)]
+	end
 	# Sorting the remaining configurations using Poisson likelihood ratios
 	if length(oconfs_) == 1 
 		return oconfs_[1]
-	elseif !likelihood
-		v() && println("Picking first configuration among remaining ones")
-		return oconfs_[1]
+	elseif !likelihood_sort
+		v() && println("Picking a random configuration among remaining ones")
+		return rand(oconfs_)
 	else
 		v() && println("Comparing $(length(oconfs_)) configurations using likelihood")
 		L = Float64[]
 		for conf in oconfs_
-			vv() && println("## Looking at configuration $conf")
+			vv() && println("## Looking at configuration $conf with energy $(compute_energy(conf,g))")
 			push!(L, conf_likelihood(conf, g, μ, trees, mode=:time, v=vv()))
 			vv() && println()
 		end
