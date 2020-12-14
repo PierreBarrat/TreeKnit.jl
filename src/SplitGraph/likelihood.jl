@@ -31,6 +31,7 @@ For each leaf `n` remaining in `conf`, find the first non-trivial ancestors in g
 """
 function conf_likelihood_(divfunction, conf::Array{Bool,1}, g::Graph, μ, trees; v=false)
 	L = 0.
+	Z = 0.
 	if length(g.leaves) + length(g.internals) == 1
 		return L
 	end
@@ -70,13 +71,15 @@ function conf_likelihood_(divfunction, conf::Array{Bool,1}, g::Graph, μ, trees;
 						# in dL, μ[k1]*τ1 should ultimately be replaced by n1 which is the observed number of mutations (same goes for 2)
 						# What is currently there only makes sense for artificial data, where t is known exactly. 
 						L += dL
+						Z += 1.
 						v && println("Corresponding likelihood is $dL.")
 					end
 				end
 			end
 		end
 	end
-	return L
+	v && println("--> Final likelihood $(L/max(Z,1))")
+	return L/max(Z,1)
 end
 """
 """
