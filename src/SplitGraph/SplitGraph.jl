@@ -21,37 +21,44 @@ let verbose::Bool = false, vverbose::Bool = false
 	global set_vverbose(v) = (vverbose = v)
 end
 
-"""
-	runopt(t::Vararg{Tree}; 
-	γ=3., M=100, 
-	itmax=50, stop_when_stuck=true, 
-	Trange=reverse(0.01:0.2:1.1), verbose=false)
+# runopt(t::Vararg{Tree}; γ=3., M=500, 
+# 	itmax=50, Mmax = 1_000, 
+# 	Trange=reverse(0.01:0.02:1.1), verbose=false, vv=false, 
+# 	guidetrees=(), likelihood_sort=true) = runopt(γ, Int64(M), t..., 
+# 	itmax=itmax, Mmax=Mmax, Trange=Trange, 
+# 	guidetrees=guidetrees, likelihood_sort=likelihood_sort,
+# 	verbose=verbose, vv=vv)
 
-	runopt(γ::Real, M::Int64, t::Vararg{Tree}; 
-	stop_when_stuck = true, 
-	itmax=50, 
-	Trange=reverse(0.01:0.2:1.1), 
-	verbose=false)
+# function runopt(γ::Real, M::Int64, t::Vararg{Tree}; 
+# 		Mmax = 2_000, 
+# 		itmax=50, 
+# 		Trange=reverse(0.01:0.05:1.1), 
+# 		verbose=false, vv=false, 
+# 		guidetrees=(), likelihood_sort=true)
+"""
+	runopt(t::Vararg{Tree}; γ=3., 
+		M=500, itmax=50, Mmax = 1_000, Trange=reverse(0.01:0.02:1.1), 
+		verbose=false, vv=false, 
+		guidetrees=(), likelihood_sort=true) 
+
+		runopt(t::Vararg{Tree}, oa::OptArgs)
+		runopt(t::Vararg{Tree}) 
 
 Run optimization at constant γ
 """
-runopt(t::Vararg{Tree}; γ=3., M=500, 
-	itmax=50, Mmax = 1_000, 
-	Trange=reverse(0.01:0.02:1.1), verbose=false, vv=false, 
-	guidetrees=(), likelihood_sort=true) = runopt(γ, Int64(M), t..., 
-	itmax=itmax, Mmax=Mmax, Trange=Trange, 
-	guidetrees=guidetrees, likelihood_sort=likelihood_sort,
-	verbose=verbose, vv=vv)
+function runopt(t::Vararg{Tree}; γ=3., 
+	M=500, itmax=50, Mmax = 1_000, Trange=reverse(0.01:0.02:1.1), 
+	verbose=false, vv=false, 
+	guidetrees=(), likelihood_sort=true) 
+	runopt(OptArgs(γ=γ, M=M, itmax=itmax, Mmax=Mmax, Trange=Trange, 
+		verbose=verbose, vv=vv, guidetrees=guidetrees, likelihood_sort=likelihood_sort), 
+	t...)
+end
 
-function runopt(γ::Real, M::Int64, t::Vararg{Tree}; 
-		Mmax = 2_000, 
-		itmax=50, 
-		Trange=reverse(0.01:0.05:1.1), 
-		verbose=false, vv=false, 
-		guidetrees=(), likelihood_sort=true)
+function runopt(oa::OptArgs, t::Vararg{Tree})
 	#
 	ot = deepcopy(collect(t))
-	gt = deepcopy(collect(guidetrees))
+	gt = deepcopy(collect(oa.guidetrees))
 	resolve_trees!(vcat(ot,gt)...)
 
 	nMCC = maximal_coherent_clades(ot)
@@ -63,14 +70,15 @@ function runopt(γ::Real, M::Int64, t::Vararg{Tree};
 	MCCs = []
 	Evals = Any[]
 	Fvals = Any[]
-	set_verbose(verbose)
-	set_vverbose(vv)
+	set_verbose(oa.verbose)
+	set_vverbose(oa.vv)
+	M = oa.M
 	#
-	for i in 1:itmax
+	for i in 1:oa.itmax
 		flag = :init
-		v() && println("\n --- \nIteration $i/$(itmax) - $(df.nleaves[end]) leaves remaining")
+		v() && println("\n --- \nIteration $i/$(oa.itmax) - $(df.nleaves[end]) leaves remaining")
 		# Optimization
-		mccs, Efinal, Ffinal, E, F = opttrees!(ot..., γ=γ, M=M, Trange=Trange, likelihood_sort=likelihood_sort)
+		mccs, Efinal, Ffinal, E, F = opttrees!(ot..., γ=oa.γ, M=M, Trange=oa.Trange, likelihood_sort=oa.likelihood_sort)
 		if length(mccs) != 0
 			flag = :found
 		else
@@ -91,14 +99,14 @@ function runopt(γ::Real, M::Int64, t::Vararg{Tree};
 					v() && println("$flag: all mccs have been found")
 					resolve_trees!(vcat(ot,gt)...)
 					nMCCs = maximal_coherent_clades(ot)
-					update_df!(df, length(ot[1].lleaves), length(nMCCs), γ, M, Efinal, Ffinal, mccs, MCCs, nMCCs)
+					update_df!(df, length(ot[1].lleaves), length(nMCCs), oa.γ, M, Efinal, Ffinal, mccs, MCCs, nMCCs)
 					break
 				end
 			else # Found mccs cover all leaves
 				v() && println("$flag: all mccs have been found")
 				resolve_trees!(vcat(ot,gt)...)
 				nMCCs = maximal_coherent_clades(ot)
-				update_df!(df, length(ot[1].lleaves), length(nMCCs), γ, M, Efinal, Ffinal, mccs, MCCs, nMCCs)
+				update_df!(df, length(ot[1].lleaves), length(nMCCs), oa.γ, M, Efinal, Ffinal, mccs, MCCs, nMCCs)
 				break
 			end
 		elseif flag == :found && Efinal != 0.
@@ -111,17 +119,17 @@ function runopt(γ::Real, M::Int64, t::Vararg{Tree};
 		# Updating df based on found solution -- will also update if no solution was found
 		resolve_trees!(vcat(ot,gt)...)
 		nMCCs = maximal_coherent_clades(ot)
-		update_df!(df, length(ot[1].lleaves), length(nMCCs), γ, M, Efinal, Ffinal, mccs, MCCs, nMCCs)
+		update_df!(df, length(ot[1].lleaves), length(nMCCs), oa.γ, M, Efinal, Ffinal, mccs, MCCs, nMCCs)
 		push!(Evals, E)
 		push!(Fvals, F)
 
 		# Actions if no solution is found
-		if i == itmax
+		if i == oa.itmax
 			v() && println("Maximum number of iterations reached - stop")
 			complete_mccs!(MCCs, ot, force=true)
-		elseif flag != :found && M <= Mmax
+		elseif flag != :found && M <= oa.Mmax
 			M *= 2
-		elseif flag !=:found && M > Mmax
+		elseif flag !=:found && M > oa.Mmax
 			v() && println("Maximum M reached without converging - stop")
 			complete_mccs!(MCCs, ot, force=true)
 			break

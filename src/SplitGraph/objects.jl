@@ -59,3 +59,23 @@ function Graph(; nodes=Array{GraphNode,1}(undef,0), leaves=Array{LeafNode,1}(und
 end
 
 
+struct OptArgs
+	γ::Real  
+	# For the annealing  
+	M::Int64
+	Mmax::Int64
+	Trange
+	itmax::Int64
+	# Verbosity
+	verbose::Bool
+	vv::Bool
+	# Other
+	guidetrees
+	likelihood_sort::Bool
+	# μ # Mutation rates of segments - Should be the same length as trees, not sure how to handle it just now
+end
+OptArgs(;γ=3., 
+	M = 500, Mmax = 1_000, Trange = reverse(0.01:0.02:1.1), itmax = 30,
+	verbose=false, vv=false,
+	guidetrees=(),
+	likelihood_sort=true) = OptArgs(γ, M, Mmax, Trange, itmax, verbose, vv, guidetrees, likelihood_sort)
