@@ -74,6 +74,22 @@ struct OptArgs
 	likelihood_sort::Bool
 	# μ # Mutation rates of segments - Should be the same length as trees, not sure how to handle it just now
 end
+"""
+	OptArgs(;kwargs)
+
+General kwargs
+- `γ=3`
+- `verbose=false`
+- `vv=false`, increased verbosity
+- `likelihood_sort=true`, use likelihood test based on branch length to sort configurations
+- `guidetrees=()`, was for a test, probably useless
+- `itmax=30`, number of pruning/annealing iterations of the procedure
+
+Simulated annealing arguments
+- `M=500`, initial number of iterations of the simulated annealing
+- `Mmax = 1_000`, maximum number of ... 
+- `Trange = reverse(0.01:0.02:1.1)` 
+"""
 OptArgs(;γ=3., 
 	M = 500, Mmax = 1_000, Trange = reverse(0.01:0.02:1.1), itmax = 30,
 	verbose=false, vv=false,

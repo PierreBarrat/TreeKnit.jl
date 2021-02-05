@@ -427,7 +427,29 @@ find_mcc_with_node(n::TreeNode, mccs) = find_mcc_with_node(n1.label, mccs)
 find_mcc_with_node(n::ARGNode, mccs) = find_mcc_with_node(n1.label, mccs)
 
 
+"""
+    splits_in_mcc(m::Array{<:AbstractString}, t::Tree)
+    splits_in_mcc(m::Array{<:AbstractString}, t::Tree, leaves::Array{<:AbstractString})
 
+Splits in MCC `m` for tree `t`. 
+"""
+function splits_in_mcc(m::Array{<:AbstractString}, t::Tree)
+    leaves = collect(keys(t.lleaves))
+    return splits_in_mcc(m, t, leaves)
+end
+function splits_in_mcc(m::Array{<:AbstractString}, t::Tree, leaves::Array{<:AbstractString})
+    r = lca(t.lleaves[x] for x in m)
+    return SplitList(r, leaves)
+end
+
+function splits_in_mcc(m::Array{<:AbstractString}, trees::Vararg{Tree})
+    S = Array{SplitList,1}(undef, length(trees))
+    for (i,t) in enumerate(trees)
+        leaves = collect(keys(t.lleaves))
+        S[i] = splits_in_mcc(m, t, leaves)
+    end
+    return S
+end
 
 
 
