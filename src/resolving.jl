@@ -328,7 +328,7 @@ end
 
 Resolve the unresolved clade defined by `nodelist` by creating a new internal node `r` in the tree. Return `r`, 
 """
-function make_unresolved_clade!(node_list ; label="", tau = 0., safe=true)
+function make_unresolved_clade!(node_list::Array{<:TreeNode{T},1} ; label="", tau = 0., safe=true) where T
 
     if safe && !is_unresolved_clade(node_list)
         error("Input is not an unresolved clade")
@@ -337,7 +337,7 @@ function make_unresolved_clade!(node_list ; label="", tau = 0., safe=true)
 
     mrca = lca(node_list)
     checklist = Dict((x.label)=>false for x in node_list)
-    r = TreeNode()
+    r = TreeNode(T())
     for n in node_list
         if !checklist[n.label]
             a = n
