@@ -426,30 +426,47 @@ end
 find_mcc_with_node(n::TreeNode, mccs) = find_mcc_with_node(n1.label, mccs)
 find_mcc_with_node(n::ARGNode, mccs) = find_mcc_with_node(n1.label, mccs)
 
-
 """
-    splits_in_mcc(m::Array{<:AbstractString}, t::Tree)
-    splits_in_mcc(m::Array{<:AbstractString}, t::Tree, leaves::Array{<:AbstractString})
-
-Splits in MCC `m` for tree `t`. 
+Core function for computing splits in MCCs. Include root of MCC if it's not root of tree.
 """
-function splits_in_mcc(m::Array{<:AbstractString}, t::Tree)
-    leaves = collect(keys(t.lleaves))
-    return splits_in_mcc(m, t, leaves)
-end
-function splits_in_mcc(m::Array{<:AbstractString}, t::Tree, leaves::Array{<:AbstractString})
-    r = lca(t.lleaves[x] for x in m)
-    return SplitList(r, leaves)
-end
-
-function splits_in_mcc(m::Array{<:AbstractString}, trees::Vararg{Tree})
-    S = Array{SplitList,1}(undef, length(trees))
-    for (i,t) in enumerate(trees)
-        leaves = collect(keys(t.lleaves))
-        S[i] = splits_in_mcc(m, t, leaves)
+function _splits_in_mcc(m::Array{<:AbstractString}, t::Tree, leaves::Array{<:AbstractString}, leafmap::Dict)
+    # Mask corresponding to leaves in the MCC
+    mask = zeros(Bool, length(leaves))
+    for l in m
+        mask[leafmap[l]] = true
     end
+    # 
+    r = lca(t.lleaves[x] for x in m)
+    S = SplitList(r, leaves, mask)
+    TreeTools.clean!(S, clean_root=false)
     return S
 end
+"""
+    splits_in_mcc(m::Array{<:AbstractString}, t::Tree)
+
+Compute splits in MCC `m` in tree `t`. Return a `SplitList` object, with `mask` corresponding to leaves in `m`.
+"""
+function splits_in_mcc(m::Array{<:AbstractString}, t::Tree)
+    leaves = sort(collect(keys(t.lleaves)))
+    leafmap = Dict(leaf=>i for (i,leaf) in enumerate(leaves))
+    return _splits_in_mcc(m, t, leaves, leafmap)
+end
+splits_in_mcc(m::Array{<:AbstractString}, trees::Vararg{Tree}) = Tuple(splits_in_mcc(m,t) for t in trees)
+
+"""
+    splits_in_mccs(MCCs, t::Vararg{Tree})
+
+Compute splits in `MCCs` in tree `t`. Return an array of `SplitList` objects, with `mask` corresponding to leaves in each MCC.
+When called with multiple trees, return a tuple of arrays of `SplitList` objects, each of which corresponds to one of the trees (order conserved). 
+"""
+function splits_in_mccs(MCCs, t::Tree)
+    leaves = sort(collect(keys(t.lleaves)))
+    leafmap = Dict(leaf=>i for (i,leaf) in enumerate(leaves))
+    return [_splits_in_mcc(m, t, leaves, leafmap) for m in MCCs]
+end
+splits_in_mccs(MCCs, trees::Vararg{Tree}) = Tuple(splits_in_mccs(MCCs,t) for t in trees)
+
+
 
 
 

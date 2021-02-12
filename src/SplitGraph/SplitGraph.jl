@@ -21,20 +21,6 @@ let verbose::Bool = false, vverbose::Bool = false
 	global set_vverbose(v) = (vverbose = v)
 end
 
-# runopt(t::Vararg{Tree}; γ=3., M=500, 
-# 	itmax=50, Mmax = 1_000, 
-# 	Trange=reverse(0.01:0.02:1.1), verbose=false, vv=false, 
-# 	guidetrees=(), likelihood_sort=true) = runopt(γ, Int64(M), t..., 
-# 	itmax=itmax, Mmax=Mmax, Trange=Trange, 
-# 	guidetrees=guidetrees, likelihood_sort=likelihood_sort,
-# 	verbose=verbose, vv=vv)
-
-# function runopt(γ::Real, M::Int64, t::Vararg{Tree}; 
-# 		Mmax = 2_000, 
-# 		itmax=50, 
-# 		Trange=reverse(0.01:0.05:1.1), 
-# 		verbose=false, vv=false, 
-# 		guidetrees=(), likelihood_sort=true)
 """
 	runopt(t::Vararg{Tree}; γ=3., 
 		M=500, itmax=50, Mmax = 1_000, Trange=reverse(0.01:0.02:1.1), 
