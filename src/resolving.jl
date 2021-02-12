@@ -198,64 +198,6 @@ function _resolve_trees_ref(t::Tree, tref::Tree)
     return unique(resolved_clades) # Note: the same clade may appear multiple times here, since we can reach it from different leaves.
 end
 
-# """
-#     _resolve_trees_ref!(tref::Tree, rtau, trees::Vararg{Tree})
-
-# Resolve trees in `trees` using `tref`. Clades in `tref` that are or could be made clades in all trees of `trees` by adding one internal node are resolved. 
-# """
-# function _resolve_trees_ref!(tref::Tree, rtau, trees::Vararg{Tree})
-
-#     prof(!share_labels(t, tref) for t in trees) && @error "Can only resolve trees that share leaf nodes."
-    
-#     # Get starting index for node labeling
-#     label_init = 1
-#     for t in trees, n in values(t.lnodes)
-#         if match(r"RESOLVED", n.label)!=nothing && parse(Int64, n.label[10:end]) >= label_init
-#             label_init = parse(Int64, n.label[10:end]) + 1
-#         end
-#     end
-#     #
-#     label_i = label_init
-#     rcount = 0
-#     flags = zeros(Int64, length(trees)) # States i. ii. and ii. from below 
-#     for (i,cl) in enumerate(keys(tref.lleaves))
-#         nroot = tref.lleaves[cl]
-#         while !nroot.isroot 
-#             # Go up one clade in `tref`
-#             nroot = nroot.anc
-#             nlabel = node_leavesclade_labels(nroot) # Clade in `tref`
-#             # Three cases for each tree
-#             # i. `nlabel` is a clade in `t` as well.  
-#             # ii. `nlabel` is an unresolved clade in `t`. 
-#             # iii. Neither
-#             # If only i. and ii. for all trees, resolve ii.s 
-#             nodes = [[t.lleaves[x] for x in nlabel] for t in trees]
-#             for (i,t) in enumerate(trees)
-#                 if isclade(nodes[i])
-#                     flags[i] = 1
-#                 elseif is_unresolved_clade(nodes[i])
-#                     flags[i] = 2
-#                 else
-#                     flags[i] = 3
-#                 end
-#             end
-#             # Resolve or break
-#             if in(3, flags)
-#                 break
-#             else
-#                 for i in findall(==(2), flags)
-#                     tau = (rtau == :ref) ? nroot.data.tau : rtau
-#                     make_unresolved_clade!(nodes[i], label = "RESOLVED_$(label_i)", tau = tau, safe=false)
-#                     rcount += 1
-#                     label_i += 1                
-#                 end
-#             end
-#         end
-#     end
-#     node2tree!(t, t.root)
-#     return rcount
-# end
-
 """
     resolve_null_branches!(t)
 
