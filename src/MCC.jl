@@ -33,7 +33,7 @@ function maximal_coherent_clades(treelist)
     for (cl,v) in checklist
         if !v # If leave not already visited
             # We're going to go up in all trees at the same time
-            croot = [tref.lleaves[cl] for t in treelist_] # Root of current maximal clade, in all trees 
+            croot = [t.lleaves[cl] for t in treelist_] # Root of current maximal clade, in all trees 
             clabel = [cl]
             # Initial individual, always a common clade in all trees since it's a leaf. 
             flag = true
