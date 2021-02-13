@@ -144,7 +144,7 @@ function initiate(param::SimParam)
 	arg = ARG(degree=param.K)
 	for i in 1:param.n0
 		an = ARGNode(degree=param.K, 
-			anc = Array{Union{ARGNode{TreeTools.TimeData},Nothing}}(nothing, 0),
+			anc = Array{Union{ARGNode{TreeTools.MiscData},Nothing}}(nothing, 0),
 			label="$(i)_0",
 			isroot = zeros(Bool, param.K),
 			isleaf = true)
@@ -258,7 +258,7 @@ function do_coalescence!(arg::ARG, n1::ARGNode, n2::ARGNode, t1, t2, simstate)
 	new_color = convert(Array{Bool,1}, n1.color .| n2.color)
 	new_color .*= (!).(simstate.found_color_root) # Colors of roots don't propagate up
 	new_node = ARGNode(children = [n1,n2],
-		anc = Array{Union{ARGNode{TreeTools.TimeData},Nothing}}(nothing, 0),
+		anc = Array{Union{ARGNode{TreeTools.MiscData},Nothing}}(nothing, 0),
 		color = new_color,
 		degree = sum(new_color),
 		label=new_label,
@@ -268,7 +268,7 @@ function do_coalescence!(arg::ARG, n1::ARGNode, n2::ARGNode, t1, t2, simstate)
 	# Children nodes
 	for (n,t) in zip((n1,n2),(t1,t2))
 		push!(n.anc, new_node)	# Pushing in case n is the root node of some color. In this case it already has an ancestor (nothing)
-		push!(n.data, TreeTools.TimeData(tau=t))
+		push!(n.data, TreeTools.MiscData(tau=t))
 		push!(n.anccolor, copy(n.color) .* new_node.color)
 	end
 	#
@@ -323,14 +323,14 @@ function do_split!(n::ARGNode, c1::Array{Int64,1}, c2::Array{Int64,1}, t)
 	new_clr1 = ARGTools._color(c1, length(n.color))
 	new_clr2 = ARGTools._color(c2, length(n.color))
 	a1 = ARGNode(children = [n],
-		anc = Array{Union{ARGNode{TreeTools.TimeData},Nothing}}(nothing, 0),
+		anc = Array{Union{ARGNode{TreeTools.MiscData},Nothing}}(nothing, 0),
 		color = new_clr1,
 		degree = sum(new_clr1),
 		label = new_label1,
 		isroot=zeros(Bool, length(new_clr1)),
 		isleaf = false)
 	a2 = ARGNode(children = [n],
-		anc = Array{Union{ARGNode{TreeTools.TimeData},Nothing}}(nothing, 0),
+		anc = Array{Union{ARGNode{TreeTools.MiscData},Nothing}}(nothing, 0),
 		color = new_clr2,
 		degree = sum(new_clr2),
 		label = new_label2,
@@ -342,13 +342,13 @@ function do_split!(n::ARGNode, c1::Array{Int64,1}, c2::Array{Int64,1}, t)
 	if length(n.anccolor[end]) != 2 
 		# @warn "$(n.color)"
 	end
-	push!(n.data, TreeTools.TimeData(tau=t))
+	push!(n.data, TreeTools.MiscData(tau=t))
 	push!(n.anc, a2)
 	push!(n.anccolor, copy(new_clr2))
 	if length(n.anccolor[end]) != 2 
 		# @warn "$(n.color)"
 	end
-	push!(n.data, TreeTools.TimeData(tau=t))
+	push!(n.data, TreeTools.MiscData(tau=t))
 	return a1, a2
 end
 
@@ -368,7 +368,7 @@ function set_roots_ancestry!(arg::ARG)
 		# Adding `nothing` as ancestor
 		push!(ar.anc, nothing)
 		push!(ar.anccolor, ARGTools._color(c, arg.degree))
-		push!(ar.data, TreeTools.TimeData(tau=missing))
+		push!(ar.data, TreeTools.MiscData(tau=missing))
 	end
 	ARGTools.prune_lone_nodes!(arg)
 end
