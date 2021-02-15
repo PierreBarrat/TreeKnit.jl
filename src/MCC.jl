@@ -24,8 +24,9 @@ function maximal_coherent_clades(treelist)
     !sh && error("Can only be used on trees that share leaf nodes.")
 
     # List of already visited nodes
-    treelist_ = deepcopy(treelist)
-    tref = treelist_[1]
+    # treelist_ = deepcopy(treelist)
+    S = Tuple(SplitList(t) for t in treelist)
+    tref = treelist[1]
     checklist = Dict(k=>false for k in keys(tref.lleaves))
 
     # Explore one leaf at a time
@@ -33,7 +34,7 @@ function maximal_coherent_clades(treelist)
     for (cl,v) in checklist
         if !v # If leave not already visited
             # We're going to go up in all trees at the same time
-            croot = [t.lleaves[cl] for t in treelist_] # Root of current maximal clade, in all trees 
+            croot = [t.lleaves[cl] for t in treelist] # Root of current maximal clade, in all trees 
             clabel = [cl]
             # Initial individual, always a common clade in all trees since it's a leaf. 
             flag = true
@@ -42,17 +43,21 @@ function maximal_coherent_clades(treelist)
                 # Each element of `nroot` defines a new set of labels corresponding to one tree. There are two possibilites 
                 # (i) Those sets of labels match. In this case, we have a potential consistent clade. To check further, call `is_coherent_clade`. 
                 # (ii) Otherwise, the topology of trees in `treelist` is inconsistent above `croot`. `croot` is an MCC, break.  
-                nlabel = [Set(x.label for x in POTleaves(r)) for r in nroot] # List of sets of labels
-                if prod(nlabel[i]==nlabel[1] for i in 2:length(nlabel)) # case (i)
-                    nclade = [node_leavesclade(r) for r in nroot]
-                    if prod([is_coherent_clade_nodelist(c, treelist_) for c in nclade])
-                        tcroot = [lca(c) for c in nclade]
-                        if tcroot == croot # Singleton in the tree, or clade with a single node --> the algorithm is getting stuck on this node
+                # nlabel = [Set(x.label for x in POTleaves(r)) for r in nroot] # List of sets of labels
+                # if prod(nlabel[i]==nlabel[1] for i in 2:length(nlabel)) # case (i)
+                if mapreduce(i->S[1].splitmap[nroot[1].label] == S[i].splitmap[nroot[i].label], *, 2:length(nroot))
+                    # --> `r \in nroot` is the same split in all trees
+                    # nclade = [node_leavesclade(r) for r in nroot] ## See if I can do with splits
+                    # if prod(is_coherent_clade_nodelist(c, treelist) for c in nclade)
+                    if is_coherent_clade(nroot,S) # check if children of `r` are also same splits in all trees
+                        # tcroot = [lca(c) for c in nclade]
+                        if nroot == croot # Singleton in the tree, or clade with a single node --> the algorithm is getting stuck on this node
                             croot = [x.anc for x in croot]
                         else
-                            croot = tcroot
+                            croot = nroot
                         end
-                        clabel = nlabel[1]
+                        # clabel = nlabel[1]
+                        clabel = S[1].leaves[S[1].splitmap[nroot[1].label].dat]
                     else
                         flag = false
                     end
@@ -83,6 +88,68 @@ function sort_mccs(mccs)
 end
 
 
+
+"""
+    is_coherent_clade(r::TreeNode, S::Tuple{SplitList})
+
+Do all children of `r` correspond to the same splits?
+
+In practice, check that the splits `S[i].splitmap[c]` for `i` in `1:length(S)` and `c` in children of `r` are all the same. 
+"""
+function is_coherent_clade(roots::Array{<:TreeNode,1}, S::Tuple{<:SplitList,n} where n)
+    #
+    if length(roots) != length(S)
+        @error "`roots` and `S` do not have the same length."
+    end
+
+    # All `r` in `roots` should at least have the same number of children
+    if !mapreduce(ic-> length(roots[ic].child) == length(roots[1].child), *, 2:length(roots))
+        return false
+    end
+
+    # Checking clade consistency
+    for cref in roots[1].child
+        if cref.isleaf
+            for i in 2:length(roots)
+                found = false
+                for c in roots[i].child
+                    if c.label == cref.label
+                        found = true
+                        break
+                    end
+                end
+                if !found 
+                    return false
+                end
+            end
+        else
+            children = [cref]
+            sref = S[1].splitmap[cref.label]
+            # Looking at child `cref` for `roots[1]`
+            # For every `r` in roots, there has to be a child `c` with the same split
+            for i in 2:length(roots)
+                for c in roots[i].child
+                    if !c.isleaf && S[i].splitmap[c.label] == sref
+                        push!(children, c)
+                        break
+                    end
+                end
+                if length(children) != i # nothing found
+                    return false
+                end
+            end
+
+            # Clade below all children found 
+            if !is_coherent_clade(children, S)
+                return false
+            end
+        end
+    end
+    return true
+end
+
+
+
 """
 Check whether a `nodelist` forms a coherent clade in all trees of `treelist`. 
 i. Check that `nodelist` is a clade
@@ -91,9 +158,6 @@ iii. Check whether this common ancestor is a coherent clade
 All members of `nodelist` should be leaves.
 """
 function is_coherent_clade_nodelist(nodelist::Array{<:TreeNode,1}, treelist)
-    if !mapreduce(x->x.isleaf, *, nodelist)
-        error("All nodes in `nodelist` should be leaves.")
-    end
     if length(nodelist)==1
         return is_coherent_clade(nodelist[1], treelist)
     end
@@ -269,8 +333,8 @@ end
 
 Reduce `tree` to its MCC. Returns a tree with `length(MCC)` leaves. 
 """
-function reduce_to_mcc(tree::Tree, MCC)
-    if !assert_mcc((tree,), MCC)
+function reduce_to_mcc(tree::Tree, MCC ; safe=false)
+    if safe && !assert_mcc((tree,), MCC)
         error("MCC are not consistent with tree.")
     end
     #
