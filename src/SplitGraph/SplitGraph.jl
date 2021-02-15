@@ -48,10 +48,11 @@ function runopt(oa::OptArgs, t::Vararg{Tree})
 	resolve_trees!(vcat(ot,gt)...)
 
 	nMCC = maximal_coherent_clades(ot)
+	Einit = count_mismatches(ot...)
 	df = DataFrame(nleaves=Int64[length(ot[1].lleaves)],
 		nMCCs=length(nMCC),
 		γ=Any[missing], M=Any[missing], 
-		Efinal=Any[count_mismatches(t...)], Ffinal=Any[count_mismatches(t...)],
+		Efinal=Any[Einit], Ffinal=Any[Einit],
 		removedMCCs=Any[missing], all_removedMCCs=Any[missing], remainingMCCs=Any[nMCC])
 	MCCs = []
 	Evals = Any[]

@@ -39,6 +39,7 @@ function trees2graph(t::Vararg{TreeTools.Tree})
 	return g
 end
 
+
 """
 """
 function trees2graph(treelist)
@@ -81,6 +82,8 @@ function tree2splitnodes!(g::Graph, r::TreeTools.TreeNode, sr::SplitNode, k::Int
 		end
 	end
 end
+
+
 
 """
 """

@@ -1,7 +1,7 @@
 export maximal_coherent_clades
 export name_mcc_clades!
 export adjust_branchlength!
-export reduce_to_mcc
+export reduce_to_mcc, reduce_to_mcc!
 
 """
     maximal_coherent_clades(treelist)
@@ -351,6 +351,30 @@ function reduce_to_mcc(tree::Tree, MCC ; safe=false)
         end
     end
     return node2tree(out.root)
+end
+"""
+    reduce_to_mcc!(tree, MCC)
+
+Reduce `tree` to its MCC.  
+"""
+function reduce_to_mcc!(tree::Tree, MCC ; safe=false)
+    if safe && !assert_mcc((tree,), MCC)
+        error("MCC are not consistent with tree.")
+    end
+    #
+    # out = deepcopy(tree)
+    for m in MCC
+        r = lca([tree.lnodes[x] for x in m])
+        if r.isroot
+            node2tree!(tree, TreeNode(r.data, isleaf=true, isroot = true, label=r.label))
+        elseif !r.isleaf
+            rn = TreeNode(r.data, isleaf=true, isroot = true, label=r.label)
+            a = r.anc
+            prunenode!(r)
+            graftnode!(a, rn)
+        end
+    end
+    node2tree!(tree, tree.root)
 end
 
 """

@@ -248,7 +248,7 @@ function count_mismatches(t::Vararg{Tree})
 	mcc = maximal_coherent_clades(treelist)
 	mcc_names = name_mcc_clades!(treelist, mcc)
 	for (i,t) in enumerate(treelist)
-		treelist[i] = reduce_to_mcc(t, mcc)
+		RecombTools.reduce_to_mcc!(t, mcc)
 	end
 	g = trees2graph(treelist)
 	conf = ones(Bool, length(g.leaves))
