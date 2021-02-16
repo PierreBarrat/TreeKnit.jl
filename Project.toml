@@ -1,0 +1,12 @@
+name = "RecombTools"
+uuid = "03f602be-98a1-4bb2-9504-fbd3406624a7"
+authors = ["PierreBarrat <p.barrat@live.fr>"]
+version = "0.1.0"
+
+[deps]
+ARGTools = "9d79bb22-e449-4c7c-894c-454c3d3f5473"
+CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
+StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
+TreeTools = "62f0eae3-8c0e-4032-a621-7756092209e5"
