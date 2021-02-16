@@ -555,6 +555,38 @@ end
 splits_in_mccs(MCCs, trees::Vararg{Tree}) = Tuple(splits_in_mccs(MCCs,t) for t in trees)
 
 
+"""
+    fraction_of_common_pairs(MCC1, MCC2)
+    fraction_of_common_pairs(MCC1, MCC2, leaves; linked_only=false)
+
+Fraction of pairs of leaves in `leaves` that are predicted to be in the same MCC in both decompositions `MCC1` and `MCC2`. If `leaves` is not given, the common leaves of `MCC1` and `MCC2` are used.  
+If `linked_only`, only consider pairs that are linked in one or the other sets of MCCs (normalization is adapted accordingly)
+"""
+function fraction_of_common_pairs(MCC1, MCC2)
+    leaves = unique(intersect(union(MCC1...), union(MCC2...)))
+    return fraction_of_common_pairs(MCC1, MCC2, leaves)
+end
+function fraction_of_common_pairs(MCC1, MCC2, leaves; linked_only=false)
+    n = 0
+    Z = 0
+    for i in 1:length(leaves), j in (i+1):length(leaves)
+        if !linked_only
+            RecombTools.is_linked_pair(leaves[i], leaves[j], MCC1) == RecombTools.is_linked_pair(leaves[i], leaves[j], MCC2) && (n+=1)
+            Z += 1
+        else
+            if RecombTools.is_linked_pair(leaves[i], leaves[j], MCC1) 
+                Z += 1
+                RecombTools.is_linked_pair(leaves[i], leaves[j], MCC2) && (n+=1)
+            elseif RecombTools.is_linked_pair(leaves[i], leaves[j], MCC2) 
+                Z += 1
+                RecombTools.is_linked_pair(leaves[i], leaves[j], MCC1) && (n+=1)
+            end
+        end
+    end
+    return n / Z
+end
+
+
 
 
 

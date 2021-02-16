@@ -170,6 +170,50 @@ function is_coherent_clade(cladekeys, cmap::Dict{Tuple{String, String}, Bool})
 end
 
 
+#####################
+##################### SPLITS
+#####################
+
+"""
+Given an MCCs and two trees, what are the new splits introduced in either of the trees. 
+Return an array `S` of `SplitList` objects, with `S[i][m]` corresponding to new splits in tree `i` from MCC `m`. 
+"""
+function new_splits(MCCs, t1::Tree, t2::Tree)
+    splits1 = TreeTools.SplitList(t1)
+    splits2 = TreeTools.SplitList(t2)
+    # Splits corresponding to each mcc in both trees 
+    MCC_splits = RecombTools.splits_in_mccs(MCCs, t1, t2)
+    # Are those new or not? 
+    _new_splits!(MCC_splits[2], splits1)
+    _new_splits!(MCC_splits[1], splits2)
+
+    return MCC_splits[end:-1:1]
+end
+
+function _new_splits!(MCC_splits, tree_splits)
+    eidx = Int64[]
+    for (n,S) in enumerate(MCC_splits)
+        idx = Int64[]
+        for (i,s) in enumerate(S)
+            in(s, tree_splits, S.mask) && push!(idx,i)
+        end
+        deleteat!(S.splits, idx)
+        isempty(S.splits) && push!(eidx, n)
+    end
+    deleteat!(MCC_splits, eidx)
+end
+
+"""
+Indices of true splits in `S` w.r. to `Sref`. 
+"""
+function true_splits(S::SplitList, Sref::SplitList, mask=S.mask)
+    idx = Int64[]
+    for (i,s) in enumerate(S)
+        in(s, Sref, mask) && push!(idx, i)
+    end
+    return idx
+end
+true_splits(S, tref::Tree, mask=S.mask) = true_splits(S, SplitList(tref), mask)
 
 
 

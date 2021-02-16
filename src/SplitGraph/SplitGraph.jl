@@ -33,7 +33,7 @@ end
 Run optimization at constant γ
 """
 function runopt(t::Vararg{Tree}; γ=3., 
-	M=ceil(Int64, length(first(t).lleaves)/50), itmax=10, Mmax = M, Trange=reverse(0.001:0.01:1.1), 
+	M=ceil(Int64, length(first(t).lleaves)/50), itmax=15, Mmax = M, Trange=reverse(0.001:0.01:1.1), 
 	verbose=false, vv=false, 
 	guidetrees=(), likelihood_sort=true) 
 	runopt(OptArgs(γ=γ, M=M, itmax=itmax, Mmax=Mmax, Trange=Trange, 
@@ -42,6 +42,7 @@ function runopt(t::Vararg{Tree}; γ=3.,
 end
 
 function runopt(oa::OptArgs, t::Vararg{Tree})
+	n0 = length(first(t).lleaves)
 	#
 	ot = deepcopy(collect(t))
 	gt = deepcopy(collect(oa.guidetrees))
@@ -65,7 +66,8 @@ function runopt(oa::OptArgs, t::Vararg{Tree})
 		flag = :init
 		v() && println("\n --- \nIteration $i/$(oa.itmax) - $(df.nleaves[end]) leaves remaining")
 		# Optimization
-		mccs, Efinal, Ffinal, E, F = opttrees!(ot..., γ=oa.γ, M=ceil(Int64, length(first(ot).lleaves)/50), Trange=oa.Trange, likelihood_sort=oa.likelihood_sort)
+		n = length(first(ot).lleaves)
+		mccs, Efinal, Ffinal, E, F = opttrees!(ot..., γ=oa.γ, M=ceil(Int64, oa.M * n/n0), Trange=oa.Trange, likelihood_sort=oa.likelihood_sort)
 		if length(mccs) != 0
 			flag = :found
 		else
