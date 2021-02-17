@@ -46,7 +46,10 @@ function eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
     end
     #
     for rep in 1:Nrep
-        d = _eval_mcc_inf(f, N, n, r, simtype=simtype)  
+        td = @timed _eval_mcc_inf(f, N, n, r, simtype=simtype)  
+        d = td[1]
+        args[:time] = td[2]
+        args[:bytes] = td[3]
         for f in sfields
             d[f] = args[f]
         end
