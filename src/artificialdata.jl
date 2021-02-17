@@ -39,7 +39,7 @@ function eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
     Trange = reverse(Tmin:dT:Tmax)
     # 
     function f(arg::ARGTools.ARG) 
-        let γ=γ, Trange=Trange, M=M, lk_sort = lk_sort
+        let γ=γ, Trange=Trange, Md=Md, lk_sort = lk_sort
             t1, t2 = ARGTools.trees_from_ARG(arg)
             mccs = SplitGraph.runopt(t1,t2, γ=γ, Tmin=Tmin, dT=dT, Tmax=Tmax, Md=Md, likelihood_sort=lk_sort)[1]
         end
