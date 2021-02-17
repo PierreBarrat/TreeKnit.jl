@@ -22,13 +22,13 @@ end
 Eval the performance of `SplitGraph.runopt` at inferring MCCs. 
 """
 function eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol; 
-    Tmin=0.001, dT=0.01, Tmax=1.1, M=ceil(n/50), lk_sort=true,
+    Tmin=0.001, dT=0.01, Tmax=1., Md=10, lk_sort=true,
     Nrep = 1,
     sfields::Tuple = (:ρ,),
     out = "")
     #
     args = Dict(:γ=>γ, :N=>N, :n=>n, :ρ=>ρ, :simtype=>simtype,
-        :M=>M, :Tmin=>Tmin, :dT=>dT, :Tmax=>Tmax, :lk_sort=>lk_sort)
+        :Md=>Md, :Tmin=>Tmin, :dT=>dT, :Tmax=>Tmax, :lk_sort=>lk_sort)
     #
     dat = DataFrame(df_fields())
     for f in sfields
@@ -41,7 +41,7 @@ function eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
     function f(arg::ARGTools.ARG) 
         let γ=γ, Trange=Trange, M=M, lk_sort = lk_sort
             t1, t2 = ARGTools.trees_from_ARG(arg)
-            mccs = SplitGraph.runopt(t1,t2, γ=γ, Trange=Trange, M=M, Mmax=M, likelihood_sort=lk_sort)[1]
+            mccs = SplitGraph.runopt(t1,t2, γ=γ, Tmin=Tmin, dT=dT, Tmax=Tmax, Md=Md, likelihood_sort=lk_sort)[1]
         end
     end
     #
@@ -58,10 +58,6 @@ function eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
     end
     #
     return dat
-end
-
-function av_dataframe(df, field)
-    combine(groupby(df, field), names(df, Not(field)) .=> mean .=> names(df, Not(field)))
 end
 
 """

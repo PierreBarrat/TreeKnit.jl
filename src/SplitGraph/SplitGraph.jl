@@ -5,9 +5,10 @@ using RecombTools
 using StatsBase
 using DataFrames
 using SpecialFunctions
+using Parameters
 
 
-export opttrees!
+export runopt, OptArgs
 
 include("objects.jl")
 include("tools.jl")
@@ -22,104 +23,76 @@ let verbose::Bool = false, vverbose::Bool = false
 end
 
 """
-	runopt(t::Vararg{Tree}; γ=3., 
-		M=500, itmax=50, Mmax = 1_000, Trange=reverse(0.01:0.02:1.1), 
-		verbose=false, vv=false, 
-		guidetrees=(), likelihood_sort=true) 
+		runopt(t::Vararg{Tree}; kwargs...)
+		runopt(oa::OptArgs, t::Vararg{Tree})
 
-		runopt(t::Vararg{Tree}, oa::OptArgs)
-		runopt(t::Vararg{Tree}) 
-
-Run optimization at constant γ
+Run optimization at constant γ. See `?Optargs` for arguments. 
 """
-function runopt(t::Vararg{Tree}; γ=3., 
-	M=ceil(Int64, length(first(t).lleaves)/50), itmax=15, Mmax = M, Trange=reverse(0.001:0.01:1.1), 
-	verbose=false, vv=false, 
-	guidetrees=(), likelihood_sort=true) 
-	runopt(OptArgs(γ=γ, M=M, itmax=itmax, Mmax=Mmax, Trange=Trange, 
-		verbose=verbose, vv=vv, guidetrees=guidetrees, likelihood_sort=likelihood_sort), 
-	t...)
-end
+runopt(t::Vararg{Tree}; kwargs...) = runopt(OptArgs(;kwargs...), t...)
 
 function runopt(oa::OptArgs, t::Vararg{Tree})
-	n0 = length(first(t).lleaves)
-	#
+	# 
 	ot = deepcopy(collect(t))
-	gt = deepcopy(collect(oa.guidetrees))
-	resolve_trees!(vcat(ot,gt)...)
-
-	nMCC = maximal_coherent_clades(ot)
+	resolve_trees!(ot...)
+	# 
+	iMCCs = maximal_coherent_clades(ot)
 	Einit = count_mismatches(ot...)
-	df = DataFrame(nleaves=Int64[length(ot[1].lleaves)],
-		nMCCs=length(nMCC),
-		γ=Any[missing], M=Any[missing], 
+	n0 = length(first(ot).lleaves)
+	df = DataFrame(nleaves=Int64[n0],
+		nMCCs=length(iMCCs),
+		γ=Any[oa.γ], M=Any[missing], 
 		Efinal=Any[Einit], Ffinal=Any[Einit],
-		removedMCCs=Any[missing], all_removedMCCs=Any[missing], remainingMCCs=Any[nMCC])
+		removedMCCs=Any[missing], all_removedMCCs=Any[missing], remainingMCCs=Any[iMCCs])
 	MCCs = []
 	Evals = Any[]
 	Fvals = Any[]
 	set_verbose(oa.verbose)
 	set_vverbose(oa.vv)
-	M = oa.M
 	#
 	for i in 1:oa.itmax
 		flag = :init
 		v() && println("\n --- \nIteration $i/$(oa.itmax) - $(df.nleaves[end]) leaves remaining")
+
 		# Optimization
 		n = length(first(ot).lleaves)
-		mccs, Efinal, Ffinal, E, F = opttrees!(ot..., γ=oa.γ, M=ceil(Int64, oa.M * n/n0), Trange=oa.Trange, likelihood_sort=oa.likelihood_sort)
-		if length(mccs) != 0
-			flag = :found
-		else
-			v() && println("No solution found in current iteration")
-		end
+		M = getM(n, oa.Md)
+		mccs, Efinal, Ffinal, E, F = opttrees!(ot..., γ=oa.γ, M=M, Trange=oa.Trange, likelihood_sort=oa.likelihood_sort)
+		length(mccs) != 0 ? (flag = :found) : (v() && println("No solution found in current iteration"))
+		append!(MCCs, mccs)
 
 		# Checks
 		!prod([check_tree(t) for t in ot]) && @error "Problem in one of the trees"
 		
-		# Actions if a solution is found
-		if flag == :found && Efinal == 0. # There is the chance that the algorithm converged
-			v() && println("$flag: temporary solution found - `E == 0.`")
-			append!(MCCs, mccs)
-			if sum(length(m) for m in mccs) != length(ot[1].lleaves)
+		# Actions if a final solution is found
+		if flag == :found 
+			if sum(length(m) for m in mccs) != length(ot[1].lleaves) # Found mccs do not cover all leaves
 				pruneconf!(mccs, ot...)
-				pruneconf_guidetrees!(mccs, gt...)
 				if complete_mccs!(MCCs, ot)
 					v() && println("$flag: all mccs have been found")
-					resolve_trees!(vcat(ot,gt)...)
-					nMCCs = maximal_coherent_clades(ot)
-					update_df!(df, length(ot[1].lleaves), length(nMCCs), oa.γ, M, Efinal, Ffinal, mccs, MCCs, nMCCs)
+					resolve_trees!(ot...)
+					rMCCs = maximal_coherent_clades(ot)
+					update_df!(df, length(ot[1].lleaves), length(rMCCs), oa.γ, M, Efinal, Ffinal, mccs, MCCs, rMCCs)
 					break
 				end
 			else # Found mccs cover all leaves
 				v() && println("$flag: all mccs have been found")
-				resolve_trees!(vcat(ot,gt)...)
-				nMCCs = maximal_coherent_clades(ot)
-				update_df!(df, length(ot[1].lleaves), length(nMCCs), oa.γ, M, Efinal, Ffinal, mccs, MCCs, nMCCs)
+				resolve_trees!(ot...)
+				rMCCs = maximal_coherent_clades(ot)
+				update_df!(df, length(ot[1].lleaves), length(rMCCs), oa.γ, M, Efinal, Ffinal, mccs, MCCs, rMCCs)
 				break
 			end
-		elseif flag == :found && Efinal != 0.
-			v() && println("$flag: temporary solution found - `E != 0.`")
-			pruneconf!(mccs, ot...)
-			pruneconf_guidetrees!(mccs, gt...)
-			append!(MCCs, mccs)
 		end
 
-		# Updating df based on found solution -- will also update if no solution was found
-		resolve_trees!(vcat(ot,gt)...)
-		nMCCs = maximal_coherent_clades(ot)
-		update_df!(df, length(ot[1].lleaves), length(nMCCs), oa.γ, M, Efinal, Ffinal, mccs, MCCs, nMCCs)
+		# Action if a temporary solution is found (pruneconf! is called above)
+		resolve_trees!(ot...)
+		rMCCs = maximal_coherent_clades(ot)
+		update_df!(df, length(ot[1].lleaves), length(rMCCs), oa.γ, M, Efinal, Ffinal, mccs, MCCs, rMCCs)
 		push!(Evals, E)
 		push!(Fvals, F)
 
 		# Actions if no solution is found
-		if i == oa.itmax
-			v() && println("Maximum number of iterations reached - stop")
-			complete_mccs!(MCCs, ot, force=true)
-		elseif flag != :found && M <= oa.Mmax
-			M *= 2
-		elseif flag !=:found && M > oa.Mmax
-			v() && println("Maximum M reached without converging - stop")
+		if i == oa.itmax || flag != :found
+			v() && println("Maximum number of iterations reached or no solution found - stop")
 			complete_mccs!(MCCs, ot, force=true)
 			break
 		end
@@ -129,6 +102,9 @@ end
 
 
 """
+	complete_mccs!(MCCs, ot; force=false)
+
+Complete `MCCs` if `maximal_coherent_clades(ot)` is of length `1`, and return `true`. Otherwise (unless `force`), return `false`.
 """
 function complete_mccs!(MCCs, ot; force=false)
 	final_mccs = maximal_coherent_clades(ot)
@@ -177,8 +153,6 @@ function opttrees!(γ, Trange, M, μ, t::Vararg{Tree}; likelihood_sort=true)
 	end
 
 	return [mcc_names[x] for x in g.labels[.!oconf]], compute_energy(oconf,g), compute_F(oconf, g, γ), E, F
-
-	# return [[mcc_names[x] for x in g.labels[.!conf]] for conf in oconfs], [g.labels[.!conf] for conf in oconfs], [compute_energy(conf,g) for conf in oconfs], [compute_F(conf, g, γ) for conf in oconfs], E, F
 end
 
 
@@ -208,7 +182,14 @@ function sortconf(oconfs, trees, g::Graph, μ, mcc_names, likelihood_sort, E_sor
 		# L = [conf_likelihood(conf, g, μ, trees) for conf in oconfs_]
 		vv() && println("Confs: ", [[mcc_names[x] for x in g.labels[.!conf]] for conf in oconfs_])
 		v() && println("Likelihoods: ", L)
-		return oconfs_[findmax(L)[2]]
+		Lmax = maximum(L)
+		oconfs_ = oconfs[findall(==(Lmax), L)]
+		if length(oconfs) != 1 # Final sort by energy if more than one most likely conf
+			E = [compute_energy(conf,g) for conf in oconfs_]
+			Emin = minimum(E)
+			oconfs_ = oconfs[findall(==(Emin), E)]
+		end
+		return rand(oconfs_)
 	end
 end	
 

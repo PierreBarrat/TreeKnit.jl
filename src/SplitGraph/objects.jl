@@ -59,39 +59,37 @@ function Graph(; nodes=Array{GraphNode,1}(undef,0), leaves=Array{LeafNode,1}(und
 end
 
 
-struct OptArgs
-	γ::Real  
+"""
+	struct OptArgs
+
+Storing parameters for `SplitGraph.runopt` function.
+
+### General
+- `γ::Real = 3`   
+- `itmax::Int64 = 15`: Maximal number of iterations of MCC / SA cycles
+- `likelihood_sort::Bool = true`: sort equivalent configurations using likelihood test (based on branch length for now). 
+### Simulated annealing
+- `Md::Int64 = 10`:  Number of SA iterations (per temperature) for a tree of `n` leaves is `ceil(Int64, n/Md)`
+- `Tmin::Float64 = 1e-3`: Minimal temperature of SA
+- `Tmax::Float64 = 1`: Maximal temperature of SA
+- `dT::Float64 = 1e-2`: Temperature step
+### Verbosity
+- `verbose::Bool=false`: first level of verbosity
+- `vv::Bool = false`: second level of verbosity
+"""
+@with_kw struct OptArgs
+	γ::Real  = 3
+	itmax::Int64 = 15
+	likelihood_sort::Bool = true
 	# For the annealing  
-	M::Int64
-	Mmax::Int64
-	Trange
-	itmax::Int64
+	Md::Int64 = 10 
+	Tmin::Float64 = 1e-3
+	Tmax::Float64 = 1.; @assert Tmax > Tmin
+	dT::Float64 = 1e-2
+	Trange = reverse(Tmin:dT:Tmax)
 	# Verbosity
-	verbose::Bool
-	vv::Bool
-	# Other
-	guidetrees
-	likelihood_sort::Bool
+	verbose::Bool = false
+	vv::Bool = false
 	# μ # Mutation rates of segments - Should be the same length as trees, not sure how to handle it just now
 end
-"""
-	OptArgs(;kwargs)
-
-General kwargs
-- `γ=3`
-- `verbose=false`
-- `vv=false`, increased verbosity
-- `likelihood_sort=true`, use likelihood test based on branch length to sort configurations
-- `guidetrees=()`, was for a test, probably useless
-- `itmax=30`, number of pruning/annealing iterations of the procedure
-
-Simulated annealing arguments
-- `M=500`, initial number of iterations of the simulated annealing
-- `Mmax = 1_000`, maximum number of ... 
-- `Trange = reverse(0.01:0.02:1.1)` 
-"""
-OptArgs(;γ=3., 
-	M = 500, Mmax = 1_000, Trange = reverse(0.01:0.02:1.1), itmax = 30,
-	verbose=false, vv=false,
-	guidetrees=(),
-	likelihood_sort=true) = OptArgs(γ, M, Mmax, Trange, itmax, verbose, vv, guidetrees, likelihood_sort)
+getM(n,Md) = ceil(Int64, n/Md)
