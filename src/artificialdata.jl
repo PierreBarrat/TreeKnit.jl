@@ -160,6 +160,9 @@ end
 #####################
 ##################### REMOVING BRANCHES
 #####################
+"""
+    remove_branches!(n::TreeNode, p::Distribution)
+"""
 function remove_branches!(n::TreeNode, p::Distribution)
     if !ismissing(n.data.tau) && n.data.tau < rand(p)
         if !n.isleaf
@@ -178,6 +181,8 @@ function remove_branches!(n::TreeNode, p::Distribution)
 end
 
 """
+    remove_branches!(t::Tree, p) 
+
 Stochastically remove branches from `t` using probability distribution `p`
 """
 function remove_branches!(t::Tree, p) 
@@ -185,6 +190,9 @@ function remove_branches!(t::Tree, p)
     node2tree!(t, t.root)
     nothing
 end 
+"""
+    remove_branches!(t::Tree, p) 
+"""
 function remove_branches(t::Tree, p)
     tt = deepcopy(t)
     remove_branches!(tt, p)

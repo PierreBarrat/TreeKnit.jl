@@ -24,7 +24,6 @@ function maximal_coherent_clades(treelist)
     !sh && error("Can only be used on trees that share leaf nodes.")
 
     # List of already visited nodes
-    # treelist_ = deepcopy(treelist)
     S = Tuple(SplitList(t) for t in treelist)
     tref = treelist[1]
     checklist = Dict(k=>false for k in keys(tref.lleaves))
@@ -43,20 +42,14 @@ function maximal_coherent_clades(treelist)
                 # Each element of `nroot` defines a new set of labels corresponding to one tree. There are two possibilites 
                 # (i) Those sets of labels match. In this case, we have a potential consistent clade. To check further, call `is_coherent_clade`. 
                 # (ii) Otherwise, the topology of trees in `treelist` is inconsistent above `croot`. `croot` is an MCC, break.  
-                # nlabel = [Set(x.label for x in POTleaves(r)) for r in nroot] # List of sets of labels
-                # if prod(nlabel[i]==nlabel[1] for i in 2:length(nlabel)) # case (i)
                 if mapreduce(i->S[1].splitmap[nroot[1].label] == S[i].splitmap[nroot[i].label], *, 2:length(nroot))
                     # --> `r \in nroot` is the same split in all trees
-                    # nclade = [node_leavesclade(r) for r in nroot] ## See if I can do with splits
-                    # if prod(is_coherent_clade_nodelist(c, treelist) for c in nclade)
                     if is_coherent_clade(nroot,S) # check if children of `r` are also same splits in all trees
-                        # tcroot = [lca(c) for c in nclade]
                         if nroot == croot # Singleton in the tree, or clade with a single node --> the algorithm is getting stuck on this node
                             croot = [x.anc for x in croot]
                         else
                             croot = nroot
                         end
-                        # clabel = nlabel[1]
                         clabel = S[1].leaves[S[1].splitmap[nroot[1].label].dat]
                     else
                         flag = false
@@ -66,7 +59,6 @@ function maximal_coherent_clades(treelist)
                 end
             end
             # 
-            # clabel = map(x->x.label, cclade)
             map(x->checklist[x]=true, [c for c in clabel])
             push!(mc_clades, sort([c for c in clabel]))
         end

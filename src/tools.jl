@@ -175,7 +175,9 @@ end
 #####################
 
 """
-Given an MCCs and two trees, what are the new splits introduced in either of the trees. 
+    new_splits(MCCs, t1::Tree, t2::Tree)
+
+Given MCCs and two trees, what are the new splits introduced in either of the trees. 
 Return an array `S` of `SplitList` objects, with `S[i][m]` corresponding to new splits in tree `i` from MCC `m`. 
 """
 function new_splits(MCCs, t1::Tree, t2::Tree)
