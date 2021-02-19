@@ -179,17 +179,40 @@ end
 
 Given MCCs and two trees, what are the new splits introduced in either of the trees. 
 Return an array `S` of `SplitList` objects, with `S[i][m]` corresponding to new splits in tree `i` from MCC `m`. 
+
+*Note*: Resulting splits are not always unique once constrained to leaves of MCCs! 
 """
 function new_splits(MCCs, t1::Tree, t2::Tree)
-    splits1 = TreeTools.SplitList(t1)
-    splits2 = TreeTools.SplitList(t2)
+    splits1 = SplitList(t1)
+    splits2 = SplitList(t2)
     # Splits corresponding to each mcc in both trees 
-    MCC_splits = RecombTools.splits_in_mccs(MCCs, t1, t2)
+    MCC_splits = splits_in_mccs(MCCs, t1, t2)
     # Are those new or not? 
     _new_splits!(MCC_splits[2], splits1)
     _new_splits!(MCC_splits[1], splits2)
 
+    #
+
     return MCC_splits[end:-1:1]
+    # return [TreeTools.map_splits_to_tree(MCC_splits[1], t2), TreeTools.map_splits_to_tree(MCC_splits[1], t2)]
+end
+
+"""
+    new_splits(tref::Tree, MCCs, t::Tree)
+
+What are the splits introduced in `tref` from `t` using consistent clades `MCCs`? 
+Return a single `SplitList` object, with unique splits mapped onto the leaves of `tref`. 
+"""
+function new_splits(tref::Tree, MCCs, t::Tree)
+    # Splits in `tref`
+    S_ref = SplitList(tref)
+    # Splits corresponding to each mcc in tree `t`
+    MCC_splits = splits_in_mccs(MCCs, t)
+    # Take the new ones only
+    _new_splits!(MCC_splits, S_ref)
+    # Map them onto leaves of `tref`
+    return unique(TreeTools.map_splits_to_tree(MCC_splits, tref), usemask=false)
+    # return TreeTools.map_splits_to_tree(MCC_splits, tref)
 end
 
 function _new_splits!(MCC_splits, tree_splits)
