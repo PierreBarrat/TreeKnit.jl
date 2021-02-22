@@ -190,11 +190,8 @@ function new_splits(MCCs, t1::Tree, t2::Tree)
     # Are those new or not? 
     _new_splits!(MCC_splits[2], splits1)
     _new_splits!(MCC_splits[1], splits2)
-
     #
-
     return MCC_splits[end:-1:1]
-    # return [TreeTools.map_splits_to_tree(MCC_splits[1], t2), TreeTools.map_splits_to_tree(MCC_splits[1], t2)]
 end
 
 """
@@ -212,7 +209,6 @@ function new_splits(tref::Tree, MCCs, t::Tree)
     _new_splits!(MCC_splits, S_ref)
     # Map them onto leaves of `tref`
     return unique(TreeTools.map_splits_to_tree(MCC_splits, tref), usemask=false)
-    # return TreeTools.map_splits_to_tree(MCC_splits, tref)
 end
 
 function _new_splits!(MCC_splits, tree_splits)

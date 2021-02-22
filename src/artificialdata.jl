@@ -2,6 +2,13 @@ export eval_mcc_inf, df_fields, eval_runopt
 export remove_branches!
 
 #####################
+##################### Evaluating inference of splits
+#####################
+
+
+
+
+#####################
 ##################### Evaluating MCC inference
 #####################
 
@@ -13,6 +20,41 @@ function get_r(ρ::Float64, n::Int64, N::Int64, simtype::Symbol)
     end
 end
 
+
+function eval_naive_inf(N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
+                        Nrep = 1, sfields::Tuple=(:ρ,), out = "")
+    #
+    args = Dict(:N=>N, :n=>n, :ρ=>ρ, :simtype=>simtype)
+    # 
+    dat = DataFrame(df_fields())
+    for f in sfields
+        insertcols!(dat, f=>Any[])
+    end
+    # 
+    r = get_r(ρ, n, N, simtype)
+    #
+    function f(arg::ARGTools.ARG) 
+        t1, t2 = ARGTools.trees_from_ARG(arg)
+        mccs = RecombTools.maximal_coherent_clades(t1,t2)
+    end
+    #
+    for rep in 1:Nrep
+        td = @timed _eval_mcc_inf(f, N, n, r, simtype=simtype)  
+        d = td[1]
+        args[:time] = td[2]
+        args[:bytes] = td[3]
+        for f in sfields
+            d[f] = args[f]
+        end
+        push!(dat, d)
+    end
+    # 
+    if out != ""
+        CSV.write(out, dat)
+    end
+    #
+    return dat
+end
 """
     eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol; 
             Tmin=0.001, dT=0.01, Tmax=1.1, M=ceil(n/50), lk_sort=true,
