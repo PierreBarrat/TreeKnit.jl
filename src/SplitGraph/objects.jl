@@ -82,7 +82,7 @@ Storing parameters for `SplitGraph.runopt` function.
 	itmax::Int64 = 15
 	likelihood_sort::Bool = true
 	# For the annealing  
-	Md::Int64 = 10 
+	Md::Real = 10 
 	Tmin::Float64 = 1e-3
 	Tmax::Float64 = 1.; @assert Tmax > Tmin
 	dT::Float64 = 1e-2

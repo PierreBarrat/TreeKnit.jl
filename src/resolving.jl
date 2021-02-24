@@ -35,7 +35,7 @@ function resolve_trees!(treelist::Vararg{Tree}; rtau=:ref, verbose=false)
         flag = false
         for (iref, tref) in enumerate(treelist)
             for (i,t) in Iterators.filter(x->x[1]!=iref, enumerate(treelist))
-                verbose && println("\nRef: $iref - object: $i")
+                # verbose && println("\nRef: $iref - object: $i")
                 rcount = _resolve_trees_ref!(t, tref, rtau)
                 rcount > 0 && (flag = true)
                 verbose && rcount > 0 && println("Resolved $rcount clades in tree $i with tree $iref as reference.")
