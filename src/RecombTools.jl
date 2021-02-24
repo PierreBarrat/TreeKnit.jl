@@ -5,6 +5,7 @@ using Distributions
 using StatsBase
 using DataFrames
 using CSV
+using Debugger
 
 
 import Base.getindex, Base.==, Base.setindex!
