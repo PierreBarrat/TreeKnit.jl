@@ -69,7 +69,7 @@ Storing parameters for `SplitGraph.runopt` function.
 - `itmax::Int64 = 15`: Maximal number of iterations of MCC / SA cycles
 - `likelihood_sort::Bool = true`: sort equivalent configurations using likelihood test (based on branch length for now). 
 ### Simulated annealing
-- `Md::Int64 = 10`:  Number of SA iterations (per temperature) for a tree of `n` leaves is `ceil(Int64, n/Md)`
+- `Md::Real = 10`:  Number of SA iterations (per temperature) for a tree of `n` leaves is `ceil(Int64, n/Md)`
 - `Tmin::Float64 = 1e-3`: Minimal temperature of SA
 - `Tmax::Float64 = 1`: Maximal temperature of SA
 - `dT::Float64 = 1e-2`: Temperature step

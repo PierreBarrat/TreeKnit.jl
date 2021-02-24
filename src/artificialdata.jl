@@ -13,10 +13,12 @@ export remove_branches!
 #####################
 
 function get_r(ρ::Float64, n::Int64, N::Int64, simtype::Symbol)
-    if simtype == :Kingman
+    if simtype == :kingman
         return ρ * n / N
     elseif simtype == :yule
         return ρ / N
+    else
+        @error "Unrecognized `simtype`."
     end
 end
 
