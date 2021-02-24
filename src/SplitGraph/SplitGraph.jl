@@ -6,6 +6,7 @@ using StatsBase
 using DataFrames
 using SpecialFunctions
 using Parameters
+using Debugger
 
 
 export runopt, OptArgs
@@ -33,7 +34,7 @@ runopt(t::Vararg{Tree}; kwargs...) = runopt(OptArgs(;kwargs...), t...)
 function runopt(oa::OptArgs, t::Vararg{Tree})
 	# 
 	ot = deepcopy(collect(t))
-	resolve_trees!(ot...)
+	resolve_trees!(ot..., verbose=v())
 	# 
 	iMCCs = maximal_coherent_clades(ot)
 	Einit = count_mismatches(ot...)
@@ -69,14 +70,14 @@ function runopt(oa::OptArgs, t::Vararg{Tree})
 				pruneconf!(mccs, ot...)
 				if complete_mccs!(MCCs, ot)
 					v() && println("$flag: all mccs have been found")
-					resolve_trees!(ot...)
+					resolve_trees!(ot..., verbose=v())
 					rMCCs = maximal_coherent_clades(ot)
 					update_df!(df, length(ot[1].lleaves), length(rMCCs), oa.γ, M, Efinal, Ffinal, mccs, MCCs, rMCCs)
 					break
 				end
 			else # Found mccs cover all leaves
 				v() && println("$flag: all mccs have been found")
-				resolve_trees!(ot...)
+				resolve_trees!(ot..., verbose=v())
 				rMCCs = maximal_coherent_clades(ot)
 				update_df!(df, length(ot[1].lleaves), length(rMCCs), oa.γ, M, Efinal, Ffinal, mccs, MCCs, rMCCs)
 				break
@@ -84,7 +85,7 @@ function runopt(oa::OptArgs, t::Vararg{Tree})
 		end
 
 		# Action if a temporary solution is found (pruneconf! is called above)
-		resolve_trees!(ot...)
+		resolve_trees!(ot..., verbose=v())
 		rMCCs = maximal_coherent_clades(ot)
 		update_df!(df, length(ot[1].lleaves), length(rMCCs), oa.γ, M, Efinal, Ffinal, mccs, MCCs, rMCCs)
 		push!(Evals, E)
@@ -151,7 +152,6 @@ function opttrees!(γ, Trange, M, μ, t::Vararg{Tree}; likelihood_sort=true)
 	else
 		oconf = oconfs[1]
 	end
-
 	return [mcc_names[x] for x in g.labels[.!oconf]], compute_energy(oconf,g), compute_F(oconf, g, γ), E, F
 end
 
@@ -183,8 +183,8 @@ function sortconf(oconfs, trees, g::Graph, μ, mcc_names, likelihood_sort, E_sor
 		vv() && println("Confs: ", [[mcc_names[x] for x in g.labels[.!conf]] for conf in oconfs_])
 		v() && println("Likelihoods: ", L)
 		Lmax = maximum(L)
-		oconfs_ = oconfs[findall(==(Lmax), L)]
-		if length(oconfs) != 1 # Final sort by energy if more than one most likely conf
+		oconfs_ = oconfs_[findall(==(Lmax), L)]
+		if length(oconfs_) != 1 # Final sort by energy if more than one most likely conf
 			E = [compute_energy(conf,g) for conf in oconfs_]
 			Emin = minimum(E)
 			oconfs_ = oconfs[findall(==(Emin), E)]
