@@ -578,6 +578,37 @@ function fraction_of_common_pairs(MCC1, MCC2, leaves; linked_only=false)
     return n / Z
 end
 
+"""
+    consistent_mcc_triplets(M12, M13, M23; Ntriplets=1_000)
+
+For a sample of triplets `(x,y,z)` from `(M12, M13, M23)`, check that `intersect(x,y,z)` is empty, or that `intersect(x,y)` is a subset of `z` (and for all permutations of the triplet). 
+
+"""
+function consistent_mcc_triplets(M12, M13, M23; Ntriplets=1_000)
+    itmax = 1e5
+    Nconst = 0
+    for rep in 1:Ntriplets
+        i = 1
+        x = sample(M12)
+        y = sample(M13)
+        while isdisjoint(x,y)
+            y = sample(M13)
+            i+=1
+            i > itmax && @error "Too many iterations"
+        end
+        I = intersect(x,y)
+        z = sample(M23)
+        while isdisjoint(I,z)
+            z = sample(M23)
+            i+=1
+            i > itmax && @error "Too many iterations"
+        end
+        if issubset(I,z) && issubset(intersect(x,z), y) && issubset(intersect(y,z), x)
+            Nconst += 1
+        end
+    end
+    return Nconst / Ntriplets
+end
 
 
 
