@@ -1,27 +1,37 @@
 """
-	branch_likelihood(n1::Real, n2::Real, μ1::Real, μ2::Real)
+	branch_likelihood(t1, t2, L1, L2)
 
-Given that `n1` and `n2` mutations were observed on two branches, with mutation rates `μ1` and `μ2`, return the log-ratio of:
-- the probability that the two branch lengths `t1` and `t2` are the same and equal to `(n1 + n2)/(μ1 + μ2)`.
-- the probability that the two branch lenghts are different and equal to respectively `n1/μ1` and `n2/μ2`. 
+Given two branches of length `t1` and `t2`, with segments of length `L1` and `L2`, return the log-ratio of:
+- the probability that the two branch lengths `t1` and `t2` are the same and equal to `(t1*L1 + t2*L2) / (L1 + L2)`.
+- the probability that the two branch lenghts are different and equal to respectively `t1` and `t2`. 
 """
-function branch_likelihood(n1::Real, n2::Real, μ1::Real, μ2::Real)
+function branch_likelihood(t1::Real, t2::Real, L1, L2) 
+	n1s = (t1*L1 + t2*L2) / (L1 + L2) * L1
+	n2s = (t1*L1 + t2*L2) / (L1 + L2) * L2
+	n1 = t1*L1
+	n2 = t2*L2
 	L = 0.
-	n1 != 0. && (L += n1*log(μ1/(μ1+μ2) * (n1+n2)/n1))
-	n2 != 0. && (L += n2*log(μ2/(μ1+μ2) * (n1+n2)/n2))
-	return L
+	if n1 != 0 
+		L += n1 - n1s + n1 * log(n1s/n1)
+	else
+		L += -n1s
+	end
+	if n2 != 0 
+		L += n2 - n2s + n2 * log(n2s/n2)
+	else
+		L += -n2s
+	end
+	return L 
 end
 
+branch_likelihood(t1::Missing, t2::Real, L1, L2) = missing
+branch_likelihood(t1::Real, t2::Missing, L1, L2) = missing
+branch_likelihood(t1::Missing, t2::Missing, L1, L2) = 0.
+branch_likelihood(t1, t2, L1, L2) = 0.
 
 
 function conf_likelihood(conf::Array{Bool,1}, g::Graph, μ, trees; v=false, mode=:mutations)
-	if in(mode, (:mutations, :nmut))
-		return conf_likelihood_(TreeTools.node_diffmut, conf, g, μ, trees, v=v)
-	elseif in(mode, (:time, :times, :divtime))
-		return conf_likelihood_(TreeTools.node_divtime, conf, g, μ, trees, v=v)
-	else
-		@error "Unrecognized mode $(mode)."
-	end
+	conf_likelihood_(TreeTools.node_divtime, conf, g, μ, trees, v=v)
 end
 
 """
@@ -29,7 +39,7 @@ end
 
 For each leaf `n` remaining in `conf`, find the first non-trivial ancestors in graph `g`. For each pair of ancestors `a1` and `a2`, compare the likelihood  that the real branch length from `n` to `a1` and `a2` is the same, with the likelihood that it is different. 
 """
-function conf_likelihood_(divfunction, conf::Array{Bool,1}, g::Graph, μ, trees; v=false)
+function conf_likelihood_(divfunction, conf::Array{Bool,1}, g::Graph, seq_lengths, trees; v=false)
 	L = 0.
 	Z = 0.
 	if length(g.leaves) + length(g.internals) == 1
@@ -61,15 +71,11 @@ function conf_likelihood_(divfunction, conf::Array{Bool,1}, g::Graph, μ, trees;
 					# If a1.conf and a2.conf are equal, we just inferred that this branch is common to trees k1 and k2
 					# if are_equal(a1.conf, a2.conf, conf)
 					if are_equal_with_resolution(g, a1.conf, a2.conf, conf, k1, k2)
-						n1 = divfunction(tn1, ta1)
-						n2 = divfunction(tn2, ta2)
+						tau1 = divfunction(tn1, ta1)
+						tau2 = divfunction(tn2, ta2)
 						v && println("No inconsistency for leaf $i ($(g.labels[i]))")
-						v && println("Inferring that times $(n1/μ[k1]) on tree $k1 and $(n2/μ[k2]) on tree $k2 are the same.")
-						v && println("Corresponding number of mutations: $n1 with rate $(μ[k1]) and $n2 with rate $(μ[k2]).")
-						dL = branch_likelihood(n1, n2, μ[k1], μ[k2])
-
-						# in dL, μ[k1]*τ1 should ultimately be replaced by n1 which is the observed number of mutations (same goes for 2)
-						# What is currently there only makes sense for artificial data, where t is known exactly. 
+						v && println("Inferring that times $(tau1) on tree $k1 and $(tau2) on tree $k2 are the same.")
+						dL = branch_likelihood(tau1, tau2, seq_lengths[k1], seq_lengths[k2])
 						L += dL
 						Z += 1.
 						v && println("Corresponding likelihood is $dL.")
