@@ -34,7 +34,7 @@ runopt(t::Vararg{Tree}; kwargs...) = runopt(OptArgs(;kwargs...), t...)
 function runopt(oa::OptArgs, t::Vararg{Tree})
 	# 
 	ot = deepcopy(collect(t))
-	resolve_trees!(ot..., verbose=v())
+	resolve!(ot..., verbose=v())
 	# 
 	iMCCs = maximal_coherent_clades(ot)
 	Einit = count_mismatches(ot...)
@@ -71,14 +71,14 @@ function runopt(oa::OptArgs, t::Vararg{Tree})
 				pruneconf!(mccs, ot...)
 				if complete_mccs!(MCCs, ot)
 					v() && println("$flag: all mccs have been found")
-					resolve_trees!(ot..., verbose=v())
+					resolve!(ot..., verbose=v())
 					rMCCs = maximal_coherent_clades(ot)
 					update_df!(df, length(ot[1].lleaves), length(rMCCs), oa.γ, M, Efinal, Ffinal, mccs, MCCs, rMCCs)
 					break
 				end
 			else # Found mccs cover all leaves
 				v() && println("$flag: all mccs have been found")
-				resolve_trees!(ot..., verbose=v())
+				resolve!(ot..., verbose=v())
 				rMCCs = maximal_coherent_clades(ot)
 				update_df!(df, length(ot[1].lleaves), length(rMCCs), oa.γ, M, Efinal, Ffinal, mccs, MCCs, rMCCs)
 				break
@@ -86,7 +86,7 @@ function runopt(oa::OptArgs, t::Vararg{Tree})
 		end
 
 		# Action if a temporary solution is found (pruneconf! is called above)
-		resolve_trees!(ot..., verbose=v())
+		resolve!(ot..., verbose=v())
 		rMCCs = maximal_coherent_clades(ot)
 		update_df!(df, length(ot[1].lleaves), length(rMCCs), oa.γ, M, Efinal, Ffinal, mccs, MCCs, rMCCs)
 		push!(Evals, E)

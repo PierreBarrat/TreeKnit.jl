@@ -12,7 +12,7 @@ import Base.getindex, Base.==, Base.setindex!
 
 include("tools.jl")
 include("MCC.jl")
-include("resolving.jl")
+# include("resolving.jl")
 include("reading.jl")
 include("SplitGraph/SplitGraph.jl")
 include("artificialdata.jl")
