@@ -11,11 +11,6 @@ Find sets of nodes which are:
 - all subclades of nodes are clades in all trees of `treelist` (both of these properties define consistency),
 - maximal: adding a node to a set results it in not being a clade in at least one of the trees. 
 All the trees of `treelist` should share the same leaf nodes.  
-
-# Note
-In this version, the function does not attempt to
-- Resolve clades. Since we should already be resolving clade using the information of all segments, resolving them here just makes the code more complex
-- Increase MCC by adding children of multiforcations one by one. I wish to keep this code as basic as possible: it should just find regions of perfect topologic compatibility in all trees of `treelist`. The rest can use another function, maybe a `combine_mcc` one. 
 """
 function maximal_coherent_clades(treelist)
 
@@ -585,7 +580,7 @@ For a sample of triplets `(x,y,z)` from `(M12, M13, M23)`, check that `intersect
 
 """
 function consistent_mcc_triplets(M12, M13, M23; Ntriplets=1_000)
-    itmax = 1e5
+    itmax = 1e6
     Nconst = 0
     for rep in 1:Ntriplets
         i = 1
