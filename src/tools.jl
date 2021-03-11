@@ -195,6 +195,28 @@ function new_splits(MCCs, t1::Tree, t2::Tree)
 end
 
 """
+    new_splits(trees::Dict, MCCs::Dict)
+
+Find new splits in each tree of `trees` according to other trees and to `MCCs`. `MCCs` should be a dictionary indexed by pairs of keys of `trees`. 
+Return a dictionary of the form `ns[s]` with `s` a key of `trees`. 
+`ns[s]` is an array of `SplitList` objects, mapped onto `trees[s]`, with length `length(trees)-1`.
+"""
+function new_splits(trees::Dict, MCCs::Dict)
+    ns = Dict{Any, Array{SplitList,1}}()
+    for (sref,tref) in trees
+        ns[sref] = Array{SplitList,1}(undef, length(trees)-1)
+        i = 1
+        for (s,t) in trees
+            if s != sref
+                ns[sref][i] = RecombTools.new_splits(tref, MCCs[sref,s], t)
+                i += 1
+            end
+        end
+    end
+    return ns
+end
+
+"""
     new_splits(tref::Tree, MCCs, t::Tree)
 
 What are the splits introduced in `tref` from `t` using consistent clades `MCCs`? 
@@ -204,7 +226,8 @@ function new_splits(tref::Tree, MCCs, t::Tree)
     # Splits in `tref`
     S_ref = SplitList(tref)
     # Splits corresponding to each mcc in tree `t`
-    MCC_splits = splits_in_mccs(MCCs, t)
+    # MCC_splits = [TreeTools.map_splits_to_tree(m, tref) for m in splits_in_mccs(MCCs, t)]
+    MCC_splits = TreeTools.map_splits_to_tree(splits_in_mccs(MCCs, t), tref)
     # Take the new ones only
     _new_splits!(MCC_splits, S_ref)
     # Map them onto leaves of `tref`
@@ -212,16 +235,11 @@ function new_splits(tref::Tree, MCCs, t::Tree)
 end
 
 function _new_splits!(MCC_splits, tree_splits)
-    eidx = Int64[]
-    for (n,S) in enumerate(MCC_splits)
-        idx = Int64[]
-        for (i,s) in enumerate(S)
-            in(s, tree_splits, S.mask) && push!(idx,i)
-        end
-        deleteat!(S.splits, idx)
-        isempty(S.splits) && push!(eidx, n)
+    idx = Int64[]
+    for (i,s) in enumerate(MCC_splits)
+        in(s, tree_splits, MCC_splits.mask) && push!(idx,i)
     end
-    deleteat!(MCC_splits, eidx)
+    deleteat!(MCC_splits.splits, idx)
 end
 
 """
@@ -236,7 +254,34 @@ function true_splits(S::SplitList, Sref::SplitList, mask=S.mask)
 end
 true_splits(S, tref::Tree, mask=S.mask) = true_splits(S, SplitList(tref), mask)
 
+"""
+    compatible_splits(rS::Dict{<:Any, Array{SplitList,1}})
 
+Find splits in `rS` that are compatible with all other splits. Return a dictionary with the same keys as `rS`. 
+"""
+function compatible_splits(rS::Dict{<:Any, Array{SplitList,1}})
+    cs = Dict{Any, SplitList}() # Compatible splits (output)
+    for (seg, aS) in rS # aS: new splits for segment seg from all other trees
+        for (i,S) in enumerate(aS) # S: new splits in seg from tree i 
+            if !haskey(cs, seg)
+                cs[seg] = SplitList(S.leaves)
+            end
+            for s in S
+                # Check if s is compatible with aS[j] for all `j!=i`
+                cmpt = true
+                for j in Iterators.filter(!=(i), 1:length(aS)) 
+                    if !iscompatible(s, aS[j], usemask=false)
+                        cmpt = false
+                        break
+                    end
+                end
+                cmpt && push!(cs[seg].splits, s)
+            end
+        end
+        cs[seg] = unique(cs[seg])
+    end
+    return cs
+end
 
 
 
