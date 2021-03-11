@@ -68,6 +68,7 @@ Storing parameters for `SplitGraph.runopt` function.
 - `γ::Real = 3`   
 - `itmax::Int64 = 15`: Maximal number of iterations of MCC / SA cycles
 - `likelihood_sort::Bool = true`: sort equivalent configurations using likelihood test (based on branch length for now). 
+- `resolve::Bool = true`: try to resolve trees while finding MCCs. 
 - `seq_lengths = ones(Int64, 2)`: lengths of sequences that trees were built from
 ### Simulated annealing
 - `Md::Real = 10`:  Number of SA iterations (per temperature) for a tree of `n` leaves is `ceil(Int64, n/Md)`
@@ -82,6 +83,7 @@ Storing parameters for `SplitGraph.runopt` function.
 	γ::Real  = 3
 	itmax::Int64 = 15
 	likelihood_sort::Bool = true
+	resolve::Bool = true
 	seq_lengths = ones(Int64, 2)
 	# For the annealing  
 	Md::Real = 10 

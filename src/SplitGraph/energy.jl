@@ -5,6 +5,10 @@ let n::Int64=0
 	global reset_n() = (n=0)
 	global get_n() = n
 end
+let resolve::Bool = true
+	global set_resolve(r) = (resolve = r)
+	global get_resolve() = resolve
+end
 
 """
 """
@@ -40,8 +44,9 @@ function compute_energy(conf::Array{Bool,1}, g::Graph)
 					# 		E += 1
 					# 	end
 					# end
-					if !are_equal_with_resolution(g, a1.conf, a2.conf, conf, k1, k2)
-					# if !are_equal(a1.conf, a2.conf, conf)
+					if get_resolve() && !are_equal_with_resolution(g, a1.conf, a2.conf, conf, k1, k2)
+						E += 1
+					elseif !get_resolve() && !are_equal(a1.conf, a2.conf, conf)
 						E += 1
 					else
 						# println(g.labels[i])

@@ -34,7 +34,7 @@ runopt(t::Vararg{Tree}; kwargs...) = runopt(OptArgs(;kwargs...), t...)
 function runopt(oa::OptArgs, t::Vararg{Tree})
 	# 
 	ot = deepcopy(collect(t))
-	resolve!(ot..., verbose=v())
+	oa.resolve && resolve!(ot...)
 	# 
 	iMCCs = maximal_coherent_clades(ot)
 	Einit = count_mismatches(ot...)
@@ -49,6 +49,7 @@ function runopt(oa::OptArgs, t::Vararg{Tree})
 	Fvals = Any[]
 	set_verbose(oa.verbose)
 	set_vverbose(oa.vv)
+	set_resolve(oa.resolve)
 	#
 	for i in 1:oa.itmax
 		flag = :init
@@ -58,7 +59,7 @@ function runopt(oa::OptArgs, t::Vararg{Tree})
 		n = length(first(ot).lleaves)
 		M = getM(n, oa.Md)
 		mccs, Efinal, Ffinal, E, F = opttrees!(ot..., γ=oa.γ, seq_lengths = oa.seq_lengths,
-			M=M, Trange=oa.Trange, likelihood_sort=oa.likelihood_sort)
+			M=M, Trange=oa.Trange, likelihood_sort=oa.likelihood_sort, resolve=oa.resolve)
 		length(mccs) != 0 ? (flag = :found) : (v() && println("No solution found in current iteration"))
 		append!(MCCs, mccs)
 
@@ -71,14 +72,14 @@ function runopt(oa::OptArgs, t::Vararg{Tree})
 				pruneconf!(mccs, ot...)
 				if complete_mccs!(MCCs, ot)
 					v() && println("$flag: all mccs have been found")
-					resolve!(ot..., verbose=v())
+					oa.resolve && resolve!(ot...)
 					rMCCs = maximal_coherent_clades(ot)
 					update_df!(df, length(ot[1].lleaves), length(rMCCs), oa.γ, M, Efinal, Ffinal, mccs, MCCs, rMCCs)
 					break
 				end
 			else # Found mccs cover all leaves
 				v() && println("$flag: all mccs have been found")
-				resolve!(ot..., verbose=v())
+				oa.resolve && resolve!(ot...)
 				rMCCs = maximal_coherent_clades(ot)
 				update_df!(df, length(ot[1].lleaves), length(rMCCs), oa.γ, M, Efinal, Ffinal, mccs, MCCs, rMCCs)
 				break
@@ -86,7 +87,7 @@ function runopt(oa::OptArgs, t::Vararg{Tree})
 		end
 
 		# Action if a temporary solution is found (pruneconf! is called above)
-		resolve!(ot..., verbose=v())
+		oa.resolve && resolve!(ot...)
 		rMCCs = maximal_coherent_clades(ot)
 		update_df!(df, length(ot[1].lleaves), length(rMCCs), oa.γ, M, Efinal, Ffinal, mccs, MCCs, rMCCs)
 		push!(Evals, E)
@@ -127,8 +128,8 @@ Return a list of MCCs for input trees.
 Output:
 1. 
 """
-opttrees!(t... ; γ=1.05, seq_lengths=1000 * ones(Int64, length(t)), Trange=reverse(0.01:0.05:1.1), M = 1000, likelihood_sort=true) = opttrees!(γ, Trange, M, seq_lengths, t...; likelihood_sort=likelihood_sort)
-function opttrees!(γ, Trange, M, seq_lengths, t::Vararg{Tree}; likelihood_sort=true)
+opttrees!(t... ; γ=1.05, seq_lengths=1000 * ones(Int64, length(t)), Trange=reverse(0.01:0.05:1.1), M = 1000, likelihood_sort=true, resolve=true) = opttrees!(γ, Trange, M, seq_lengths, t...; likelihood_sort=likelihood_sort, resolve=resolve)
+function opttrees!(γ, Trange, M, seq_lengths, t::Vararg{Tree}; likelihood_sort=true, resolve=true)
 	# length(seq_lengths) != length(collect(t)) && @error "`seq_lengths` and `trees` do not have the same length."
 	#
 	treelist = collect(t)
