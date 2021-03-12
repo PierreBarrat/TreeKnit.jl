@@ -42,3 +42,8 @@ function resolve_from_mccs!(infer_mccs::Function, trees::Dict; verbose=false, kw
 	# 
 	return cmpt_splits
 end
+
+"""
+	resolve_from_mccs!(infer_mccs::Function, trees::Vararg{Tree}; verbose=false, kwargs...)
+"""
+resolve_from_mccs!(infer_mccs::Function, trees::Vararg{Tree}; verbose=false, kwargs...) = resolve_from_mccs!(infer_mccs, Dict(i=>t for (i,t) in enumerate(trees)), verbose=verbose; kwargs...)
