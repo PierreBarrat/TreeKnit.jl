@@ -187,6 +187,8 @@ function new_splits(MCCs, t1::Tree, t2::Tree)
     splits2 = SplitList(t2)
     # Splits corresponding to each mcc in both trees 
     MCC_splits = splits_in_mccs(MCCs, t1, t2)
+    MCC_splits[1] = TreeTools.map_splits_to_tree(MCC_splits[1], t2)
+    MCC_splits[2] = TreeTools.map_splits_to_tree(MCC_splits[2], t1)
     # Are those new or not? 
     _new_splits!(MCC_splits[2], splits1)
     _new_splits!(MCC_splits[1], splits2)
@@ -226,7 +228,6 @@ function new_splits(tref::Tree, MCCs, t::Tree)
     # Splits in `tref`
     S_ref = SplitList(tref)
     # Splits corresponding to each mcc in tree `t`
-    # MCC_splits = [TreeTools.map_splits_to_tree(m, tref) for m in splits_in_mccs(MCCs, t)]
     MCC_splits = TreeTools.map_splits_to_tree(splits_in_mccs(MCCs, t), tref)
     # Take the new ones only
     _new_splits!(MCC_splits, S_ref)
@@ -234,7 +235,7 @@ function new_splits(tref::Tree, MCCs, t::Tree)
     return unique(TreeTools.map_splits_to_tree(MCC_splits, tref), usemask=false)
 end
 
-function _new_splits!(MCC_splits, tree_splits)
+function _new_splits!(MCC_splits::SplitList, tree_splits::SplitList)
     idx = Int64[]
     for (i,s) in enumerate(MCC_splits)
         in(s, tree_splits, MCC_splits.mask) && push!(idx,i)
