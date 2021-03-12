@@ -1,7 +1,7 @@
 """
 	resolve_from_mccs!(infer_mccs::Function, trees::Dict; verbose=false, kwargs...)
 
-Resolve `trees` using pairwise MCC inference. The `infer_mccs` function must take a `Dict{Any, Tree}` as input. `kwargs...` are fed to `infer_mccs`. Return the set of compatible splits introduced. 
+Resolve `trees` using pairwise MCC inference. The `infer_mccs` function must take a `Dict{<:Any, Tree}` as input. `kwargs...` are fed to `infer_mccs`. Return the set of compatible splits introduced. 
 
 This is done in four steps: 
 1. Compute MCCs for pairs of trees while resolving them
@@ -12,7 +12,7 @@ This is done in four steps:
 These four steps are **iterated**, while new compatible splits are found. 
 When no new compatible split is found, compute final MCCs without resolving. 
 """
-function resolve_from_mccs!(infer_mccs::Function, trees::Dict; verbose=false, kwargs...)
+function resolve_from_mccs!(infer_mccs::Function, trees::Dict{<:Any, Tree}; verbose=false, kwargs...)
 	verbose && println("--- Resolving with MCCs... ---\n")
 	f(t) = inter_mccs(t; kwargs...)
 	# 1. `MCCs[u,v]` gives corresponds to `trees[u]` and `trees[v]` 

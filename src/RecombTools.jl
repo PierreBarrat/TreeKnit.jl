@@ -6,6 +6,7 @@ using StatsBase
 using DataFrames
 using CSV
 using Debugger
+using Setfield
 
 
 import Base.getindex, Base.==, Base.setindex!
