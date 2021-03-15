@@ -12,11 +12,10 @@ This is done in four steps:
 These four steps are **iterated**, while new compatible splits are found. 
 When no new compatible split is found, compute final MCCs without resolving. 
 """
-function resolve_from_mccs!(infer_mccs::Function, trees::Dict{<:Any, Tree}; verbose=false, kwargs...)
+function resolve_from_mccs!(infer_mccs::Function, trees::Dict{<:Any, <:Tree}; verbose=false)
 	verbose && println("--- Resolving with MCCs... ---\n")
-	f(t) = inter_mccs(t; kwargs...)
 	# 1. `MCCs[u,v]` gives corresponds to `trees[u]` and `trees[v]` 
-	MCCs = computeMCCs(f, trees)
+	MCCs = _computeMCCs(infer_mccs, trees)
 	# 2. `resolvable_splits[s]` is an array of `SplitList` objects that can be introduced in `trees[s]` from each other tree. 
 	resolvable_splits = RecombTools.new_splits(trees, MCCs)
 	if verbose

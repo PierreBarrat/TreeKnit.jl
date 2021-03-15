@@ -16,9 +16,11 @@ include("MCC.jl")
 include("resolving.jl")
 include("reading.jl")
 include("SplitGraph/SplitGraph.jl")
+using RecombTools.SplitGraph
+
+include("main.jl")
 include("artificialdata.jl")
 
-using RecombTools.SplitGraph
 
 
 

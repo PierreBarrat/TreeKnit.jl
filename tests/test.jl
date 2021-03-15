@@ -1,2 +1,1 @@
-using TreeTools
-using RecombTools
+include("test_main/test.jl")
