@@ -177,7 +177,7 @@ function sortconf(oconfs, trees, g::Graph, seq_lengths, mcc_names, likelihood_so
 		return rand(oconfs_)
 	else
 		v() && println("Comparing $(length(oconfs_)) configurations using likelihood")
-		L = Float64[]
+		L = Union{Missing,Float64}[]
 		for conf in oconfs_
 			vv() && println("## Looking at configuration $conf with energy $(compute_energy(conf,g))")
 			push!(L, conf_likelihood(conf, g, seq_lengths, trees, mode=:time, v=vv()))
@@ -187,11 +187,12 @@ function sortconf(oconfs, trees, g::Graph, seq_lengths, mcc_names, likelihood_so
 		vv() && println("Confs: ", [[mcc_names[x] for x in g.labels[.!conf]] for conf in oconfs_])
 		v() && println("Likelihoods: ", L)
 		Lmax = maximum(L)
-		oconfs_ = oconfs_[findall(==(Lmax), L)]
+		ismissing(Lmax) && @warn "Maximum likelihood is `missing`"
+		oconfs_ = oconfs_[findall(isequal(Lmax), L)]
 		if length(oconfs_) != 1 # Final sort by energy if more than one most likely conf
 			E = [compute_energy(conf,g) for conf in oconfs_]
 			Emin = minimum(E)
-			oconfs_ = oconfs_[findall(==(Emin), E)]
+			oconfs_ = oconfs_[findall(isequal(Emin), E)]
 		end
 		return rand(oconfs_)
 	end
