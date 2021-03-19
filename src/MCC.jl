@@ -365,6 +365,43 @@ function reduce_to_mcc!(tree::Tree, MCC ; safe=false)
 end
 
 """
+    write_mccs!(trees::Dict, MCCs::Dict, key=:mcc_id)
+
+Write MCCs id to field `data.dat[key]` of tree nodes. Expect `trees` indexed by single segments, and `MCCs` indexed by pairs of segments. 
+"""
+function write_mccs!(trees::Dict, MCCs::Dict, key=:mcc_id)
+    for ((i,j), mccs) in MCCs
+        k = Symbol(key,"_$(i)_$(j)")
+        write_mccs!(trees[i], mccs, k)
+        write_mccs!(trees[j], mccs, k)
+    end
+end
+"""
+    write_mccs!(t::Tree, MCCs, key=:mcc_id)
+
+Write MCCs id to field `data.dat[key]` of tree nodes.
+"""
+function write_mccs!(t::Tree, MCCs, key=:mcc_id)
+    for (i,mcc) in enumerate(MCCs)
+        for label in mcc
+            t.lleaves[label].data.dat[key] = i
+        end
+        for n in Iterators.filter(n->!n.isleaf, values(t.lnodes))
+            if is_branch_in_mcc(n, mcc)
+                if haskey(n.data.dat, key)
+                    error("Node $(n.label) already has an MCC attributed")
+                end
+                n.data.dat[key] = i
+            end
+        end
+    end
+    nothing
+end
+
+####################################################################################################################
+############################# Working with MCCs (is_branch_in_mcc, fraction_of_common_pairs, splits_in_mcc, etc...)
+####################################################################################################################
+"""
     is_branch_in_mcc(n::TreeNode, mccs::Dict)
     is_branch_in_mcc(n::TreeNode, mccs::Array)
 
