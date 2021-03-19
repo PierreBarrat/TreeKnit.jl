@@ -1,7 +1,15 @@
 export computeMCCs!
 
 """
-	computeMCCs(trees::Dict{<:Any, <:Tree}, oa::OptArgs; preresolve=true)
+	computeMCCs(trees::Dict{<:Any, <:Tree}, oa::OptArgs=OptArgs(); preresolve=true, naive=false)
+"""
+function computeMCCs(trees::Dict{<:Any, <:Tree}, oa::OptArgs=OptArgs(); preresolve=true, naive=false)
+	ct = deepcopy(trees)
+	computeMCCs!(ct, oa, preresolve=preresolve, naive=naive)
+end
+
+"""
+	computeMCCs!(trees::Dict{<:Any, <:Tree}, oa::OptArgs; preresolve=true, naive=false)
 
 Compute pairwise MCCs for `trees` by calling function `SplitGraph.runopt(oa,t1,t2)` on pairs of trees. Return MCCs and resolved splits. 
 About `preresolve`: 
@@ -27,17 +35,11 @@ function computeMCCs_naive!(trees::Dict{<:Any, <:Tree})
 end
 
 function computeMCCs_preresolve!(trees::Dict{<:Any, <:Tree}, oa::OptArgs)
-	# if !naive
-		oac = @set oa.resolve = true
-		resolved_splits = resolve_from_mccs!((t1,t2) -> runopt(oac,t1,t2)[1], trees)
-		oac = @set oa.resolve = false
-		MCCs = _computeMCCs((t1,t2) -> runopt(oac,t1,t2)[1], trees)
-		return MCCs, resolved_splits
-	# else
-	# 	resolved_splits = resolve_from_mccs!((t1,t2) -> RecombTools.maximal_coherent_clades(t1,t2), trees)
-	# 	MCCs = _computeMCCs((t1,t2) -> RecombTools.maximal_coherent_clades(t1,t2), trees)
-	# 	return MCCs, resolved_splits
-	# end
+	oac = @set oa.resolve = true
+	resolved_splits = resolve_from_mccs!((t1,t2) -> runopt(oac,t1,t2)[1], trees)
+	oac = @set oa.resolve = false
+	MCCs = _computeMCCs((t1,t2) -> runopt(oac,t1,t2)[1], trees)
+	return MCCs, resolved_splits
 end
 
 function computeMCCs_dynresolve!(trees::Dict{<:Any, <:Tree}, oa::OptArgs)
