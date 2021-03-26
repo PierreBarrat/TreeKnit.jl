@@ -314,7 +314,7 @@ function remove_branches!(t::Tree, p)
     nothing
 end 
 """
-    remove_branches!(t::Tree, p) 
+    remove_branches(t::Tree, p) 
 """
 function remove_branches(t::Tree, p)
     tt = deepcopy(t)

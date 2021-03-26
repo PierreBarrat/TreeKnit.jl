@@ -389,6 +389,8 @@ function write_mccs!(t::Tree, MCCs, key=:mcc_id)
         for n in Iterators.filter(n->!n.isleaf, values(t.lnodes))
             if is_branch_in_mcc(n, mcc)
                 if haskey(n.data.dat, key)
+                    println(n.data.dat)
+                    println(i)
                     error("Node $(n.label) already has an MCC attributed")
                 end
                 n.data.dat[key] = i
