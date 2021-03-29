@@ -13,6 +13,22 @@ These four steps are **iterated**, while new compatible splits are found.
 When no new compatible split is found, compute final MCCs without resolving. 
 """
 function resolve_from_mccs!(infer_mccs::Function, trees::Dict{<:Any, <:Tree}; verbose=false)
+	newsplits = _resolve_from_mccs!(infer_mccs, trees, verbose=verbose)
+	nS = newsplits
+	maxit = 10
+	it = 0
+	while !mapreduce(isempty, *, values(nS), init=true) && it < maxit
+		verbose && println("It. $(it+1)/$(maxit)")
+		nS = _resolve_from_mccs!(infer_mccs, trees, verbose=verbose)
+		for (s,S) in nS
+			append!(newsplits[s].splits, S.splits)
+		end
+		it += 1
+	end
+	return newsplits
+end
+
+function _resolve_from_mccs!(infer_mccs::Function, trees::Dict{<:Any, <:Tree}; verbose=false)
 	verbose && println("--- Resolving with MCCs... ---\n")
 	# 1. `MCCs[u,v]` gives corresponds to `trees[u]` and `trees[v]` 
 	MCCs = _computeMCCs(infer_mccs, trees)
