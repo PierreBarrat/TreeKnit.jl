@@ -30,20 +30,21 @@ end
 function computeMCCs_naive!(trees::Dict{<:Any, <:Tree})
 	rS = resolve!(values(trees)...)
 	resolved_splits = Dict(k=>rS[i] for (i,k) in enumerate(keys(trees)))
-	MCCs = _computeMCCs((t1,t2) -> RecombTools.maximal_coherent_clades(t1,t2), trees)
+	MCCs = _computeMCCs(ts -> RecombTools.maximal_coherent_clades(collect(values(ts))...), trees)
 	return MCCs, resolved_splits	
 end
 
 function computeMCCs_preresolve!(trees::Dict{<:Any, <:Tree}, oa::OptArgs)
 	oac = @set oa.resolve = true
-	resolved_splits = resolve_from_mccs!((t1,t2) -> runopt(oac,t1,t2)[1], trees)
+	oac = @set oa.output = :mccs
+	resolved_splits = resolve_from_mccs!(ts -> runopt(oac,ts), trees)
 	oac = @set oa.resolve = false
-	MCCs = _computeMCCs((t1,t2) -> runopt(oac,t1,t2)[1], trees)
+	MCCs = _computeMCCs(ts -> runopt(oac,ts), trees)
 	return MCCs, resolved_splits
 end
 
 function computeMCCs_dynresolve!(trees::Dict{<:Any, <:Tree}, oa::OptArgs)
-	MCCs = _computeMCCs((t1,t2) -> runopt(oa,t1,t2)[1], trees)
+	MCCs = _computeMCCs(ts -> runopt(oa,ts), trees)
 	resolved_splits = new_splits(trees, MCCs)
 	resolved_splits = Dict(k=>TreeTools.cat(aS...) for (k,aS) in resolved_splits) # new_splits returns a Dict{T, Array{SplitList}}
 	for k in keys(trees)
@@ -60,11 +61,11 @@ For simplicity, output for a pair of the same key is `[String[]]` (instead of no
 """
 function _computeMCCs(f::Function, trees::Dict{<:Any, <:Tree})
 	MCCs = Dict()
-	segments = sort(collect(keys(trees)))
+	segments = collect(keys(trees))
 	for i in 1:length(trees), j in (i+1):length(trees)
 		s1 = segments[i]
 		s2 = segments[j]
-		MCCs[s1,s2] = f(trees[s1], trees[s2])
+		MCCs[s1,s2] = f(Dict(s1=>trees[s1], s2=>trees[s2]))
 		MCCs[s2,s1] = MCCs[s1,s2]
 	end
 	for s in segments

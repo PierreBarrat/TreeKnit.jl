@@ -26,14 +26,18 @@ end
 """
 		runopt(t::Vararg{Tree}; kwargs...)
 		runopt(oa::OptArgs, t::Vararg{Tree})
+		runopt(oa::OptArgs, trees::Dict{<:Any,<:Tree})
 
 Run optimization at constant γ. See `?Optargs` for arguments. 
 """
 runopt(t::Vararg{Tree}; kwargs...) = runopt(OptArgs(;kwargs...), t...)
 
-function runopt(oa::OptArgs, t::Vararg{Tree})
+function runopt(oa::OptArgs, trees::Vararg{Tree})
+	runopt(oa, Dict(i=>t) for (i,t) in enumerate(trees))
+end
+function runopt(oa::OptArgs, trees::Dict{<:Any,<:Tree})
 	# 
-	ot = deepcopy(collect(t))
+	ot = deepcopy(collect(values(trees)))
 	oa.resolve && resolve!(ot...)
 	# 
 	iMCCs = maximal_coherent_clades(ot)
@@ -54,6 +58,16 @@ function runopt(oa::OptArgs, t::Vararg{Tree})
 	for i in 1:oa.itmax
 		flag = :init
 		v() && println("\n --- \nIteration $i/$(oa.itmax) - $(df.nleaves[end]) leaves remaining")
+
+		# Prune suspicious branches (if mut. cross-mapping)
+		if oa.crossmap
+			mccs = RecombTools.prune_suspicious_mccs!(Dict(s=>t for (s,t) in zip(collect(keys(trees)), ot)), :suspicious_mut) # Need to give keys in a sensible way 
+			if !isempty(mccs)
+				rMCCs = maximal_coherent_clades(ot)
+				append!(MCCs, mccs)
+				update_df!(df, length(ot[1].lleaves), length(rMCCs), oa.γ, missing, missing, missing, mccs, MCCs, rMCCs)
+			end
+		end
 
 		# Optimization
 		n = length(first(ot).lleaves)
@@ -100,7 +114,15 @@ function runopt(oa::OptArgs, t::Vararg{Tree})
 			break
 		end
 	end
-	return RecombTools.sort_mccs(MCCs), df, ot, Evals, Fvals
+	if oa.output == :all
+		return RecombTools.sort_mccs(MCCs), df, ot, Evals, Fvals
+	elseif oa.output == :mccs
+		return RecombTools.sort_mccs(MCCs)
+	elseif oa.output == :mccs_df
+		return RecombTools.sort_mccs(MCCs), df
+	else
+		error("Unknown `oa.output` $(oa.output)")
+	end
 end
 
 
@@ -218,14 +240,6 @@ Prune MCCs `mcc_names[x]` for all `x` in `mcc_conf` from trees `t...`.
 """
 pruneconf!(trees, mcc_names, mcc_conf) = pruneconf!([mcc_names[x] for x in mcc_conf], trees...)
 
-function pruneconf_guidetrees!(clades, trees::Vararg{Tree})
-	for t in trees
-		for c in clades
-			TreeTools.prunenode!(t, c, propagate=true)
-		end
-		TreeTools.remove_internal_singletons!(t, ptau=true)
-	end
-end
 
 
 update_df!(df::DataFrame, nleaves::Int64, nMCCs::Int64, γ, M, Efinal, Ffinal, rMCCs, arMCCs, remainingMCCs) = push!(df, 
