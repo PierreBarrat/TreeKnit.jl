@@ -33,9 +33,9 @@ Run optimization at constant γ. See `?Optargs` for arguments.
 runopt(t::Vararg{Tree}; kwargs...) = runopt(OptArgs(;kwargs...), t...)
 
 function runopt(oa::OptArgs, trees::Vararg{Tree})
-	runopt(oa, Dict(i=>t) for (i,t) in enumerate(trees))
+	runopt(oa, Dict(i=>t for (i,t) in enumerate(trees)))
 end
-function runopt(oa::OptArgs, trees::Dict{<:Any,<:Tree})
+function runopt(oa::OptArgs, trees::Dict)
 	# 
 	ot = deepcopy(collect(values(trees)))
 	oa.resolve && resolve!(ot...)
@@ -72,8 +72,8 @@ function runopt(oa::OptArgs, trees::Dict{<:Any,<:Tree})
 		# Optimization
 		n = length(first(ot).lleaves)
 		M = getM(n, oa.Md)
-		mccs, Efinal, Ffinal, E, F = opttrees!(ot..., γ=oa.γ, seq_lengths = oa.seq_lengths,
-			M=M, Trange=oa.Trange, likelihood_sort=oa.likelihood_sort, resolve=oa.resolve)
+		mccs, Efinal, Ffinal, E, F, lk = opttrees!(ot..., γ=oa.γ, seq_lengths = oa.seq_lengths,
+			M=M, Trange=oa.Trange, likelihood_sort=oa.likelihood_sort, resolve=oa.resolve, sa_rep = oa.sa_rep)
 		length(mccs) != 0 ? (flag = :found) : (v() && println("No solution found in current iteration"))
 		append!(MCCs, mccs)
 
@@ -150,14 +150,14 @@ Return a list of MCCs for input trees.
 Output:
 1. 
 """
-opttrees!(t... ; γ=1.05, seq_lengths=1000 * ones(Int64, length(t)), Trange=reverse(0.01:0.05:1.1), M = 1000, likelihood_sort=true, resolve=true) = opttrees!(γ, Trange, M, seq_lengths, t...; likelihood_sort=likelihood_sort, resolve=resolve)
-function opttrees!(γ, Trange, M, seq_lengths, t::Vararg{Tree}; likelihood_sort=true, resolve=true)
+opttrees!(t... ; γ=1.05, seq_lengths=1000 * ones(Int64, length(t)), Trange=reverse(0.01:0.05:1.1), M = 1000, likelihood_sort=true, resolve=true, sa_rep = 1) = opttrees!(γ, Trange, M, seq_lengths, t...; likelihood_sort=likelihood_sort, resolve=resolve, sa_rep = sa_rep)
+function opttrees!(γ, Trange, M, seq_lengths, t::Vararg{Tree}; likelihood_sort=true, resolve=true, sa_rep=1)
 	# length(seq_lengths) != length(collect(t)) && @error "`seq_lengths` and `trees` do not have the same length."
 	#
 	treelist = collect(t)
 	mcc = maximal_coherent_clades(treelist)
 	if length(mcc) == 1
-		return mcc, 0, 0., Int64[], Float64[]
+		return mcc, 0, 0., Int64[], Float64[], Union{Missing,Float64}[]
 	end
 	mcc_names = name_mcc_clades!(treelist, mcc)
 	for (i,t) in enumerate(treelist)
@@ -166,19 +166,20 @@ function opttrees!(γ, Trange, M, seq_lengths, t::Vararg{Tree}; likelihood_sort=
 	g = trees2graph(treelist)
 
 	# SA - Optimization
-	oconfs, E, F = sa_opt(g, γ=γ, Trange=Trange, M=M)
+	oconfs, E, F, nfound = sa_opt(g, γ=γ, Trange=Trange, M=M, rep=sa_rep, resolve=resolve)
 	# Computing likelihoods
 	if length(oconfs) != 1
 		v() && println("Sorting $(length(oconfs)) topologically equivalent configurations.")
 		vv() && println("Configurations\n", oconfs)
 		vv() && println(g.labels)
-		oconf = sortconf(oconfs, treelist, g, seq_lengths, mcc_names, likelihood_sort, false)
+		oconf, L = sortconf(oconfs, treelist, g, seq_lengths, mcc_names, likelihood_sort, false)
 	else
 		oconf = oconfs[1]
+		L = Union{Missing,Float64}[]
 	end
 	vv() && println("Final configuration for this iteration: $oconf.")
 	vv() && println("MCCs removed: $([mcc_names[x] for x in g.labels[.!oconf]])")
-	return [mcc_names[x] for x in g.labels[.!oconf]], compute_energy(oconf,g), compute_F(oconf, g, γ), E, F
+	return [mcc_names[x] for x in g.labels[.!oconf]], compute_energy(oconf,g), compute_F(oconf, g, γ), E, F, L
 end
 
 
@@ -193,10 +194,10 @@ function sortconf(oconfs, trees, g::Graph, seq_lengths, mcc_names, likelihood_so
 	end
 	# Sorting the remaining configurations using Poisson likelihood ratios
 	if length(oconfs_) == 1 
-		return oconfs_[1]
+		return oconfs_[1], Union{Missing,Float64}[]
 	elseif !likelihood_sort
 		v() && println("Picking a random configuration among remaining ones")
-		return rand(oconfs_)
+		return rand(oconfs_), Union{Missing,Float64}[]
 	else
 		v() && println("Comparing $(length(oconfs_)) configurations using likelihood")
 		L = Union{Missing,Float64}[]
@@ -205,7 +206,6 @@ function sortconf(oconfs, trees, g::Graph, seq_lengths, mcc_names, likelihood_so
 			push!(L, conf_likelihood(conf, g, seq_lengths, trees, mode=:time, v=vv()))
 			vv() && println()
 		end
-		# L = [conf_likelihood(conf, g, seq_lengths, trees) for conf in oconfs_]
 		vv() && println("Confs: ", [[mcc_names[x] for x in g.labels[.!conf]] for conf in oconfs_])
 		v() && println("Likelihoods: ", L)
 		Lmax = maximum(L)
@@ -216,7 +216,7 @@ function sortconf(oconfs, trees, g::Graph, seq_lengths, mcc_names, likelihood_so
 			Emin = minimum(E)
 			oconfs_ = oconfs_[findall(isequal(Emin), E)]
 		end
-		return rand(oconfs_)
+		return rand(oconfs_), L
 	end
 end	
 

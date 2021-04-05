@@ -95,6 +95,7 @@ Storing parameters for `SplitGraph.runopt` function.
 	Tmax::Float64 = 1.; @assert Tmax > Tmin
 	dT::Float64 = 1e-2
 	Trange = reverse(Tmin:dT:Tmax)
+	sa_rep::Int64 = 1
 	# Verbosity
 	verbose::Bool = false
 	vv::Bool = false

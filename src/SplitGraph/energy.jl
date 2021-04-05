@@ -34,22 +34,11 @@ function compute_energy(conf::Array{Bool,1}, g::Graph)
 					while onespinup(a2.conf, conf) && !a2.isroot 
 						a2 = a2.anc
 					end
-					# Mismatch
-					# if !are_equal(a1.conf, a2.conf, conf)
-					# 	if is_contained(a1.conf, a2.conf, conf) 
-					# 		!are_equal_with_resolution(g, a1.conf, a2.conf, k2, conf) && (E += 1)
-					# 	elseif is_contained(a2.conf, a1.conf, conf)
-					# 		!are_equal_with_resolution(g, a2.conf, a1.conf, k1, conf) && (E += 1)
-					# 	else 
-					# 		E += 1
-					# 	end
-					# end
+
 					if get_resolve() && !are_equal_with_resolution(g, a1.conf, a2.conf, conf, k1, k2)
 						E += 1
 					elseif !get_resolve() && !are_equal(a1.conf, a2.conf, conf)
 						E += 1
-					else
-						# println(g.labels[i])
 					end
 				end
 			end
@@ -87,13 +76,6 @@ function are_equal_with_resolution(g::SplitGraph.Graph, aconf1, aconf2, k2::Int6
 				if !is_contained(a.conf, aconf1, conf)
 					return false
 				end
-				if isnothing(a.anc)
-					println(a.conf)
-					println(aconf2)
-					println(g.leaves[i].anc[1].conf)
-					println(g.leaves[i].anc[2].conf)
-					println(g.leaves[i].anc[k2].conf)
-				end
 				a = a.anc::SplitNode
 			end
 		end
@@ -103,8 +85,8 @@ end
 
 function onespinup(nodeconf, conf)
 	n = 0
-	for i in 1:length(conf)
-		if nodeconf[i] && conf[i]
+	@inbounds @simd for i in 1:length(conf)
+		if nodeconf[i] & conf[i]
 			n += 1
 			if n > 1 
 				return false
@@ -116,8 +98,8 @@ end
 
 function nspinup(nodeconf, conf)
 	n = 0
-	for i in 1:length(nodeconf)
-		if nodeconf[i] && conf[i]
+	@inbounds @simd for i in 1:length(nodeconf)
+		if nodeconf[i] & conf[i]
 			n += 1
 		end
 	end
@@ -134,24 +116,24 @@ function are_disjoint(nconf1, nconf2, conf)
 	return true
 end
 function is_contained(nconf1, nconf2, conf) # is 1 in 2 ? 
-	for i in 1:length(conf)
-		if conf[i] &&  nconf1[i] && !nconf2[i]
+	@inbounds @simd for i in 1:length(conf)
+		if conf[i] &  nconf1[i] & ~nconf2[i]
 			return false
 		end
 	end
 	return true
 end
 function are_equal(nconf1, nconf2, conf) 
-	for i in 1:length(conf)
-		if conf[i] &&  (nconf1[i] != nconf2[i])
+	@inbounds @simd for i in 1:length(conf)
+		if conf[i] & (nconf1[i] !== nconf2[i])
 			return false
 		end
 	end
 	return true
 end
 function are_equal(nconf1, nconf2)
-	for (i,s) in enumerate(nconf1)
-		if s != nconf2[i]
+	@inbounds @simd for i in 1:length(nconf1)
+		if nconf1[i] !== nconf2[i]
 			return false
 		end
 	end
@@ -213,7 +195,34 @@ end
 
 """
 """
-function sa_opt(g::Graph ; Trange=1.:-0.01:0.1, γ=1.05, M=1000)
+function sa_opt(g::Graph; Trange=1.:-0.01:0.1, γ=1.05, M=1000, rep=1, resolve=true)
+	set_resolve(resolve)
+	# 
+	oconf = Any[]
+	E = Int64[]
+	F = Int64[]
+	Fmin = Inf
+	nfound = 0
+	for r in 1:rep
+		oconf_, E_, F_ = _sa_opt(g, γ, Trange, M)
+		Fm = minimum(F_)
+		if Fm == Fmin
+			append!(oconf, oconf_)
+			append!(E, E_)
+			append!(F, F_)
+			nfound += 1
+		elseif Fm < Fmin
+			Fmin = Fm
+			oconf = oconf_
+			E = E_
+			F = F_
+			nfound = 1
+		end
+	end
+	return unique(oconf), E, F, nfound
+end
+
+function _sa_opt(g::Graph, γ, Trange, M)
 	oconf = [ones(Bool, length(g.leaves))]
 	E = [compute_energy(oconf[1],g)]
 	F = Array{Float64,1}([E[1]])
