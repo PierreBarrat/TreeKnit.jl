@@ -61,7 +61,7 @@ function runopt(oa::OptArgs, trees::Dict)
 
 		# Prune suspicious branches (if mut. cross-mapping)
 		if oa.crossmap
-			mccs = RecombTools.prune_suspicious_mccs!(Dict(s=>t for (s,t) in zip(collect(keys(trees)), ot)), :suspicious_mut) # Need to give keys in a sensible way 
+			mccs = RecombTools.prune_suspicious_mccs!(Dict(s=>t for (s,t) in zip(collect(keys(trees)), ot)), :suspicious_muts) # Need to give keys in a sensible way 
 			if !isempty(mccs)
 				rMCCs = maximal_coherent_clades(ot)
 				append!(MCCs, mccs)
