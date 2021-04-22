@@ -71,9 +71,12 @@ function eval_naive_inf(N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
 end
 """
     eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol; 
-            Tmin=0.001, dT=0.01, Tmax=1.1, M=ceil(n/50), lk_sort=true,
-            Nrep = 1,
-            sfields::Tuple = ())
+        Tmin=0.001, dT=0.01, Tmax=1., Md=10, lk_sort=true, 
+        cutoff = 0., 
+        Nrep = 1,
+        preresolve = true,
+        sfields::Tuple = (:ρ,:cutoff, :preresolve),
+        out = "")
 
 Eval the performance of `SplitGraph.runopt` at inferring MCCs. 
 """
