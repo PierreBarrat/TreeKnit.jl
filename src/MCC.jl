@@ -232,11 +232,11 @@ function name_mcc_clades!(treelist, MCC)
         # Renaming internal nodes - Using the first element of treelist to iterate through internal nodes
         r1 = lca([treelist[1].lnodes[x] for x in m])
         j = 1
-        for n in node_clade(r1) 
+        for n in TreeTools.node_clade(r1) 
             if n!=r1 && !n.isleaf
                 # Relevant internal node. Rename it in all trees
                 # `llist` acts as a common identifier for `n` in all trees
-                llist = [x.label for x in node_leavesclade(n)]
+                llist = [x.label for x in TreeTools.node_leavesclade(n)]
                 for t in treelist
                     ln = lca([t.lnodes[x] for x in llist])
                     old_label = ln.label
@@ -265,7 +265,7 @@ function adjust_branchlength!(treelist, tref, MCC)
         r = lca([tref.lnodes[x] for x in m])
         for n in POT(r)
             if n != r
-                llist = [x.label for x in node_leavesclade(n)]
+                llist = [x.label for x in TreeTools.node_leavesclade(n)]
                 for t in treelist
                     ln = lca([t.lnodes[x] for x in llist])
                     ln.data.tau = n.data.tau 

@@ -53,14 +53,6 @@ git-tree-sha1 = "919c7f3151e79ff196add81d7f4e45d91bbf420b"
 uuid = "34da2185-b29b-5c13-b0c7-acf172513d20"
 version = "3.25.0"
 
-[[CompatibilityTree]]
-deps = ["LightGraphs", "TreeTools"]
-git-tree-sha1 = "4bfbcc163bee748d8d3bcefd5da6c075b0729a25"
-repo-rev = "main"
-repo-url = "../CompatibilityTree"
-uuid = "0029e1c1-d569-4e44-a3f3-3723ffc00143"
-version = "0.1.0"
-
 [[CompilerSupportLibraries_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "8e695f735fca77e9708e795eda62afdb869cbb70"
@@ -381,9 +373,9 @@ version = "1.3.0"
 
 [[StaticArrays]]
 deps = ["LinearAlgebra", "Random", "Statistics"]
-git-tree-sha1 = "2f01a51c23eed210ff4a1be102c4cc8236b66e5b"
+git-tree-sha1 = "e8cd1b100d37f5b4cfd2c83f45becf61c762eaf7"
 uuid = "90137ffa-7385-5640-81b9-e52037218182"
-version = "1.1.0"
+version = "1.1.1"
 
 [[Statistics]]
 deps = ["LinearAlgebra", "SparseArrays"]
@@ -426,6 +418,14 @@ version = "1.3.2"
 [[Test]]
 deps = ["Distributed", "InteractiveUtils", "Logging", "Random"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[[TreeAlgs]]
+deps = ["LightGraphs", "TreeTools"]
+git-tree-sha1 = "a9ff0fb0742d38364d19cf207c26de2f50cb23d4"
+repo-rev = "master"
+repo-url = "../TreeAlgs"
+uuid = "12935546-5c18-4ff8-8224-37e394524ca8"
+version = "0.1.0"
 
 [[TreeTools]]
 deps = ["Dates", "Distributions", "FastaIO", "JSON"]
