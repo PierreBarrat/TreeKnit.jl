@@ -62,3 +62,33 @@ end
 	resolve_from_mccs!(infer_mccs::Function, trees::Vararg{Tree}; verbose=false, kwargs...)
 """
 resolve_from_mccs!(infer_mccs::Function, trees::Vararg{Tree}; verbose=false, kwargs...) = resolve_from_mccs!(infer_mccs, Dict(i=>t for (i,t) in enumerate(trees)), verbose=verbose; kwargs...)
+
+
+"""
+    compatible_splits(rS::Dict{<:Any, Array{SplitList,1}})
+
+Find splits in `rS` that are compatible with all other splits. Return a dictionary with the same keys as `rS`. 
+"""
+function compatible_splits(rS::Dict{<:Any, Array{SplitList,1}})
+    cs = Dict{Any, SplitList}() # Compatible splits (output)
+    for (seg, aS) in rS # aS: new splits for segment seg from all other trees
+        for (i,S) in enumerate(aS) # S: new splits in seg from tree i 
+            if !haskey(cs, seg)
+                cs[seg] = SplitList(S.leaves)
+            end
+            for s in S
+                # Check if s is compatible with aS[j] for all `j!=i`
+                cmpt = true
+                for j in Iterators.filter(!=(i), 1:length(aS)) 
+                    if !iscompatible(s, aS[j], usemask=false)
+                        cmpt = false
+                        break
+                    end
+                end
+                cmpt && push!(cs[seg].splits, s)
+            end
+        end
+        cs[seg] = unique(cs[seg])
+    end
+    return cs
+end

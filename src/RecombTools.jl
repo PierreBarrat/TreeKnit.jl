@@ -1,6 +1,6 @@
 module RecombTools
 
-using TreeTools, ARGTools
+using TreeTools, ARGTools, CompatibilityTree
 using Distributions
 using StatsBase
 using DataFrames
