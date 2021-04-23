@@ -1,10 +1,10 @@
-export maximal_coherent_clades
+export naive_mccs
 export name_mcc_clades!
 export adjust_branchlength!
 export reduce_to_mcc, reduce_to_mcc!
 
 """
-    maximal_coherent_clades(treelist)
+    naive_mccs(treelist)
 
 Find sets of nodes which are: 
 - clades in all trees of `treelist`,
@@ -12,7 +12,7 @@ Find sets of nodes which are:
 - maximal: adding a node to a set results it in not being a clade in at least one of the trees. 
 All the trees of `treelist` should share the same leaf nodes.  
 """
-function maximal_coherent_clades(treelist)
+function naive_mccs(treelist)
 
     # Checking that trees have the same label for leaf nodes
     sh = mapreduce(t->share_labels(t[1],t[2]), *, zip(treelist[1:end-1], treelist[2:end]))
@@ -60,7 +60,7 @@ function maximal_coherent_clades(treelist)
     end
     return sort(mc_clades, lt = clt)
 end
-maximal_coherent_clades(t...) = maximal_coherent_clades(collect(t))
+naive_mccs(t...) = naive_mccs(collect(t))
 function clt(x,y)
     if length(x) < length(y)
         return true

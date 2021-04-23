@@ -102,7 +102,7 @@ end
 function _prune_suspicious_mccs!(trees, suspmut_key=:suspicious_muts)
 	S = collect(keys(trees))
 	# Get mccs
-	mccs = maximal_coherent_clades(collect(values(trees)))
+	mccs = naive_mccs(collect(values(trees)))
 	# For the root of each, see if it has more than 2 suspicious mutations
 	idx = Int64[]
 	for (i,m) in enumerate(mccs)

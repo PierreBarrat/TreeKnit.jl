@@ -5,11 +5,8 @@ using RecombTools
 using StatsBase
 using DataFrames
 using SpecialFunctions
-using Parameters
 using Debugger
 
-
-export runopt, OptArgs
 
 include("objects.jl")
 include("tools.jl")
@@ -21,125 +18,6 @@ let verbose::Bool = false, vverbose::Bool = false
 	global vv() = vverbose
 	global set_verbose(v) = (verbose = v)
 	global set_vverbose(v) = (vverbose = v)
-end
-
-"""
-		runopt(t::Vararg{Tree}; kwargs...)
-		runopt(oa::OptArgs, t::Vararg{Tree})
-		runopt(oa::OptArgs, trees::Dict{<:Any,<:Tree})
-
-Run optimization at constant γ. See `?Optargs` for arguments. 
-"""
-runopt(t::Vararg{Tree}; kwargs...) = runopt(OptArgs(;kwargs...), t...)
-
-function runopt(oa::OptArgs, trees::Vararg{Tree})
-	runopt(oa, Dict(i=>t for (i,t) in enumerate(trees)))
-end
-function runopt(oa::OptArgs, trees::Dict)
-	# 
-	ot = deepcopy(collect(values(trees)))
-	oa.resolve && resolve!(ot...)
-	# 
-	iMCCs = maximal_coherent_clades(ot)
-	Einit = count_mismatches(ot...)
-	n0 = length(first(ot).lleaves)
-	df = DataFrame(nleaves=Int64[n0],
-		nMCCs=length(iMCCs),
-		γ=Any[oa.γ], M=Any[missing], 
-		Efinal=Any[Einit], Ffinal=Any[Einit],
-		removedMCCs=Any[missing], all_removedMCCs=Any[missing], remainingMCCs=Any[iMCCs])
-	MCCs = []
-	Evals = Any[]
-	Fvals = Any[]
-	set_verbose(oa.verbose)
-	set_vverbose(oa.vv)
-	set_resolve(oa.resolve)
-	#
-	for i in 1:oa.itmax
-		flag = :init
-		v() && println("\n --- \nIteration $i/$(oa.itmax) - $(df.nleaves[end]) leaves remaining")
-
-		# Prune suspicious branches (if mut. cross-mapping)
-		if oa.crossmap
-			mccs = RecombTools.prune_suspicious_mccs!(Dict(s=>t for (s,t) in zip(collect(keys(trees)), ot)), :suspicious_muts) # Need to give keys in a sensible way 
-			if !isempty(mccs)
-				rMCCs = maximal_coherent_clades(ot)
-				append!(MCCs, mccs)
-				update_df!(df, length(ot[1].lleaves), length(rMCCs), oa.γ, missing, missing, missing, mccs, MCCs, rMCCs)
-			end
-		end
-
-		# Optimization
-		n = length(first(ot).lleaves)
-		M = getM(n, oa.Md)
-		mccs, Efinal, Ffinal, E, F, lk = opttrees!(ot..., γ=oa.γ, seq_lengths = oa.seq_lengths,
-			M=M, Trange=oa.Trange, likelihood_sort=oa.likelihood_sort, resolve=oa.resolve, sa_rep = oa.sa_rep)
-		length(mccs) != 0 ? (flag = :found) : (v() && println("No solution found in current iteration"))
-		append!(MCCs, mccs)
-
-		# Checks
-		!prod([check_tree(t) for t in ot]) && @error "Problem in one of the trees"
-		
-		# Actions if a final solution is found
-		if flag == :found 
-			if sum(length(m) for m in mccs) != length(ot[1].lleaves) # Found mccs do not cover all leaves
-				pruneconf!(mccs, ot...)
-				if complete_mccs!(MCCs, ot)
-					v() && println("$flag: all mccs have been found")
-					oa.resolve && resolve!(ot...)
-					rMCCs = maximal_coherent_clades(ot)
-					update_df!(df, length(ot[1].lleaves), length(rMCCs), oa.γ, M, Efinal, Ffinal, mccs, MCCs, rMCCs)
-					break
-				end
-			else # Found mccs cover all leaves
-				v() && println("$flag: all mccs have been found")
-				oa.resolve && resolve!(ot...)
-				rMCCs = maximal_coherent_clades(ot)
-				update_df!(df, length(ot[1].lleaves), length(rMCCs), oa.γ, M, Efinal, Ffinal, mccs, MCCs, rMCCs)
-				break
-			end
-		end
-
-		# Action if a temporary solution is found (pruneconf! is called above)
-		oa.resolve && resolve!(ot...)
-		rMCCs = maximal_coherent_clades(ot)
-		update_df!(df, length(ot[1].lleaves), length(rMCCs), oa.γ, M, Efinal, Ffinal, mccs, MCCs, rMCCs)
-		push!(Evals, E)
-		push!(Fvals, F)
-
-		# Actions if no solution is found
-		if i == oa.itmax || flag != :found
-			v() && println("Maximum number of iterations reached or no solution found - stop")
-			complete_mccs!(MCCs, ot, force=true)
-			break
-		end
-	end
-	if oa.output == :all
-		return RecombTools.sort_mccs(MCCs), df, ot, Evals, Fvals
-	elseif oa.output == :mccs
-		return RecombTools.sort_mccs(MCCs)
-	elseif oa.output == :mccs_df
-		return RecombTools.sort_mccs(MCCs), df
-	else
-		error("Unknown `oa.output` $(oa.output)")
-	end
-end
-
-
-"""
-	complete_mccs!(MCCs, ot; force=false)
-
-Complete `MCCs` if `maximal_coherent_clades(ot)` is of length `1`, and return `true`. Otherwise (unless `force`), return `false`.
-"""
-function complete_mccs!(MCCs, ot; force=false)
-	final_mccs = maximal_coherent_clades(ot)
-	if length(final_mccs) != 1
-		force && append!(MCCs, final_mccs)
-		return false
-	else
-		append!(MCCs, final_mccs)
-		return true
-	end
 end
 
 
@@ -155,7 +33,7 @@ function opttrees!(γ, Trange, M, seq_lengths, t::Vararg{Tree}; likelihood_sort=
 	# length(seq_lengths) != length(collect(t)) && @error "`seq_lengths` and `trees` do not have the same length."
 	#
 	treelist = collect(t)
-	mcc = maximal_coherent_clades(treelist)
+	mcc = naive_mccs(treelist)
 	if length(mcc) == 1
 		return mcc, 0, 0., Int64[], Float64[], Union{Missing,Float64}[]
 	end
@@ -219,33 +97,6 @@ function sortconf(oconfs, trees, g::Graph, seq_lengths, mcc_names, likelihood_so
 		return rand(oconfs_), L
 	end
 end	
-
-"""
-	pruneconf!(clades, trees::Vararg{Tree})
-
-Prune `clades` from `trees...`. 
-"""
-function pruneconf!(clades, trees::Vararg{Tree})
-	for t in trees
-		for st in clades
-			TreeTools.prunesubtree!(t, st, clade_only=true)
-		end
-		TreeTools.remove_internal_singletons!(t, ptau=true)
-	end
-end
-"""
-	pruneconf!(trees, mcc_names, mcc_conf)
-
-Prune MCCs `mcc_names[x]` for all `x` in `mcc_conf` from trees `t...`. 
-"""
-pruneconf!(trees, mcc_names, mcc_conf) = pruneconf!([mcc_names[x] for x in mcc_conf], trees...)
-
-
-
-update_df!(df::DataFrame, nleaves::Int64, nMCCs::Int64, γ, M, Efinal, Ffinal, rMCCs, arMCCs, remainingMCCs) = push!(df, 
-	Dict(:nleaves=>nleaves, :nMCCs=>nMCCs, :γ=>γ, :M=>M,
-		:Efinal=>Efinal, :Ffinal=>Ffinal, :removedMCCs=>rMCCs, :all_removedMCCs=>arMCCs, :remainingMCCs=>remainingMCCs))
-
 
 
 

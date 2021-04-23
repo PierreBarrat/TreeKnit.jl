@@ -86,7 +86,8 @@ function eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
     Nrep = 1,
     preresolve = true,
     sfields::Tuple = (:ρ,:cutoff, :preresolve),
-    out = "")
+    out = "", 
+    verbose=false)
     #
     args = Dict(:γ=>γ, :N=>N, :n=>n, :ρ=>ρ, :simtype=>simtype,
         :Md=>Md, :Tmin=>Tmin, :dT=>dT, :Tmax=>Tmax, :lk_sort=>lk_sort, 
@@ -109,7 +110,7 @@ function eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
             end
             init_splits = Dict(1=>SplitList(t1), 2=>SplitList(t2))
             trees = Dict(1=>t1, 2=>t2)
-            oa = OptArgs(γ=γ, Tmin=Tmin, dT=dT, Tmax=Tmax, Md=Md, likelihood_sort=lk_sort)
+            oa = OptArgs(γ=γ, Tmin=Tmin, dT=dT, Tmax=Tmax, Md=Md, likelihood_sort=lk_sort, verbose=verbose)
             MCCs, resolved_splits = computeMCCs!(trees, oa, preresolve=preresolve)
             return MCCs, resolved_splits, init_splits
         end

@@ -259,7 +259,7 @@ end
 """
 function count_mismatches(t::Vararg{Tree})
 	treelist = deepcopy(collect(t))
-	mcc = maximal_coherent_clades(treelist)
+	mcc = naive_mccs(treelist)
 	mcc_names = name_mcc_clades!(treelist, mcc)
 	for (i,t) in enumerate(treelist)
 		RecombTools.reduce_to_mcc!(t, mcc)
