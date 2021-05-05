@@ -221,9 +221,21 @@ end
 ###############################################################################################################
 ############################# Resolve polytomies using cross-mapped mutations #################################
 ###############################################################################################################
+"""
+	resolve_crossmapped_muts!(trees::Dict; cmkey=:cmmuts)
+"""
+function resolve_crossmapped_muts!(trees::Dict; cmkey=:cmmuts, infer_ancestral=true)
+	infer_ancestral && ancestral_sequences!(trees, self=false, crossmapped=true)
+	for (sref, tref) in trees
+		Snew = resolve_crossmapped_muts!(tref, cmkey=cmkey)
+	end
+end
+"""
+	resolve_crossmapped_muts(t::Tree, refseg=nothing; cmkey=:cmmuts)
 
-
-function resolve_polytomies(t::Tree, refseg=nothing; cmkey=:cmmuts)
+Resolve polytomies in `t` using crossmapped mutations from other segments. For each tree node `n`, if `isnothing(refseg)`, consider all other segments in `n.data.dat[cmkey]`. Otherwise, consider only mutations in `n.data.dat[cmkey][s]` for `s` in `refseg`. 
+"""
+function resolve_crossmapped_muts(t::Tree, refseg=nothing; cmkey=:cmmuts)
 	Sref = SplitList(t)
 	Snew = SplitList(copy(Sref.leaves))
 	for n in values(t.lnodes)
@@ -234,6 +246,7 @@ function resolve_polytomies(t::Tree, refseg=nothing; cmkey=:cmmuts)
 	end
 	return Snew
 end
+resolve_crossmapped_muts!(t::Tree, refseg=nothing; cmkey=:cmmuts) = resolve!(t, resolve_crossmapped_muts(t, refseg, cmkey=cmkey))
 
 function _add_splits!(Snew, polyS, Sref)
 	for ps in polyS
@@ -254,7 +267,7 @@ end
 """
 	resolve_polytomy(a::TreeNode, refseg=nothing; cmkey=:cmmuts)
 
-Attempt to resolve polytomy with root `a` using mutations from other segments. For all children of `c` of `a`, search for mutations in other segments `s` in `c.data.dat[cmkey][s]`. If `isnothing(s)`, consider all other segments. Otherwise, consider the ones in `s`. 
+Attempt to resolve polytomy with root `a` using mutations from other segments. For all children of `c` of `a`, search for mutations in other segments `s` in `c.data.dat[cmkey][s]`. If `isnothing(refseg)`, consider all other segments. Otherwise, consider the ones in `refseg`. 
 Return a `TreeTools.SplitList` object containing new splits. Does not modify the tree. 
 
 ## Warning

@@ -9,7 +9,8 @@ Storing parameters for `SplitGraph.runopt` function.
 - `likelihood_sort::Bool = true`: sort equivalent configurations using likelihood test (based on branch length for now). 
 - `resolve::Bool = true`: try to resolve trees while finding MCCs. 
 - `seq_lengths = ones(Int64, 2)`: lengths of sequences that trees were built from
-- `crossmap::Bool = false`: Wether cross-mappped mutations should be used to prune MCCs preventively. If `runopt` is called with a dictionary `trees::Dict{<:Any,<:Tree}` as input, the code will look at the number of suspicious mutations at `n.data.dat[:suspicious_muts][s]` where `n = trees[s]` (`s` is assumed to be an influenza segment). 
+- `crossmap_resolve::Bool = false`: Use cross-mapped mutations to resolve polytomies in the tree.  Need each leaf's data to have `:selfseq` and `:cmseq` entries.
+- `crossmap_prune::Bool = false`: Use cross-mappped mutations to prune MCCs preventively. The code will look at the number of suspicious mutations at `n.data.dat[:suspicious_muts][s]` where `n = trees[s]` (`s` is assumed to be an influenza segment). Need each leaf's data to have `:selfseq` and `:cmseq` entries.
 ### Simulated annealing
 - `Md::Real = 10`:  Number of SA iterations (per temperature) for a tree of `n` leaves is `ceil(Int64, n/Md)`
 - `Tmin::Float64 = 1e-3`: Minimal temperature of SA
@@ -27,8 +28,8 @@ Storing parameters for `SplitGraph.runopt` function.
 	likelihood_sort::Bool = true
 	resolve::Bool = true
 	seq_lengths = ones(Int64, 2)
-	crossmap_prune::Bool = false
 	crossmap_resolve::Bool = false
+	crossmap_prune::Bool = false
 	# For the annealing  
 	Md::Real = 10 
 	Tmin::Float64 = 1e-3

@@ -16,6 +16,51 @@ function mut_crossmap_to_tree!(t::Tree, json::AbstractString, segment; cmkey=:cm
 	end
 end
 
+"""
+	fasta_crossmap_to_trees!(f::Function, trees::Dict, selfkey=:selfseq, cmkey=:cmseq)
+
+Store sequences of several fasta files onto trees. For each pair `(s, t)` of `trees`: 
+- Sequences in fasta file `f(s)` are stored on leaves of `t` under `n.data.dat[selfkey]`
+- For each other key `σ` of `trees`, sequences in fasta file `f(σ)` are stored on leaves of `t` under `n.data.dat[cmkey][σ]`.
+"""
+function fasta_crossmap_to_trees!(f::Function, trees::Dict, selfkey=:selfseq, cmkey=:cmseq)
+	for (sref,t) in trees
+		TreeTools.fasta2tree!(t, f(sref), selfkey)
+		for s in Iterators.filter(!=(sref), keys(trees))
+			TreeTools.fasta2tree!(t, f(s), (cmkey, s))
+		end
+	end
+end
+
+"""
+	function ancestral_sequences!(trees::Dict)
+"""
+function ancestral_sequences!(trees::Dict; self=true, crossmapped=true)
+	for (sref,tref) in trees
+		# self sequences and mutations
+		self && self_ancestral_states!(tref)
+		# crossmapped sequences and mutations
+		crossmapped && crossmapped_ancestral_states!(trees, sref)
+	end
+end
+
+function self_ancestral_states!(tree, key=:selfseq)
+	TreeAlgs.Fitch.fitch_mutations!(tree, :selfmuts, key)
+	# TreeTools.compute_mutations!(tree, :selfmuts) do n
+	# 	n.isleaf ? n.data.dat[key] : n.data.dat[:selfseq_ancestral] 
+	# end
+end
+
+function crossmapped_ancestral_states!(trees, sref, key=:cmseq)
+	tref = trees[sref]
+	for s in Iterators.filter(!=(sref), keys(trees))
+		TreeAlgs.Fitch.fitch_mutations!(tref, (:cmmuts, s), (key, s))
+		# TreeTools.compute_mutations!(tref, (:cmmuts,s)) do n
+		# 	n.isleaf ? n.data.dat[key][s] : n.data.dat[:cmseq_ancestral][s] 
+		# end
+	end
+end
+
 
 """
 	get_mut_dict(f::Function, tree:Tree)
@@ -75,6 +120,7 @@ end
 function _suspicious_branches!(t::Tree, s, md::Dict, cmkey)
 	for n in values(t.lnodes)
 		n.data.dat[:suspicious_muts][s] = 0
+
 		for mut in n.data.dat[cmkey][s]
 			if !haskey(md[s], mut)
 				n.data.dat[:suspicious_muts][s] += 1

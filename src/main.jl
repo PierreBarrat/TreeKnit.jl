@@ -1,4 +1,4 @@
-export computeMCCs!
+export computeMCCs
 
 """
 	computeMCCs(trees::Dict{<:Any, <:Tree}, oa::OptArgs=OptArgs(); preresolve=true, naive=false)
@@ -17,6 +17,9 @@ About `preresolve`:
 - Else, only the first pass is performed. For more than two trees, this may find MCCs that introduce incompatible splits in case of poorly resolved input trees. 
 """
 function computeMCCs!(trees::Dict{<:Any, <:Tree}, oa::OptArgs=OptArgs(); preresolve=true, naive=false)
+	if oa.crossmap_resolve
+		resolve_crossmapped_muts!(trees)
+	end
 	if naive
 		return computeMCCs_naive!(trees)
 	end
@@ -93,88 +96,69 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree)
 end
 function runopt(oa::OptArgs, trees::Dict)
 	# 
-	ot = deepcopy(collect(values(trees)))
-	oa.resolve && resolve!(ot...)
+	ot = deepcopy(trees)
+	oa.resolve && resolve!(values(ot)...)
 	# 
-	iMCCs = naive_mccs(ot)
-	Einit = SplitGraph.count_mismatches(ot...)
-	n0 = length(first(ot).lleaves)
+	iMCCs = naive_mccs(values(ot)...)
+	Einit = SplitGraph.count_mismatches(values(ot)...)
+	n0 = length(first(values(ot)).lleaves)
 	df = DataFrame(nleaves=Int64[n0],
 		nMCCs=length(iMCCs),
 		γ=Any[oa.γ], M=Any[missing], 
 		Efinal=Any[Einit], Ffinal=Any[Einit],
-		removedMCCs=Any[missing], all_removedMCCs=Any[missing], remainingMCCs=Any[iMCCs])
-	MCCs = []
+		newMCCs=Any[[]], AllFinalMCCs=Any[[]], RemainingConsistentClades=Any[iMCCs],
+		method=Any[missing])
+	MCCs = [] # All final MCCs found up to now
 	Evals = Any[]
 	Fvals = Any[]
 	SplitGraph.set_verbose(oa.verbose)
 	SplitGraph.set_vverbose(oa.vv)
 	SplitGraph.set_resolve(oa.resolve)
-	#
+
+	# If using crossmapped mutations, we also need to compute self mutations
+	if oa.crossmap_prune
+		ancestral_sequences!(ot, self=true, crossmapped=false)
+	end
 	for i in 1:oa.itmax
 		flag = :init
 		oa.verbose && println("\n --- \nIteration $i/$(oa.itmax) - $(df.nleaves[end]) leaves remaining")
 
 		# Prune suspicious branches (if mut. cross-mapping)
 		if oa.crossmap_prune
-			mccs = RecombTools.prune_suspicious_mccs!(Dict(s=>t for (s,t) in zip(collect(keys(trees)), ot)), :suspicious_muts) # Need to give keys in a sensible way 
-			if !isempty(mccs)
-				rMCCs = naive_mccs(ot)
-				append!(MCCs, mccs)
-				update_df!(df, length(ot[1].lleaves), length(rMCCs), oa.γ, missing, missing, missing, mccs, MCCs, rMCCs)
-			end
+			oa.verbose && println("\n## Using cross-mapped mutations to cut branches...")
+			mccs = crossmap_prune(ot) # Makes a copy of the trees
+			!isempty(mccs) && append!(MCCs, mccs)
+			oa.verbose && println("Found $(length(mccs)) new mccs.")
+			# Checks
+			!prod([check_tree(t) for t in values(ot)]) && @error "Problem in one of the trees"
+
+			# Stopping condition
+			oa.verbose && println("\n## Proceeding based on newly found MCCs...")
+			flag, rMCCs = stop_conditions!(MCCs, mccs, oa, values(ot)...; hardstop=false)
+			update_df!(df, length(first(values(ot)).lleaves), length(rMCCs), missing, missing, missing, missing, mccs, MCCs, rMCCs, :crossmapped_mutations)
+			(flag == :stop) && break
 		end
-		## Loop above
-		## Should be a function
-		## Should take care of doing ancestral reconstruction
 
 		# Optimization
-		n = length(first(ot).lleaves)
-		M = getM(n, oa.Md)
-		mccs, Efinal, Ffinal, E, F, lk = SplitGraph.opttrees!(ot..., γ=oa.γ, seq_lengths = oa.seq_lengths,
-			M=M, Trange=oa.Trange, likelihood_sort=oa.likelihood_sort, resolve=oa.resolve, sa_rep = oa.sa_rep)
-		length(mccs) != 0 ? (flag = :found) : (oa.verbose && println("No solution found in current iteration"))
-		append!(MCCs, mccs)
+		oa.verbose && println("\n## Running optimization to find MCCs...")
+		M = getM(length(first(values(ot)).lleaves), oa.Md)
+		mccs, Efinal, Ffinal, E, F, lk = SplitGraph.opttrees(values(ot)..., γ=oa.γ, seq_lengths = oa.seq_lengths, M=M, Trange=oa.Trange, likelihood_sort=oa.likelihood_sort, resolve=oa.resolve, sa_rep = oa.sa_rep)
+		!isempty(mccs) && append!(MCCs, mccs)
+		oa.verbose && println("Found $(length(mccs)) new mccs.")
 
 		# Checks
-		!prod([check_tree(t) for t in ot]) && @error "Problem in one of the trees"
+		!prod([check_tree(t) for t in values(ot)]) && @error "Problem in one of the trees"
 		
-		# Actions if a final solution is found
-		if flag == :found 
-			if sum(length(m) for m in mccs) != length(ot[1].lleaves) # Found mccs do not cover all leaves
-				pruneconf!(mccs, ot...)
-				if complete_mccs!(MCCs, ot)
-					oa.verbose && println("$flag: all mccs have been found")
-					oa.resolve && resolve!(ot...)
-					rMCCs = naive_mccs(ot)
-					update_df!(df, length(ot[1].lleaves), length(rMCCs), oa.γ, M, Efinal, Ffinal, mccs, MCCs, rMCCs)
-					break
-				end
-			else # Found mccs cover all leaves
-				oa.verbose && println("$flag: all mccs have been found")
-				oa.resolve && resolve!(ot...)
-				rMCCs = naive_mccs(ot)
-				update_df!(df, length(ot[1].lleaves), length(rMCCs), oa.γ, M, Efinal, Ffinal, mccs, MCCs, rMCCs)
-				break
-			end
-		end
-
-		# Action if a temporary solution is found (pruneconf! is called above)
-		oa.resolve && resolve!(ot...)
-		rMCCs = naive_mccs(ot)
-		update_df!(df, length(ot[1].lleaves), length(rMCCs), oa.γ, M, Efinal, Ffinal, mccs, MCCs, rMCCs)
-		push!(Evals, E)
-		push!(Fvals, F)
-
-		# Actions if no solution is found
-		if i == oa.itmax || flag != :found
-			oa.verbose && println("Maximum number of iterations reached or no solution found - stop")
-			complete_mccs!(MCCs, ot, force=true)
-			break
-		end
+		# Stopping condition
+		oa.verbose && println("\n## Proceeding based on newly found MCCs...")
+		flag, rMCCs = stop_conditions!(MCCs, mccs, oa, values(ot)...; hardstop=true)
+		update_df!(df, length(first(values(ot)).lleaves), length(rMCCs), oa.γ, M, Efinal, Ffinal, mccs, MCCs, rMCCs, :discrete_optimization)
+		(flag == :stop) && break
 	end
+
+	# Output
 	if oa.output == :all
-		return RecombTools.sort_mccs(MCCs), df, ot, Evals, Fvals
+		return RecombTools.sort_mccs(MCCs), df, values(ot), Evals, Fvals
 	elseif oa.output == :mccs
 		return RecombTools.sort_mccs(MCCs)
 	elseif oa.output == :mccs_df
@@ -184,20 +168,59 @@ function runopt(oa::OptArgs, trees::Dict)
 	end
 end
 
-
 """
-	complete_mccs!(MCCs, ot; force=false)
-
-Complete `MCCs` if `naive_mccs(ot)` is of length `1`, and return `true`. Otherwise (unless `force`), return `false`.
 """
-function complete_mccs!(MCCs, ot; force=false)
-	final_mccs = naive_mccs(ot)
-	if length(final_mccs) != 1
-		force && append!(MCCs, final_mccs)
-		return false
+function crossmap_prune(trees)
+	ot = deepcopy(trees)
+	# Self ancestral states can be computed once and for all at the start, but we need to introduce mutations above new resolved internal nodes
+	for t in values(ot), n in values(t.lnodes)
+		!haskey(n.data.dat, :selfmuts) && (n.data.dat[:selfmuts] = Array{TreeTools.Mutation,1}(undef, 0))
+	end
+	# Cross-mapped mutations
+	ancestral_sequences!(ot, self=false, crossmapped=true)
+	suspicious_branches!(ot)
+	#
+	mccs = prune_suspicious_mccs!(deepcopy(ot), :suspicious_muts)
+end
+
+function stop_conditions!(previous_mccs, new_mccs, oa, trees... ; hardstop=true)
+	# If no solution was found
+	if length(new_mccs) == 0
+		oa.verbose && print("No solution found... ")
+		remaining_mccs = naive_mccs(trees)
+		## If hardstop,  stop
+		if hardstop
+			append!(previous_mccs, remaining_mccs)
+			oa.verbose && println("Stopping.")
+			return :stop, []
+		else
+		## Otherwise, continue
+			oa.verbose && println("Continuing.")
+			return :next, remaining_mccs # (can't call this after because of `pruneconf!` below)
+		end
+	end
+
+	# If some new MCCs were found
+	## If they cover all leaves of the tree: a final decomposition has been found. 
+	if sum(length(m) for m in new_mccs) == length(first(trees).lleaves)
+		oa.verbose && println("Found mccs cover all leaves: final decomposition found. Stopping.")
+		return :stop, []
+	end
+	## If they do not cover all leaves of the trees, remove them from the trees
+	oa.verbose && println("Found mccs do not cover all leaves. Pruning them from trees. ")
+	pruneconf!(new_mccs, trees...)
+	oa.resolve && resolve!(trees...)
+	remaining_mccs = naive_mccs(trees)
+	### If they new trees have an obvious solution, append it to new_mccs and stop
+	if length(remaining_mccs) == 1
+		append!(new_mccs, remaining_mccs)
+		append!(previous_mccs, remaining_mccs)
+		oa.verbose && println("Resulting trees are compatible: final decomposition found. Stopping.")
+		return :stop, []
+	### Otherwise, continue
 	else
-		append!(MCCs, final_mccs)
-		return true
+		oa.verbose && println("Resulting trees have incompatibilities. Continuing.")
+		return :next, remaining_mccs
 	end
 end
 
@@ -223,6 +246,6 @@ pruneconf!(trees, mcc_names, mcc_conf) = pruneconf!([mcc_names[x] for x in mcc_c
 
 
 
-update_df!(df::DataFrame, nleaves::Int64, nMCCs::Int64, γ, M, Efinal, Ffinal, rMCCs, arMCCs, remainingMCCs) = push!(df, 
+update_df!(df::DataFrame, nleaves::Int64, nMCCs::Int64, γ, M, Efinal, Ffinal, rMCCs, arMCCs, remainingMCCs, method) = push!(df, 
 	Dict(:nleaves=>nleaves, :nMCCs=>nMCCs, :γ=>γ, :M=>M,
-		:Efinal=>Efinal, :Ffinal=>Ffinal, :removedMCCs=>rMCCs, :all_removedMCCs=>arMCCs, :remainingMCCs=>remainingMCCs))
+		:Efinal=>Efinal, :Ffinal=>Ffinal, :newMCCs=>copy(rMCCs), :AllFinalMCCs=>copy(arMCCs), :RemainingConsistentClades=>copy(remainingMCCs), :method=>method))

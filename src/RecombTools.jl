@@ -1,7 +1,7 @@
 module RecombTools
 
 using TreeTools, ARGTools
-using TreeAlgs.CompatibilityTree
+using TreeAlgs, TreeAlgs.CompatibilityTree
 using Distributions
 using StatsBase
 using DataFrames
