@@ -85,13 +85,16 @@ function eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
     cutoff = 0., 
     Nrep = 1,
     preresolve = true,
-    sfields::Tuple = (:ρ,:cutoff, :preresolve),
+    crossmap_prune=false,
+    crossmap_resolve=false,
+    sfields::Tuple = (:ρ,:cutoff, :preresolve, :crossmap_prune, :crossmap_resolve),
     out = "", 
     verbose=false)
     #
     args = Dict(:γ=>γ, :N=>N, :n=>n, :ρ=>ρ, :simtype=>simtype,
         :Md=>Md, :Tmin=>Tmin, :dT=>dT, :Tmax=>Tmax, :lk_sort=>lk_sort, 
-        :cutoff=>cutoff, :preresolve=>preresolve)
+        :cutoff=>cutoff, :preresolve=>preresolve, 
+        :crossmap_resolve=>crossmap_resolve, :crossmap_prune=>crossmap_prune)
     #
     dat = DataFrame(df_fields())
     for f in sfields
@@ -102,7 +105,7 @@ function eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
     Trange = reverse(Tmin:dT:Tmax)
     # 
     function f(arg::ARGTools.ARG) 
-        let γ=γ, Trange=Trange, Md=Md, lk_sort = lk_sort, cutoff=cutoff, N=N, preresolve=preresolve
+        let cutoff=cutoff, N=N
             t1, t2 = ARGTools.trees_from_ARG(arg)
             if cutoff != 0
                 remove_branches!(t1, Distributions.Exponential(cutoff*N))
@@ -110,7 +113,8 @@ function eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
             end
             init_splits = Dict(1=>SplitList(t1), 2=>SplitList(t2))
             trees = Dict(1=>t1, 2=>t2)
-            oa = OptArgs(γ=γ, Tmin=Tmin, dT=dT, Tmax=Tmax, Md=Md, likelihood_sort=lk_sort, verbose=verbose)
+            oa = OptArgs(γ=γ, Tmin=Tmin, dT=dT, Tmax=Tmax, Md=Md, likelihood_sort=lk_sort, 
+                            crossmap_prune=crossmap_prune, crossmap_resolve=crossmap_resolve, verbose=verbose)
             MCCs, resolved_splits = computeMCCs!(trees, oa, preresolve=preresolve)
             return MCCs, resolved_splits, init_splits
         end
