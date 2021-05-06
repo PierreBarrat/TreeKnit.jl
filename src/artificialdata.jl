@@ -26,10 +26,11 @@ end
 
 
 function eval_naive_inf(N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
-                            cutoff = 0., 
-                            Nrep = 1,
-                            sfields::Tuple = (:ρ,:cutoff),
-                            out = "")
+    cutoff = 0., 
+    Nrep = 1,
+    sfields::Tuple = (:ρ,:cutoff),
+    out = ""
+)
     #
     args = Dict(:N=>N, :n=>n, :ρ=>ρ, :simtype=>simtype, :cutoff=>cutoff)
     # 
@@ -89,7 +90,8 @@ function eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
     crossmap_resolve=false,
     sfields::Tuple = (:ρ,:cutoff, :preresolve, :crossmap_prune, :crossmap_resolve),
     out = "", 
-    verbose=false)
+    verbose=false
+)
     #
     args = Dict(:γ=>γ, :N=>N, :n=>n, :ρ=>ρ, :simtype=>simtype,
         :Md=>Md, :Tmin=>Tmin, :dT=>dT, :Tmax=>Tmax, :lk_sort=>lk_sort, 
@@ -113,8 +115,14 @@ function eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
             end
             init_splits = Dict(1=>SplitList(t1), 2=>SplitList(t2))
             trees = Dict(1=>t1, 2=>t2)
-            oa = OptArgs(γ=γ, Tmin=Tmin, dT=dT, Tmax=Tmax, Md=Md, likelihood_sort=lk_sort, 
-                            crossmap_prune=crossmap_prune, crossmap_resolve=crossmap_resolve, verbose=verbose)
+            oa = OptArgs(γ=γ, 
+                Tmin=Tmin, dT=dT, Tmax=Tmax, 
+                Md=Md, 
+                likelihood_sort=lk_sort, 
+                crossmap_prune=crossmap_prune, 
+                crossmap_resolve=crossmap_resolve, 
+                verbose=verbose
+            )
             MCCs, resolved_splits = computeMCCs!(trees, oa, preresolve=preresolve)
             return MCCs, resolved_splits, init_splits
         end

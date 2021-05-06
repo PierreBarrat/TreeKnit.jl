@@ -1,11 +1,11 @@
 module SplitGraph
 
-using TreeTools
-using RecombTools
-using StatsBase
 using DataFrames
-using SpecialFunctions
 using Debugger
+using RecombTools
+using SpecialFunctions
+using StatsBase
+using TreeTools
 
 
 include("objects.jl")

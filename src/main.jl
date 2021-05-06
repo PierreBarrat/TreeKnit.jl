@@ -107,7 +107,8 @@ function runopt(oa::OptArgs, trees::Dict)
 		γ=Any[oa.γ], M=Any[missing], 
 		Efinal=Any[Einit], Ffinal=Any[Einit],
 		newMCCs=Any[[]], AllFinalMCCs=Any[[]], RemainingConsistentClades=Any[iMCCs],
-		method=Any[missing])
+		method=Any[missing]
+	)
 	MCCs = [] # All final MCCs found up to now
 	Evals = Any[]
 	Fvals = Any[]
@@ -246,6 +247,17 @@ pruneconf!(trees, mcc_names, mcc_conf) = pruneconf!([mcc_names[x] for x in mcc_c
 
 
 
-update_df!(df::DataFrame, nleaves::Int64, nMCCs::Int64, γ, M, Efinal, Ffinal, rMCCs, arMCCs, remainingMCCs, method) = push!(df, 
-	Dict(:nleaves=>nleaves, :nMCCs=>nMCCs, :γ=>γ, :M=>M,
-		:Efinal=>Efinal, :Ffinal=>Ffinal, :newMCCs=>copy(rMCCs), :AllFinalMCCs=>copy(arMCCs), :RemainingConsistentClades=>copy(remainingMCCs), :method=>method))
+function update_df!(df::DataFrame, nleaves::Int64, nMCCs::Int64, γ, M, Efinal, Ffinal, rMCCs, arMCCs, remainingMCCs, method)  
+	push!(df, 
+		Dict(:nleaves=>nleaves, 
+		:nMCCs=>nMCCs, 
+		:γ=>γ, 
+		:M=>M,
+		:Efinal=>Efinal, 
+		:Ffinal=>Ffinal, 
+		:newMCCs=>copy(rMCCs), 
+		:AllFinalMCCs=>copy(arMCCs), 
+		:RemainingConsistentClades=>copy(remainingMCCs), 
+		:method=>method)
+		)
+end

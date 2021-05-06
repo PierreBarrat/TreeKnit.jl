@@ -1,18 +1,18 @@
 module RecombTools
 
-using TreeTools, ARGTools
-using TreeAlgs, TreeAlgs.CompatibilityTree
-using Distributions
-using StatsBase
-using DataFrames
 using CSV
+using DataFrames
 using Debugger
-using Setfield
+using Distributions
 using JSON3
 using Parameters
+using StatsBase
+using Setfield
 
+using ARGTools
+using TreeAlgs, TreeAlgs.CompatibilityTree
+using TreeTools 
 
-import Base.getindex, Base.==, Base.setindex!
 
 include("tools.jl")
 include("MCC.jl")
