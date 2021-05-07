@@ -22,26 +22,31 @@ function get_r(ρ::Float64, n::Int64, N::Int64, simtype::Symbol)
     end
 end
 
-# function eval_real_inf(N::Int64, n::Int64, ρ::Float64, simtype::Symbol;)
-
-
+"""
+    eval_naive_inf(N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
+        cutoff = 0.,
+        Nrep = 1,
+        sfields::Tuple = (:ρ,:cutoff),
+        out = ""
+    )
+"""
 function eval_naive_inf(N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
-    cutoff = 0., 
+    cutoff = 0.,
     Nrep = 1,
     sfields::Tuple = (:ρ,:cutoff),
     out = ""
 )
     #
     args = Dict(:N=>N, :n=>n, :ρ=>ρ, :simtype=>simtype, :cutoff=>cutoff)
-    # 
+    #
     dat = DataFrame(df_fields())
     for f in sfields
         insertcols!(dat, f=>Any[])
     end
-    # 
+    #
     r = get_r(ρ, n, N, simtype)
     #
-    function f(arg::ARGTools.ARG) 
+    function f(arg::ARGTools.ARG)
         t1, t2 = ARGTools.trees_from_ARG(arg)
         if cutoff != 0
             remove_branches!(t1, Distributions.Exponential(cutoff*N))
@@ -54,7 +59,7 @@ function eval_naive_inf(N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
     end
     #
     for rep in 1:Nrep
-        td = @timed _eval_mcc_inf(f, N, n, r, simtype=simtype)  
+        td = @timed _eval_mcc_inf(f, N, n, r, simtype=simtype)
         d = td[1]
         args[:time] = td[2]
         args[:bytes] = td[3]
@@ -63,39 +68,80 @@ function eval_naive_inf(N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
         end
         push!(dat, d)
     end
-    # 
+    #
     if out != ""
         CSV.write(out, dat)
     end
     #
     return dat
 end
+
 """
-    eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol; 
-        Tmin=0.001, dT=0.01, Tmax=1., Md=10, lk_sort=true, 
-        cutoff = 0., 
+    eval_real(N::Int, n::Int, ρ::Float64, simtype::Symbol;
+        Nrep = 1,
+        out = "",
+    )
+"""
+function eval_real(N::Int, n::Int, ρ::Float64, simtype::Symbol;
+    Nrep = 1,
+    out = "",
+)
+    dat = DataFrame(df_fields())
+    insertcols!(dat, :ρ=>Float64[])
+    r = get_r(ρ, n, N, simtype)
+    #
+    function f(arg::ARGTools.ARG)
+        t1, t2 = ARGTools.trees_from_ARG(arg)
+        init_splits = Dict(1=>SplitList(t1), 2=>SplitList(t2))
+        resolved_splits = Dict(1=>[], 2=>[])
+        MCCs = Dict((1,2) => ARGTools.MCCs_from_arg(arg))
+        return MCCs, resolved_splits, init_splits
+    end
+    #
+    for rep in 1:Nrep
+        td = @timed _eval_mcc_inf(f, N, n, r, simtype=simtype)
+        d = td[1]
+        d[:ρ] = ρ
+        push!(dat, d)
+    end
+    #
+    if out != ""
+        CSV.write(out, dat)
+    end
+    #
+    return dat
+end
+
+
+"""
+    eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
+        Tmin=0.001, dT=0.01, Tmax=1., Md=10, lk_sort=true,
+        cutoff = 0.,
         Nrep = 1,
         preresolve = true,
+        crossmap_prune=false,
+        crossmap_resolve=false,
         sfields::Tuple = (:ρ,:cutoff, :preresolve),
-        out = "")
+        out = ""
+    )
 
-Eval the performance of `SplitGraph.runopt` at inferring MCCs. 
+Eval the performance of `SplitGraph.runopt` at inferring MCCs.
 """
-function eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol; 
-    Tmin=0.001, dT=0.01, Tmax=1., Md=10, lk_sort=true, 
-    cutoff = 0., 
+function eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
+    Tmin=0.001, dT=0.01, Tmax=1., Md=10, lk_sort=true,
+    cutoff = 0.,
     Nrep = 1,
     preresolve = true,
     crossmap_prune=false,
     crossmap_resolve=false,
     sfields::Tuple = (:ρ,:cutoff, :preresolve, :crossmap_prune, :crossmap_resolve),
-    out = "", 
+    out = "",
     verbose=false
 )
     #
     args = Dict(:γ=>γ, :N=>N, :n=>n, :ρ=>ρ, :simtype=>simtype,
-        :Md=>Md, :Tmin=>Tmin, :dT=>dT, :Tmax=>Tmax, :lk_sort=>lk_sort, 
-        :cutoff=>cutoff, :preresolve=>preresolve, 
+        :Md=>Md, :Tmin=>Tmin, :dT=>dT, :Tmax=>Tmax, :lk_sort=>lk_sort,
+        :cutoff=>cutoff, :preresolve=>preresolve,
         :crossmap_resolve=>crossmap_resolve, :crossmap_prune=>crossmap_prune)
     #
     dat = DataFrame(df_fields())
@@ -105,8 +151,8 @@ function eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
     #
     r = get_r(ρ, n, N, simtype)
     Trange = reverse(Tmin:dT:Tmax)
-    # 
-    function f(arg::ARGTools.ARG) 
+    #
+    function f(arg::ARGTools.ARG)
         let cutoff=cutoff, N=N
             t1, t2 = ARGTools.trees_from_ARG(arg)
             if cutoff != 0
@@ -115,12 +161,12 @@ function eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
             end
             init_splits = Dict(1=>SplitList(t1), 2=>SplitList(t2))
             trees = Dict(1=>t1, 2=>t2)
-            oa = OptArgs(γ=γ, 
-                Tmin=Tmin, dT=dT, Tmax=Tmax, 
-                Md=Md, 
-                likelihood_sort=lk_sort, 
-                crossmap_prune=crossmap_prune, 
-                crossmap_resolve=crossmap_resolve, 
+            oa = OptArgs(γ=γ,
+                Tmin=Tmin, dT=dT, Tmax=Tmax,
+                Md=Md,
+                likelihood_sort=lk_sort,
+                crossmap_prune=crossmap_prune,
+                crossmap_resolve=crossmap_resolve,
                 verbose=verbose
             )
             MCCs, resolved_splits = computeMCCs!(trees, oa, preresolve=preresolve)
@@ -129,7 +175,7 @@ function eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
     end
     #
     for rep in 1:Nrep
-        td = @timed _eval_mcc_inf(f, N, n, r, simtype=simtype)  
+        td = @timed _eval_mcc_inf(f, N, n, r, simtype=simtype)
         d = td[1]
         args[:time] = td[2]
         args[:bytes] = td[3]
@@ -138,13 +184,14 @@ function eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
         end
         push!(dat, d)
     end
-    # 
+    #
     if out != ""
         CSV.write(out, dat)
     end
     #
     return dat
 end
+
 
 function _eval_mcc_inf(rMCC, iMCC, t1::Tree)
     # Mean MCC sizes
@@ -192,7 +239,7 @@ function _eval_split_inf(true_splits, resolved_splits, init_splits)
             rs_n += 1
         end
     end
-    return Dict(:rs_p => rs_p / length(true_splits), :rs_n=> rs_n / length(true_splits), 
+    return Dict(:rs_p => rs_p / length(true_splits), :rs_n=> rs_n / length(true_splits),
                 :rs_init => rs_init)
 
 end
@@ -200,14 +247,14 @@ end
 """
     _eval_mcc_splits_inf(f, N::Int64, n0::Int64, r::Float64; v=true, simtype=:kingman)
 
-Evaluate the inference of MCCs by function `f`. ARG simulation made with `(N,n0,r)`. 
+Evaluate the inference of MCCs by function `f`. ARG simulation made with `(N,n0,r)`.
 """
 function _eval_mcc_inf(f, N::Int64, n0::Int64, r::Float64; v=true, simtype=:kingman)
-    
+
     arg = ARGTools.SimulateARG.simulate(N, r, n0, simtype=simtype)
 
     # Real MCCs
-    rMCC = ARGTools.MCCs_from_arg(arg); 
+    rMCC = ARGTools.MCCs_from_arg(arg);
     trees = ARGTools.trees_from_ARG(arg)
     true_splits = Dict(i=>SplitList(t) for (i,t) in enumerate(trees))
 
@@ -226,32 +273,9 @@ function _eval_mcc_inf(f, N::Int64, n0::Int64, r::Float64; v=true, simtype=:king
     return out
 end
 
-# """
-#     _eval_mcc_inf(f, N::Int64, n0::Int64, r::Float64; v=true, simtype=:kingman)
-
-# Evaluate the inference of MCCs by function `f`. ARG simulation made with `(N,n0,r)`. 
-# """
-# function _eval_mcc_inf(f, N::Int64, n0::Int64, r::Float64; v=true, simtype=:kingman)
-    
-#     arg = ARGTools.SimulateARG.simulate(N, r, n0, simtype=simtype)
-
-#     # Real MCCs
-#     rMCC = ARGTools.MCCs_from_arg(arg); 
 
 
-#     # Inferred MCCs
-#     iMCC = f(arg)
-#     t1 = ARGTools.trees_from_ARG(arg)[1]
-
-#     out = _eval_mcc_inf(rMCC, iMCC, t1)
-#     out[:N] = N
-#     out[:n0] = n0
-#     out[:r] = r
-#     return out
-# end
-
-
-function eval_mcc_inf(f, N::Int64, n0::Int64, rrange; 
+function eval_mcc_inf(f, N::Int64, n0::Int64, rrange;
         Nrep=25*ones(Int64, length(rrange)), v=true, simtype=:kingman)
     dat = DataFrame(df_fields())
     for (i,r) in enumerate(rrange)
@@ -263,7 +287,7 @@ function eval_mcc_inf(f, N::Int64, n0::Int64, rrange;
     end
     return dat
 end
-function eval_mcc_inf(f, N::Int64, n0::Int64, r::Float64; 
+function eval_mcc_inf(f, N::Int64, n0::Int64, r::Float64;
         Nrep=25, v=true, simtype=:kingman)
     dat = DataFrame(df_fields())
     for rep in 1:Nrep
@@ -275,7 +299,7 @@ end
 """
     df_fields()
 
-Fields returned by `_eval_mcc_inf`: 
+Fields returned by `_eval_mcc_inf`:
 - `N`, `n0`, `r`
 - `ν(n)c_p(n)`: Fraction of inferred (non-)common branches, true (p) or false (n)
 - `τ(n)c_p(n)`: Length of inferred (non-)common branches, true (p) or false (n) (normalized)
@@ -320,17 +344,17 @@ function remove_branches!(n::TreeNode, p::Distribution)
 end
 
 """
-    remove_branches!(t::Tree, p) 
+    remove_branches!(t::Tree, p)
 
 Stochastically remove branches from `t` using probability distribution `p`
 """
-function remove_branches!(t::Tree, p) 
+function remove_branches!(t::Tree, p)
     remove_branches!(t.root, p)
     node2tree!(t, t.root)
     nothing
-end 
+end
 """
-    remove_branches(t::Tree, p) 
+    remove_branches(t::Tree, p)
 """
 function remove_branches(t::Tree, p)
     tt = deepcopy(t)
