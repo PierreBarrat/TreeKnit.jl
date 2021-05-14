@@ -115,15 +115,17 @@ end
 
 """
     eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
-        Tmin=0.001, dT=0.01, Tmax=1., Md=10, lk_sort=true,
-        cutoff = 0.,
-        Nrep = 1,
-        preresolve = true,
-        crossmap_prune=false,
-        crossmap_resolve=false,
-        sfields::Tuple = (:ρ,:cutoff, :preresolve),
-        out = ""
-    )
+    Tmin=0.001, dT=0.01, Tmax=1., Md=10, lk_sort=true,
+    cutoff = 0.,
+    Nrep = 1,
+    preresolve = true,
+    crossmap_prune=false,
+    crossmap_resolve=false,
+    simulate_seqs = false,
+    sfields::Tuple = (:ρ,:cutoff, :preresolve, :crossmap_prune, :crossmap_resolve),
+    out = "",
+    verbose=false
+)
 
 Eval the performance of `SplitGraph.runopt` at inferring MCCs.
 """
@@ -134,6 +136,7 @@ function eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
     preresolve = true,
     crossmap_prune=false,
     crossmap_resolve=false,
+    simulate_seqs = false,
     sfields::Tuple = (:ρ,:cutoff, :preresolve, :crossmap_prune, :crossmap_resolve),
     out = "",
     verbose=false
@@ -155,12 +158,18 @@ function eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
     function f(arg::ARGTools.ARG)
         let cutoff=cutoff, N=N
             t1, t2 = ARGTools.trees_from_ARG(arg)
-            if cutoff != 0
+            trees = Dict(1=>t1, 2=>t2)
+            if cutoff != 0 && !crossmap_prune && !crossmap_resolve
                 remove_branches!(t1, Distributions.Exponential(cutoff*N))
                 remove_branches!(t2, Distributions.Exponential(cutoff*N))
+            elseif crossmap_prune || crossmap_resolve || simulate_seqs
+                if cutoff == 0
+                    simulate_sequences!(trees, N)
+                else
+                    simulate_sequences!(trees, N, cutoff)
+                end
             end
             init_splits = Dict(1=>SplitList(t1), 2=>SplitList(t2))
-            trees = Dict(1=>t1, 2=>t2)
             oa = OptArgs(γ=γ,
                 Tmin=Tmin, dT=dT, Tmax=Tmax,
                 Md=Md,
@@ -169,8 +178,16 @@ function eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
                 crossmap_resolve=crossmap_resolve,
                 verbose=verbose
             )
-            MCCs, resolved_splits = computeMCCs!(trees, oa, preresolve=preresolve)
-            return MCCs, resolved_splits, init_splits
+            try
+                MCCs, resolved_splits = computeMCCs!(trees, oa, preresolve=preresolve)
+                return MCCs, resolved_splits, init_splits
+            catch err
+                write_newick("tmp/tree1.nwk", trees[1])
+                write_newick("tmp/tree2.nwk", trees[2])
+                TreeTools.write_fasta("tmp/aln1.fasta", trees[1], :selfseq)
+                TreeTools.write_fasta("tmp/aln2.fasta", trees[2], :selfseq)
+                error(err)
+            end
         end
     end
     #
@@ -192,6 +209,20 @@ function eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
     return dat
 end
 
+
+function simulate_sequences!(trees::Dict, N, c = 0.5, L = 100)
+    μ = 1 / (N*L*c) * 1.25
+    # Simulate sequences && prune branches with no mutations
+    for (i,t) in trees
+        TreeAlgs.Evolve.evolve!(t, L, μ;  seqkey = :selfseq)
+        TreeTools.compute_mutations!(n -> n.data.dat[:selfseq], t, :realmuts)
+        TreeTools.delete_branches!(n->isempty(n.data.dat[:realmuts]), t)
+    end
+    # Cross-map sequences
+    crossmap_sequences!(trees, :selfseq, :cmseq)
+    #
+    return nothing
+end
 
 function _eval_mcc_inf(rMCC, iMCC, t1::Tree)
     # Mean MCC sizes
