@@ -11,10 +11,10 @@ end
 """
 	computeMCCs!(trees::Dict{<:Any, <:Tree}, oa::OptArgs; preresolve=true, naive=false)
 
-Compute pairwise MCCs for `trees` by calling function `runopt(oa,t1,t2)` on pairs of trees. Return MCCs and resolved splits. 
-About `preresolve`: 
-- If `true`, a first pass of MCC computation is made and trees are resolved using the results, keeping only compatible splits. A second pass of MCC computation is then made without resolving. 
-- Else, only the first pass is performed. For more than two trees, this may find MCCs that introduce incompatible splits in case of poorly resolved input trees. 
+Compute pairwise MCCs for `trees` by calling function `runopt(oa,t1,t2)` on pairs of trees. Return MCCs and resolved splits.
+About `preresolve`:
+- If `true`, a first pass of MCC computation is made and trees are resolved using the results, keeping only compatible splits. A second pass of MCC computation is then made without resolving.
+- Else, only the first pass is performed. For more than two trees, this may find MCCs that introduce incompatible splits in case of poorly resolved input trees.
 """
 function computeMCCs!(trees::Dict{<:Any, <:Tree}, oa::OptArgs=OptArgs(); preresolve=true, naive=false)
 	if oa.crossmap_resolve
@@ -34,7 +34,7 @@ function computeMCCs_naive!(trees::Dict{<:Any, <:Tree})
 	rS = resolve!(values(trees)...)
 	resolved_splits = Dict(k=>rS[i] for (i,k) in enumerate(keys(trees)))
 	MCCs = _computeMCCs(ts -> RecombTools.naive_mccs(collect(values(ts))...), trees)
-	return MCCs, resolved_splits	
+	return MCCs, resolved_splits
 end
 
 function computeMCCs_preresolve!(trees::Dict{<:Any, <:Tree}, oa::OptArgs)
@@ -59,7 +59,7 @@ end
 """
 	_computeMCCs(f::Function, trees::Dict{<:Any, <:Tree})
 
-Compute MCCs for each pair of trees in `trees` by calling `f(t1,t2)`. Return a dictionary indexed with pairs of keys of `trees`. 
+Compute MCCs for each pair of trees in `trees` by calling `f(t1,t2)`. Return a dictionary indexed with pairs of keys of `trees`.
 For simplicity, output for a pair of the same key is `[String[]]` (instead of not being indexed at all)
 """
 function _computeMCCs(f::Function, trees::Dict{<:Any, <:Tree})
@@ -87,7 +87,7 @@ end
 		runopt(oa::OptArgs, t1::Tree, t2::Tree)
 		runopt(oa::OptArgs, trees::Dict{<:Any,<:Tree})
 
-Run optimization at constant γ. See `?Optargs` for arguments. 
+Run optimization at constant γ. See `?Optargs` for arguments.
 """
 runopt(t1::Tree, t2::Tree; kwargs...) = runopt(OptArgs(;kwargs...), t1, t2)
 
@@ -95,19 +95,19 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree)
 	runopt(oa, Dict(1=>t1, 2=>t2))
 end
 function runopt(oa::OptArgs, trees::Dict)
-	# 
+	#
 	ot = deepcopy(trees)
 	oa.resolve && resolve!(values(ot)...)
-	# 
+	#
 	iMCCs = naive_mccs(values(ot)...)
 	Einit = SplitGraph.count_mismatches(values(ot)...)
 	n0 = length(first(values(ot)).lleaves)
 	df = DataFrame(nleaves=Int64[n0],
 		nMCCs=length(iMCCs),
-		γ=Any[oa.γ], M=Any[missing], 
+		γ=Any[missing], M=Any[missing],
 		Efinal=Any[Einit], Ffinal=Any[Einit],
 		newMCCs=Any[[]], AllFinalMCCs=Any[[]], RemainingConsistentClades=Any[iMCCs],
-		method=Any[missing]
+		method=Any[:init]
 	)
 	MCCs = [] # All final MCCs found up to now
 	Evals = Any[]
@@ -127,32 +127,40 @@ function runopt(oa::OptArgs, trees::Dict)
 		# Prune suspicious branches (if mut. cross-mapping)
 		if oa.crossmap_prune
 			oa.verbose && println("\n## Using cross-mapped mutations to cut branches...")
+			!share_labels(values(ot)...) && error("Trees do not share leaves")
 			mccs = crossmap_prune(ot) # Makes a copy of the trees
 			!isempty(mccs) && append!(MCCs, mccs)
 			oa.verbose && println("Found $(length(mccs)) new mccs.")
-			# Checks
-			!prod([check_tree(t) for t in values(ot)]) && @error "Problem in one of the trees"
 
 			# Stopping condition
 			oa.verbose && println("\n## Proceeding based on newly found MCCs...")
 			flag, rMCCs = stop_conditions!(MCCs, mccs, oa, values(ot)...; hardstop=false)
+			# Checks
+
+			!prod([check_tree(t) for t in values(ot)]) && @error "Problem in one of the trees"
+
+			# Log results
 			update_df!(df, length(first(values(ot)).lleaves), length(rMCCs), missing, missing, missing, missing, mccs, MCCs, rMCCs, :crossmapped_mutations)
 			(flag == :stop) && break
 		end
 
 		# Optimization
 		oa.verbose && println("\n## Running optimization to find MCCs...")
+		!share_labels(values(ot)...) && error("Trees do not share leaves")
 		M = getM(length(first(values(ot)).lleaves), oa.Md)
 		mccs, Efinal, Ffinal, E, F, lk = SplitGraph.opttrees(values(ot)..., γ=oa.γ, seq_lengths = oa.seq_lengths, M=M, Trange=oa.Trange, likelihood_sort=oa.likelihood_sort, resolve=oa.resolve, sa_rep = oa.sa_rep)
 		!isempty(mccs) && append!(MCCs, mccs)
 		oa.verbose && println("Found $(length(mccs)) new mccs.")
 
-		# Checks
-		!prod([check_tree(t) for t in values(ot)]) && @error "Problem in one of the trees"
-		
+
 		# Stopping condition
 		oa.verbose && println("\n## Proceeding based on newly found MCCs...")
 		flag, rMCCs = stop_conditions!(MCCs, mccs, oa, values(ot)...; hardstop=true)
+
+		# Checks
+		!prod([check_tree(t) for t in values(ot)]) && @error "Problem in one of the trees"
+
+		# Log results
 		update_df!(df, length(first(values(ot)).lleaves), length(rMCCs), oa.γ, M, Efinal, Ffinal, mccs, MCCs, rMCCs, :discrete_optimization)
 		(flag == :stop) && break
 	end
@@ -202,7 +210,7 @@ function stop_conditions!(previous_mccs, new_mccs, oa, trees... ; hardstop=true)
 	end
 
 	# If some new MCCs were found
-	## If they cover all leaves of the tree: a final decomposition has been found. 
+	## If they cover all leaves of the tree: a final decomposition has been found.
 	if sum(length(m) for m in new_mccs) == length(first(trees).lleaves)
 		oa.verbose && println("Found mccs cover all leaves: final decomposition found. Stopping.")
 		return :stop, []
@@ -228,7 +236,7 @@ end
 """
 	pruneconf!(clades, trees::Vararg{Tree})
 
-Prune `clades` from `trees...`. 
+Prune `clades` from `trees...`.
 """
 function pruneconf!(clades, trees::Vararg{Tree})
 	for t in trees
@@ -241,23 +249,23 @@ end
 """
 	pruneconf!(trees, mcc_names, mcc_conf)
 
-Prune MCCs `mcc_names[x]` for all `x` in `mcc_conf` from trees `t...`. 
+Prune MCCs `mcc_names[x]` for all `x` in `mcc_conf` from trees `t...`.
 """
 pruneconf!(trees, mcc_names, mcc_conf) = pruneconf!([mcc_names[x] for x in mcc_conf], trees...)
 
 
 
-function update_df!(df::DataFrame, nleaves::Int64, nMCCs::Int64, γ, M, Efinal, Ffinal, rMCCs, arMCCs, remainingMCCs, method)  
-	push!(df, 
-		Dict(:nleaves=>nleaves, 
-		:nMCCs=>nMCCs, 
-		:γ=>γ, 
+function update_df!(df::DataFrame, nleaves::Int64, nMCCs::Int64, γ, M, Efinal, Ffinal, rMCCs, arMCCs, remainingMCCs, method)
+	push!(df,
+		Dict(:nleaves=>nleaves,
+		:nMCCs=>nMCCs,
+		:γ=>γ,
 		:M=>M,
-		:Efinal=>Efinal, 
-		:Ffinal=>Ffinal, 
-		:newMCCs=>copy(rMCCs), 
-		:AllFinalMCCs=>copy(arMCCs), 
-		:RemainingConsistentClades=>copy(remainingMCCs), 
+		:Efinal=>Efinal,
+		:Ffinal=>Ffinal,
+		:newMCCs=>copy(rMCCs),
+		:AllFinalMCCs=>copy(arMCCs),
+		:RemainingConsistentClades=>copy(remainingMCCs),
 		:method=>method)
 		)
 end
