@@ -11,6 +11,7 @@ Storing parameters for `SplitGraph.runopt` function.
 - `seq_lengths = ones(Int64, 2)`: lengths of sequences that trees were built from
 - `crossmap_resolve::Bool = false`: Use cross-mapped mutations to resolve polytomies in the tree.  Require each leaf's data to have `:selfseq` and `:cmseq` entries.
 - `crossmap_prune::Bool = false`: Use cross-mappped mutations to prune MCCs preventively. The code will look at the number of suspicious mutations at `n.data.dat[:suspicious_muts][s]` where `n = trees[s]` (`s` is assumed to be an influenza segment). Require each leaf's data to have `:selfseq` and `:cmseq` entries.
+- `suspmut_threshold::Int = 1`: Minimal number of suspicious mutation to prune a branch.
 ### Simulated annealing
 - `Md::Real = 10`:  Number of SA iterations (per temperature) for a tree of `n` leaves is `ceil(Int64, n/Md)`
 - `Tmin::Float64 = 1e-3`: Minimal temperature of SA
@@ -30,6 +31,7 @@ Storing parameters for `SplitGraph.runopt` function.
 	seq_lengths = ones(Int64, 2)
 	crossmap_resolve::Bool = false
 	crossmap_prune::Bool = false
+	suspmut_threshold::Int = 2
 	# For the annealing
 	Md::Real = 10
 	Tmin::Float64 = 1e-3

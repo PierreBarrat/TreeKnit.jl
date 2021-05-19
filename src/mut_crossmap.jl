@@ -168,13 +168,13 @@ end
 
 """
 """
-function prune_suspicious_mccs!(trees::Dict, suspmut_key=:suspicious_muts)
+function prune_suspicious_mccs!(trees::Dict, suspmut_key=:suspicious_muts, suspmut_threshold=2)
 	if length(trees) > 2
 		error("Received $(length(trees)) trees. Only for pairs of trees.")
 	end
 	pMCCs = []
 	ct = deepcopy(trees)
-	pmccs = _prune_suspicious_mccs!(trees, suspmut_key)
+	pmccs = _prune_suspicious_mccs!(trees, suspmut_key, suspmut_threshold)
 	# if !share_labels(values(trees)...)
 	# 	write_newick("tmp/tmp_tree1.nwk", ct[1])
 	# 	write_newick("tmp/tmp_tree2.nwk", ct[2])
@@ -191,7 +191,7 @@ function prune_suspicious_mccs!(trees::Dict, suspmut_key=:suspicious_muts)
 	while !mapreduce(t->length(nodes(t))==1, *, values(trees); init = true) && !isempty(pmccs)
 		append!(pMCCs, pmccs)
 		ct = deepcopy(trees)
-		pmccs = _prune_suspicious_mccs!(trees, suspmut_key)
+		pmccs = _prune_suspicious_mccs!(trees, suspmut_key, suspmut_threshold)
 		# if !share_labels(values(trees)...)
 		# 	write_newick("tmp/tmp_tree1.nwk", ct[1])
 		# 	write_newick("tmp/tmp_tree2.nwk", ct[2])
@@ -201,7 +201,7 @@ function prune_suspicious_mccs!(trees::Dict, suspmut_key=:suspicious_muts)
 	return pMCCs
 end
 
-function _prune_suspicious_mccs!(trees, suspmut_key=:suspicious_muts)
+function _prune_suspicious_mccs!(trees, suspmut_key=:suspicious_muts, suspmut_threshold=2)
 	S = collect(keys(trees))
 	# Get mccs
 	mccs = naive_mccs(collect(values(trees)))
@@ -211,7 +211,7 @@ function _prune_suspicious_mccs!(trees, suspmut_key=:suspicious_muts)
 		for (sref,t) in trees
 			a = lca(t, m)
 			for s in Iterators.filter(!=(sref), S) # Just one value normally
-				if haskey(a.data.dat,suspmut_key) && a.data.dat[suspmut_key][s] > 1
+				if haskey(a.data.dat,suspmut_key) && a.data.dat[suspmut_key][s] >= suspmut_threshold
 					@debug "$(a.label) (mcc $i) with $(a.data.dat[suspmut_key][s]) suspicious mutations in $s for tree of $sref"
 					@debug "Will prune $m"
 					push!(idx, i)

@@ -128,7 +128,7 @@ function runopt(oa::OptArgs, trees::Dict)
 		if oa.crossmap_prune
 			oa.verbose && println("\n## Using cross-mapped mutations to cut branches...")
 			!share_labels(values(ot)...) && error("Trees do not share leaves")
-			mccs = crossmap_prune(ot) # Makes a copy of the trees
+			mccs = crossmap_prune(ot, oa.suspmut_threshold) # Makes a copy of the trees
 			!isempty(mccs) && append!(MCCs, mccs)
 			oa.verbose && println("Found $(length(mccs)) new mccs.")
 
@@ -179,7 +179,7 @@ end
 
 """
 """
-function crossmap_prune(trees)
+function crossmap_prune(trees, suspmut_threshold)
 	ot = deepcopy(trees)
 	# Self ancestral states can be computed once and for all at the start, but we need to introduce mutations above new resolved internal nodes
 	for t in values(ot), n in values(t.lnodes)
@@ -189,7 +189,7 @@ function crossmap_prune(trees)
 	ancestral_sequences!(ot, self=false, crossmapped=true)
 	suspicious_branches!(ot)
 	#
-	mccs = prune_suspicious_mccs!(deepcopy(ot), :suspicious_muts)
+	mccs = prune_suspicious_mccs!(deepcopy(ot), :suspicious_muts, suspmut_threshold)
 end
 
 function stop_conditions!(previous_mccs, new_mccs, oa, trees... ; hardstop=true)

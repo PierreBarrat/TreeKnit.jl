@@ -134,8 +134,9 @@ function eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
     cutoff = 0.,
     Nrep = 1,
     preresolve = true,
-    crossmap_prune=false,
-    crossmap_resolve=false,
+    crossmap_resolve = false,
+    crossmap_prune = false,
+    suspmut_threshold = 2,
     simulate_seqs = false,
     sfields::Tuple = (:ρ,:cutoff, :preresolve, :crossmap_prune, :crossmap_resolve),
     out = "",
@@ -145,7 +146,8 @@ function eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
     args = Dict(:γ=>γ, :N=>N, :n=>n, :ρ=>ρ, :simtype=>simtype,
         :Md=>Md, :Tmin=>Tmin, :dT=>dT, :Tmax=>Tmax, :lk_sort=>lk_sort,
         :cutoff=>cutoff, :preresolve=>preresolve,
-        :crossmap_resolve=>crossmap_resolve, :crossmap_prune=>crossmap_prune)
+        :crossmap_resolve=>crossmap_resolve, :crossmap_prune=>crossmap_prune,
+        :suspmut_threshold=>suspmut_threshold)
     #
     dat = DataFrame(df_fields())
     for f in sfields
@@ -166,13 +168,15 @@ function eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
                 simulate_sequences!(trees, N, cutoff)
             end
             init_splits = Dict(1=>SplitList(t1), 2=>SplitList(t2))
-            oa = OptArgs(γ=γ,
+            oa = OptArgs(
+                γ=γ,
                 Tmin=Tmin, dT=dT, Tmax=Tmax,
                 Md=Md,
                 likelihood_sort=lk_sort,
-                crossmap_prune=crossmap_prune,
                 crossmap_resolve=crossmap_resolve,
-                verbose=verbose
+                crossmap_prune=crossmap_prune,
+                suspmut_threshold=suspmut_threshold,
+                verbose=verbose,
             )
             try
                 MCCs, resolved_splits = computeMCCs!(trees, oa, preresolve=preresolve)
