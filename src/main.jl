@@ -144,7 +144,7 @@ function runopt(oa::OptArgs, trees::Dict)
 			(flag == :stop) && break
 		end
 
-		# Optimization
+		# Topology based
 		oa.verbose && println("\n## Running optimization to find MCCs...")
 		!share_labels(values(ot)...) && error("Trees do not share leaves")
 		M = getM(length(first(values(ot)).lleaves), oa.Md)

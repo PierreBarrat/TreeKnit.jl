@@ -163,11 +163,7 @@ function eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
                 remove_branches!(t1, Distributions.Exponential(cutoff*N))
                 remove_branches!(t2, Distributions.Exponential(cutoff*N))
             elseif crossmap_prune || crossmap_resolve || simulate_seqs
-                if cutoff == 0
-                    simulate_sequences!(trees, N)
-                else
-                    simulate_sequences!(trees, N, cutoff)
-                end
+                simulate_sequences!(trees, N, cutoff)
             end
             init_splits = Dict(1=>SplitList(t1), 2=>SplitList(t2))
             oa = OptArgs(γ=γ,
@@ -210,13 +206,13 @@ function eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
 end
 
 
-function simulate_sequences!(trees::Dict, N, c = 0.5, L = 100)
-    μ = 1 / (N*L*c) * 1.25
+function simulate_sequences!(trees::Dict, N, c = 0.5, L = 1000; polytomies=true)
+    μ = c == 0 ? 1 / (N*L*0.2) * 1.25 : 1 / (N*L*c) * 1.25
     # Simulate sequences && prune branches with no mutations
     for (i,t) in trees
         TreeAlgs.Evolve.evolve!(t, L, μ;  seqkey = :selfseq)
         TreeTools.compute_mutations!(n -> n.data.dat[:selfseq], t, :realmuts)
-        TreeTools.delete_branches!(n->isempty(n.data.dat[:realmuts]), t)
+        c != 0 && polytomies && TreeTools.delete_branches!(n->isempty(n.data.dat[:realmuts]), t)
     end
     # Cross-map sequences
     crossmap_sequences!(trees, :selfseq, :cmseq)

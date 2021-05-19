@@ -173,10 +173,30 @@ function prune_suspicious_mccs!(trees::Dict, suspmut_key=:suspicious_muts)
 		error("Received $(length(trees)) trees. Only for pairs of trees.")
 	end
 	pMCCs = []
+	ct = deepcopy(trees)
 	pmccs = _prune_suspicious_mccs!(trees, suspmut_key)
-	while !isempty(pmccs)
+	# if !share_labels(values(trees)...)
+	# 	write_newick("tmp/tmp_tree1.nwk", ct[1])
+	# 	write_newick("tmp/tmp_tree2.nwk", ct[2])
+	# 	TreeTools.write_fasta("tmp/tmp_aln1.fasta", ct[1], :selfseq)
+	# 	TreeTools.write_fasta("tmp/tmp_aln1_cm.fasta", ct[1], (:cmseq, 2))
+	# 	TreeTools.write_fasta("tmp/tmp_aln2.fasta", ct[2], :selfseq)
+	# 	TreeTools.write_fasta("tmp/tmp_aln2_cm.fasta", ct[2], (:cmseq, 1))
+	# 	println("Tree had ", length(ct[1].lleaves), " leaves")
+	# 	println("Removing $(length(pmccs)) mccs")
+	# 	print_tree(trees[1], maxdepth=6)
+	# 	print_tree(trees[2], maxdepth=6)
+	# 	error("before while")
+	# end
+	while !mapreduce(t->length(nodes(t))==1, *, values(trees); init = true) && !isempty(pmccs)
 		append!(pMCCs, pmccs)
+		ct = deepcopy(trees)
 		pmccs = _prune_suspicious_mccs!(trees, suspmut_key)
+		# if !share_labels(values(trees)...)
+		# 	write_newick("tmp/tmp_tree1.nwk", ct[1])
+		# 	write_newick("tmp/tmp_tree2.nwk", ct[2])
+		# 	error("in while")
+		# end
 	end
 	return pMCCs
 end
