@@ -5,8 +5,8 @@
 """
 	resolve!(t::Tree, S::SplitList; conflict=:ignore, usemask=false, tau=0.)
 
-Add splits in `S` to `t` by introducing internal nodes. New nodes are assigned a time `tau` (`0` by default). 
-If `conflict != :ignore`, will fail if a split `s` in `S` is not compatible with `t`. Otherwise, silently skip the conflicting splits. 
+Add splits in `S` to `t` by introducing internal nodes. New nodes are assigned a time `tau` (`0` by default).
+If `conflict != :ignore`, will fail if a split `s` in `S` is not compatible with `t`. Otherwise, silently skip the conflicting splits.
 """
 function resolve!(t::Tree{T}, S::SplitList; conflict=:ignore, usemask=false, tau=0.) where T
 	# Label for created nodes
@@ -22,7 +22,7 @@ function resolve!(t::Tree{T}, S::SplitList; conflict=:ignore, usemask=false, tau
 					roots = TreeTools.blca([t.lleaves[x] for x in S.leaves[S[i].dat]]...)
 				end
 				R = lca(roots)
-				# Creating a new node with `roots` as children and `r` as ancestor. 
+				# Creating a new node with `roots` as children and `r` as ancestor.
 				nr = TreeNode(T(), label="RESOLVED_$(label_i)")
 				label_i += 1
 				for r in roots
@@ -55,8 +55,8 @@ end
 """
 	resolve_ref!(Sref::SplitList, S::Vararg{SplitList}, usemask=false)
 
-Add new and compatible splits of `S` to `Sref`. If `usemask`, masks are used to determine compatibility. Return the number of added splits. 
-**Note**: the order of `S` matters if its elements contain incompatible splits! 
+Add new and compatible splits of `S` to `Sref`. If `usemask`, masks are used to determine compatibility. Return the number of added splits.
+**Note**: the order of `S` matters if its elements contain incompatible splits!
 """
 function resolve_ref!(Sref::SplitList, S::Vararg{SplitList}; usemask=false)
 	c = 0
@@ -74,7 +74,7 @@ end
 """
 	resolve!(S::Vararg{SplitList})
 
-Resolve each element of `S` using other elements by calling `resolve!(S[i],S)` for all `i` until no new split can be added. If `usemask`, masks are used to determine compatibility. 
+Resolve each element of `S` using other elements by calling `resolve!(S[i],S)` for all `i` until no new split can be added. If `usemask`, masks are used to determine compatibility.
 """
 function resolve!(S::Vararg{SplitList}; usemask=false)
 	nit = 0
@@ -84,13 +84,13 @@ function resolve!(S::Vararg{SplitList}; usemask=false)
 		flag = false
 		for s in S
 			c = resolve_ref!(s, S..., usemask=usemask)
-			if c != 0 
+			if c != 0
 				flag = true
 			end
 		end
 		nit += 1
 	end
-	if nit == nitmax 
+	if nit == nitmax
 		@warn "Maximum number of iterations reached"
 	end
 	nothing
@@ -103,7 +103,7 @@ end
 """
 	resolve!(t1::Tree, t2::Tree; tau=0.)
 
-Resolve `t1` using splits of `t2` and inversely. Every split of `t2` a tree that is compatible with `t1` is introduced in `t1` (and inversely). Return new splits in each tree. 
+Resolve `t1` using splits of `t2` and inversely. Every split of `t2` a tree that is compatible with `t1` is introduced in `t1` (and inversely). Return new splits in each tree.
 """
 function resolve!(t1::Tree, t2::Tree; tau=0.)
 	S = [SplitList(t) for t in (t1,t2)]
@@ -112,7 +112,8 @@ function resolve!(t1::Tree, t2::Tree; tau=0.)
 	for (t,s) in zip((t1,t2), S)
 		resolve!(t, s, conflict=:fail, usemask=true, tau=tau)
 	end
-	return [SplitList(S[i].leaves, setdiff(S[i], tsplits_a[i]), S[i].mask, S[i].splitmap) for i in 1:length(S)]
+	# return [SplitList(S[i].leaves, setdiff(S[i], tsplits_a[i]), S[i].mask, S[i].splitmap) for i in 1:length(S)]
+	return [setdiff(S[i], tsplits_a[i]) for i in eachindex(S)]
 end
 
 
@@ -124,16 +125,16 @@ end
 """
 	resolve_from_mccs!(infer_mccs::Function, trees::Dict; verbose=false, kwargs...)
 
-Resolve `trees` using pairwise MCC inference. The `infer_mccs` function must take a `Dict{<:Any, Tree}` as input. `kwargs...` are fed to `infer_mccs`. Return the set of compatible splits introduced. 
+Resolve `trees` using pairwise MCC inference. The `infer_mccs` function must take a `Dict{<:Any, Tree}` as input. `kwargs...` are fed to `infer_mccs`. Return the set of compatible splits introduced.
 
-This is done in four steps: 
+This is done in four steps:
 1. Compute MCCs for pairs of trees while resolving them
 2. Find all new splits in each tree that are introduced by the found MCCs
-3. Select only the splits compatible with all others 
+3. Select only the splits compatible with all others
 4. Introduce those in trees
 
-These four steps are **iterated**, while new compatible splits are found. 
-When no new compatible split is found, compute final MCCs without resolving. 
+These four steps are **iterated**, while new compatible splits are found.
+When no new compatible split is found, compute final MCCs without resolving.
 """
 function resolve_from_mccs!(infer_mccs::Function, trees::Dict{<:Any, <:Tree}; verbose=false)
 	newsplits = _resolve_from_mccs!(infer_mccs, trees, verbose=verbose)
@@ -153,9 +154,9 @@ end
 
 function _resolve_from_mccs!(infer_mccs::Function, trees::Dict{<:Any, <:Tree}; verbose=false)
 	verbose && println("--- Resolving with MCCs... ---\n")
-	# 1. `MCCs[u,v]` gives corresponds to `trees[u]` and `trees[v]` 
-	MCCs = _computeMCCs(infer_mccs, trees)	
-	# 2. `resolvable_splits[s]` is an array of `SplitList` objects that can be introduced in `trees[s]` from each other tree. 
+	# 1. `MCCs[u,v]` gives corresponds to `trees[u]` and `trees[v]`
+	MCCs = _computeMCCs(infer_mccs, trees)
+	# 2. `resolvable_splits[s]` is an array of `SplitList` objects that can be introduced in `trees[s]` from each other tree.
 	resolvable_splits = RecombTools.new_splits(trees, MCCs)
 	if verbose
 		for (s,t) in trees
@@ -172,12 +173,12 @@ function _resolve_from_mccs!(infer_mccs::Function, trees::Dict{<:Any, <:Tree}; v
 		end
 		println()
 	end
-	# 4. 
+	# 4.
 	for (s,S) in cmpt_splits
 		resolve!(trees[s], S, conflict=:fail)
 		TreeTools.check_tree(trees[s])
 	end
-	# 
+	#
 	return cmpt_splits
 end
 
@@ -190,19 +191,19 @@ resolve_from_mccs!(infer_mccs::Function, trees::Vararg{Tree}; verbose=false, kwa
 """
     compatible_splits(rS::Dict{<:Any, Array{SplitList,1}})
 
-Find splits in `rS` that are compatible with all other splits. Return a dictionary with the same keys as `rS`. 
+Find splits in `rS` that are compatible with all other splits. Return a dictionary with the same keys as `rS`.
 """
 function compatible_splits(rS::Dict{<:Any, Array{SplitList,1}})
     cs = Dict{Any, SplitList}() # Compatible splits (output)
     for (seg, aS) in rS # aS: new splits for segment seg from all other trees
-        for (i,S) in enumerate(aS) # S: new splits in seg from tree i 
+        for (i,S) in enumerate(aS) # S: new splits in seg from tree i
             if !haskey(cs, seg)
                 cs[seg] = SplitList(S.leaves)
             end
             for s in S
                 # Check if s is compatible with aS[j] for all `j!=i`
                 cmpt = true
-                for j in Iterators.filter(!=(i), 1:length(aS)) 
+                for j in Iterators.filter(!=(i), 1:length(aS))
                     if !iscompatible(s, aS[j], usemask=false)
                         cmpt = false
                         break
@@ -233,7 +234,7 @@ end
 """
 	resolve_crossmapped_muts(t::Tree, refseg=nothing; cmkey=:cmmuts)
 
-Resolve polytomies in `t` using crossmapped mutations from other segments. For each tree node `n`, if `isnothing(refseg)`, consider all other segments in `n.data.dat[cmkey]`. Otherwise, consider only mutations in `n.data.dat[cmkey][s]` for `s` in `refseg`. 
+Resolve polytomies in `t` using crossmapped mutations from other segments. For each tree node `n`, if `isnothing(refseg)`, consider all other segments in `n.data.dat[cmkey]`. Otherwise, consider only mutations in `n.data.dat[cmkey][s]` for `s` in `refseg`.
 """
 function resolve_crossmapped_muts(t::Tree, refseg=nothing; cmkey=:cmmuts)
 	Sref = SplitList(t)
@@ -253,7 +254,7 @@ function _add_splits!(Snew, polyS, Sref)
 		snew = TreeTools.Split(length(Snew.leaves))
 		for (i,x) in enumerate(ps.dat)
 			if x # Polytomy-level leaf `i` is in the split
-				sref = get(Sref.splitmap, polyS.leaves[i]) do 
+				sref = get(Sref.splitmap, polyS.leaves[i]) do
 					snew.dat[findfirst(==(polyS.leaves[i]), Sref.leaves)] = true
 					nothing
 				end # Corresponding split at the tree level - if it's a leaf, it won't be there, hence the get(f,dict,key) do syntax
@@ -267,11 +268,11 @@ end
 """
 	resolve_polytomy(a::TreeNode, refseg=nothing; cmkey=:cmmuts)
 
-Attempt to resolve polytomy with root `a` using mutations from other segments. For all children of `c` of `a`, search for mutations in other segments `s` in `c.data.dat[cmkey][s]`. If `isnothing(refseg)`, consider all other segments. Otherwise, consider the ones in `refseg`. 
-Return a `TreeTools.SplitList` object containing new splits. Does not modify the tree. 
+Attempt to resolve polytomy with root `a` using mutations from other segments. For all children of `c` of `a`, search for mutations in other segments `s` in `c.data.dat[cmkey][s]`. If `isnothing(refseg)`, consider all other segments. Otherwise, consider the ones in `refseg`.
+Return a `TreeTools.SplitList` object containing new splits. Does not modify the tree.
 
 ## Warning
-Returned splits are based on nodes below `a`. 
+Returned splits are based on nodes below `a`.
 """
 function resolve_polytomy(a::TreeNode, refseg=nothing; cmkey=:cmmuts)
 	# Count mutations
@@ -285,7 +286,7 @@ function resolve_polytomy(a::TreeNode, refseg=nothing; cmkey=:cmmuts)
 	end
 	# Build character table from mutations that appear more than once
 	chartab, labels, charid = get_cmmut_chartab(a, mutcount, cmkey)
-	# 
+	#
 	return CompatibilityTree.max_compatibility_splits(chartab, labels)
 end
 _inrefseg(s, refseg::AbstractArray) = in(s,refseg)
