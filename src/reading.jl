@@ -1,6 +1,3 @@
-export parse_nexus
-
-
 """
 Read mutations from treetime built nexus file. Return a dictionnary "node label" => (mutations, ...)
 """

@@ -1,22 +1,9 @@
 export trees2graph
 
 """
-	coarsegrain_trees2graph(t::Vararg{TreeTools.Tree})
-"""
-function coarsegrain_trees2graph(t::Vararg{TreeTools.Tree})
-	treelist = collect(t)
-	mcc = maximal_coherent_clades(treelist)
-	mcc_names = name_mcc_clades!(treelist, mcc)
-	for (i,t) in enumerate(treelist)
-		treelist[i] = reduce_to_mcc(t, mcc)
-	end
-	return trees2graph(treelist)
-end
-
-"""
 	trees2graph(t::Vararg{TreeTools.Tree})
 
-Create a `Graph` object `g` from a collection of trees. All trees should have the same leaf nodes. 
+Create a `Graph` object `g` from a collection of trees. All trees should have the same leaf nodes.
 1. An array of `LeafNode` from the leaves of trees
 2. Add internal nodes of each tree `t` to `g` calling `tree2graph!(g,t,k)`, where `k` is the position of `t` in the list
 """
@@ -49,8 +36,8 @@ end
 """
 	tree2graph!(g::Graph, t::TreeTools.Tree, k::Int64)
 
-Add internal nodes of `t` to `Graph` `g`. `g` should already have fields `leaves`, `labels` and `labels_to_int` initialized.  
-Call `tree2splitnodes(g, t.root, SplitNode(), k)` to start the process. 
+Add internal nodes of `t` to `Graph` `g`. `g` should already have fields `leaves`, `labels` and `labels_to_int` initialized.
+Call `tree2splitnodes(g, t.root, SplitNode(), k)` to start the process.
 """
 function tree2graph!(g::Graph, t::TreeTools.Tree, k::Int64)
 	length(t.lleaves) == length(g.leaves) || @error("`t.lleaves` and `g.leaves` do not have the same length. Graph was not initialized?")
@@ -61,13 +48,13 @@ end
 """
 	tree2splitnodes!(g::Graph, r::TreeTools.TreeNode, sr::SplitNode, k::Int64)
 
-Add children of `TreeNode` `r` to internal nodes of `g`. The `SplitNode` object `sr` corresponding to `r` should exist, except if `r` is root.  
-Recursively call `tree2splitnodes!` on children of `r`. 
+Add children of `TreeNode` `r` to internal nodes of `g`. The `SplitNode` object `sr` corresponding to `r` should exist, except if `r` is root.
+Recursively call `tree2splitnodes!` on children of `r`.
 """
 function tree2splitnodes!(g::Graph, r::TreeTools.TreeNode, sr::SplitNode, k::Int64)
 	if r.isroot
 		sr = SplitNode(anc=nothing, child=Array{GraphNode,1}(undef, length(r.child)), color=k, conf = treenode2conf(g,r), isroot=true)
-	end 
+	end
 
 	for (i,c) in enumerate(r.child)
 		if !c.isleaf
@@ -89,7 +76,7 @@ end
 """
 function treenode2conf(g::Graph, n::TreeTools.TreeNode)
 	N = length(g.labels)
-	tmp = [g.labels_to_int[x] for x in TreeTools.node_leavesclade_labels(n)]
+	tmp = [g.labels_to_int[x.label] for x in POTleaves(n)]
 	conf = zeros(Bool,N)
 	for idx in tmp
 		conf[idx] = true

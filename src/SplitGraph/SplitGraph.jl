@@ -26,9 +26,9 @@ opttrees(γ, Trange, M, seq_lengths, t...) = opttrees!(γ, Trange, M, seq_length
 """
 	opttrees!(t... ; γ=1.05, Trange=0.5:-0.01:0.05, M = 1000)
 
-Return a list of MCCs for input trees. 
+Return a list of MCCs for input trees.
 Output:
-1. 
+1.
 """
 opttrees!(t... ; γ=1.05, seq_lengths=1000 * ones(Int64, length(t)), Trange=reverse(0.01:0.05:1.1), M = 1000, likelihood_sort=true, resolve=true, sa_rep = 1) = opttrees!(γ, Trange, M, seq_lengths, t...; likelihood_sort=likelihood_sort, resolve=resolve, sa_rep = sa_rep)
 function opttrees!(γ, Trange, M, seq_lengths, t::Vararg{Tree}; likelihood_sort=true, resolve=true, sa_rep=1)
@@ -39,9 +39,9 @@ function opttrees!(γ, Trange, M, seq_lengths, t::Vararg{Tree}; likelihood_sort=
 	if length(mcc) == 1
 		return mcc, 0, 0., Int64[], Float64[], Union{Missing,Float64}[]
 	end
-	mcc_names = name_mcc_clades!(treelist, mcc)
+	mcc_names = RecombTools.name_mcc_clades!(treelist, mcc)
 	for (i,t) in enumerate(treelist)
-		treelist[i] = reduce_to_mcc(t, mcc)
+		treelist[i] = RecombTools.reduce_to_mcc(t, mcc)
 	end
 	g = trees2graph(treelist)
 
@@ -73,7 +73,7 @@ function sortconf(oconfs, trees, g::Graph, seq_lengths, mcc_names, likelihood_so
 		oconfs_ = oconfs[findall(c->sum(c)<length(c), oconfs)]
 	end
 	# Sorting the remaining configurations using Poisson likelihood ratios
-	if length(oconfs_) == 1 
+	if length(oconfs_) == 1
 		return oconfs_[1], Union{Missing,Float64}[]
 	elseif !likelihood_sort
 		v() && println("Picking a random configuration among remaining ones")
@@ -98,7 +98,7 @@ function sortconf(oconfs, trees, g::Graph, seq_lengths, mcc_names, likelihood_so
 		end
 		return rand(oconfs_), L
 	end
-end	
+end
 
 
 

@@ -1,5 +1,5 @@
-export pmut
-export logPoisson
+export pmut #
+export logPoisson #
 export tree_distancematrix
 export tree_distancematrix_null
 export match_history
@@ -12,8 +12,8 @@ export sym_likelihoodratio
 """
 	pmut(node1::TreeNode, node2::TreeNode, mu, tau)
 
-Probability of mutation from `node1` to `node2` in time `tau` with mutation rate `mu`.  
-This is estimated using the Hamming distance between the two sequences as realization of a Poisson distribution with parameter `mu*tau`. 	
+Probability of mutation from `node1` to `node2` in time `tau` with mutation rate `mu`.
+This is estimated using the Hamming distance between the two sequences as realization of a Poisson distribution with parameter `mu*tau`.
 """
 function pmut(node1::TreeNode, node2::TreeNode, mu, tau)
     n = hamming(node1.data.sequence, node2.data.sequence)
@@ -24,8 +24,8 @@ end
 """
 	logPoisson(n::Int64, lambda)
 
-Log of the probability of obtaining `n` events in a Poisson distribution of parameter `lambda`.  
-Keyval argument `minlambda`: If two segments of two individuals are identical, a tree inference software will conclude that `lambda=0`. Even in a recombinationless case, a mutation might have occured in the other segment. If `lambda=0`, the probability of this mutation is exactly 0, and its significance infinite. 
+Log of the probability of obtaining `n` events in a Poisson distribution of parameter `lambda`.
+Keyval argument `minlambda`: If two segments of two individuals are identical, a tree inference software will conclude that `lambda=0`. Even in a recombinationless case, a mutation might have occured in the other segment. If `lambda=0`, the probability of this mutation is exactly 0, and its significance infinite.
 """
 function logPoisson(n::Int64, lambda; minlambda = 1)
 	if lambda > minlambda
@@ -54,7 +54,7 @@ function tree_distancematrix(tree_ref, tree_test, mu)
 	    dmat[i,i] = 0.
 	    for j in (i+1):nleaves
 	        tau = node_divtime(tree_ref.leaves[i], tree_ref.leaves[j]) # Time between leaves in the reference tree
-	        p1 = pmut(tree_ref.leaves[i], tree_ref.leaves[j], mu, tau) 
+	        p1 = pmut(tree_ref.leaves[i], tree_ref.leaves[j], mu, tau)
 	        p2 = pmut(tree_test.leaves[i], tree_test.leaves[j], mu, tau)
 	        dmat[i,j] = p2 - p1
 	        dmat[j,i] = dmat[i,j]
@@ -70,7 +70,7 @@ function tree_distancematrix_null(tree, mu; rep = 2000)
 	pnull = Array{Float64,1}(undef,0)
 	for i in 1:nleaves
 	    for j in (i+1):nleaves
-	        tau = node_divtime(tree.leaves[i], tree.leaves[j]) 
+	        tau = node_divtime(tree.leaves[i], tree.leaves[j])
 	        n1 = rand(Poisson(mu*tau), rep)
 	        n2 = rand(Poisson(mu*tau), rep)
 	        append!(pnull, logPoisson.(n1, mu*tau) - logPoisson.(n2,mu*tau))
@@ -82,8 +82,8 @@ end
 """
 	likelihoodratio(tree_ref, tree_test, mu)
 
-Compute likelihood ratio value for all pairs of leaves in `tree_ref` and `tree_test`, taking `tree_ref` as a denominator of the ratio.  
-Output is a dictionary `Tuple{:label, :label} => value`. 
+Compute likelihood ratio value for all pairs of leaves in `tree_ref` and `tree_test`, taking `tree_ref` as a denominator of the ratio.
+Output is a dictionary `Tuple{:label, :label} => value`.
 """
 function likelihoodratio(tree_ref, tree_test, mu)
 	out = Dict{Tuple{fieldtype(TreeNode,:label), fieldtype(TreeNode,:label)}, Float64}()
@@ -106,7 +106,7 @@ end
 """
     sym_likelihoodratio(tree1, tree2)
 
-Output is a dictionary `Tuple{:label, :label} => value`. 
+Output is a dictionary `Tuple{:label, :label} => value`.
 """
 function sym_likelihoodratio(tree1::Tree, tree2::Tree)
     out = Dict{Tuple{fieldtype(TreeNode,:label), fieldtype(TreeNode,:label)}, Float64}()
@@ -126,7 +126,7 @@ function sym_likelihoodratio(tree1::Tree, tree2::Tree)
 end
 
 function sym_likelihoodratio(n1::Real,n2::Real)
-    if n1 == 0 && n2 == 0 
+    if n1 == 0 && n2 == 0
         return 0
     elseif n1 ==0 && n2 != 0
         return -n2*log(2)
@@ -140,7 +140,7 @@ end
 
 
 """
-Find set of coherent clades. 
+Find set of coherent clades.
 """
 function coherent_clade(tree, rootkey, cmap::Dict{Tuple{String, String}, Bool})
 	# List of labels of leavesclade
@@ -150,13 +150,13 @@ function coherent_clade(tree, rootkey, cmap::Dict{Tuple{String, String}, Bool})
     end
     cc_list = []
     for c in tree.nodes[rootkey].child
-        map(x->push!(cc_list,x), coherent_clade(tree, node_findkey(c,tree), cmap)) # Push all coherent sub-clades into existing coherent clades list 
+        map(x->push!(cc_list,x), coherent_clade(tree, node_findkey(c,tree), cmap)) # Push all coherent sub-clades into existing coherent clades list
     end
     return cc_list
 end
 
 """
-true if `cladekeys` is a coherent clade, *ie* all pairs verify `cmap[("i","j")] == true`. 
+true if `cladekeys` is a coherent clade, *ie* all pairs verify `cmap[("i","j")] == true`.
 """
 function is_coherent_clade(cladekeys, cmap::Dict{Tuple{String, String}, Bool})
     for li in cladekeys
@@ -170,90 +170,5 @@ function is_coherent_clade(cladekeys, cmap::Dict{Tuple{String, String}, Bool})
 end
 
 
-#####################
-##################### SPLITS
-#####################
-
-"""
-    new_splits(MCCs, t1::Tree, t2::Tree)
-
-Given MCCs and two trees, what are the new splits introduced in either of the trees. 
-Return an array `S` of `SplitList` objects, with `S[i][m]` corresponding to new splits in tree `i` from MCC `m`. 
-
-*Note*: Resulting splits are not always unique once constrained to leaves of MCCs! 
-"""
-function new_splits(MCCs, t1::Tree, t2::Tree)
-    splits1 = SplitList(t1)
-    splits2 = SplitList(t2)
-    # Splits corresponding to each mcc in both trees 
-    MCC_splits = splits_in_mccs(MCCs, t1, t2)
-    MCC_splits[1] = TreeTools.map_splits_to_tree(MCC_splits[1], t2)
-    MCC_splits[2] = TreeTools.map_splits_to_tree(MCC_splits[2], t1)
-    # Are those new or not? 
-    _new_splits!(MCC_splits[2], splits1)
-    _new_splits!(MCC_splits[1], splits2)
-    #
-    return MCC_splits[end:-1:1]
-end
-
-"""
-    new_splits(trees::Dict, MCCs::Dict)
-
-Find new splits in each tree of `trees` according to other trees and to `MCCs`. `MCCs` should be a dictionary indexed by pairs of keys of `trees`. 
-Return a dictionary of the form `ns[s]` with `s` a key of `trees`. 
-`ns[s]` is an array of `SplitList` objects, mapped onto `trees[s]`, with length `length(trees)-1`.
-"""
-function new_splits(trees::Dict, MCCs::Dict)
-    ns = Dict{Any, Array{SplitList,1}}()
-    for (sref,tref) in trees
-        ns[sref] = Array{SplitList,1}(undef, length(trees)-1)
-        i = 1
-        for (s,t) in trees
-            if s != sref
-                ns[sref][i] = RecombTools.new_splits(tref, MCCs[sref,s], t)
-                i += 1
-            end
-        end
-    end
-    return ns
-end
-
-"""
-    new_splits(tref::Tree, MCCs, t::Tree)
-
-What are the splits introduced in `tref` from `t` using consistent clades `MCCs`? 
-Return a single `SplitList` object, with unique splits mapped onto the leaves of `tref`. 
-"""
-function new_splits(tref::Tree, MCCs, t::Tree)
-    # Splits in `tref`
-    S_ref = SplitList(tref)
-    # Splits corresponding to each mcc in tree `t`
-    MCC_splits = TreeTools.map_splits_to_tree(splits_in_mccs(MCCs, t), tref)
-    # Take the new ones only
-    _new_splits!(MCC_splits, S_ref)
-    # Map them onto leaves of `tref`
-    return unique(TreeTools.map_splits_to_tree(MCC_splits, tref), usemask=false)
-end
-
-function _new_splits!(MCC_splits::SplitList, tree_splits::SplitList)
-    idx = Int64[]
-    for (i,s) in enumerate(MCC_splits)
-        in(s, tree_splits, MCC_splits.mask) && push!(idx,i)
-    end
-    deleteat!(MCC_splits.splits, idx)
-end
-
-"""
-Indices of true splits in `S` w.r. to `Sref`. 
-"""
-function true_splits(S::SplitList, Sref::SplitList, mask=S.mask)
-    idx = Int64[]
-    for (i,s) in enumerate(S)
-        in(s, Sref, mask) && push!(idx, i)
-    end
-    return idx
-end
-true_splits(S, tref::Tree, mask=S.mask) = true_splits(S, SplitList(tref), mask)
 
 
-    

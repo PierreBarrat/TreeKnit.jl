@@ -1,5 +1,6 @@
 module RecombTools
 
+#External modules
 using CSV
 using DataFrames
 using Debugger
@@ -8,19 +9,19 @@ using JSON3
 using Parameters
 using StatsBase
 using Setfield
-
+# Personal modules
 using ARGTools
 using TreeAlgs, TreeAlgs.CompatibilityTree
-using TreeTools 
+using TreeTools
 
 
-include("tools.jl")
-include("MCC.jl")
-export naive_mccs
-export name_mcc_clades!, adjust_branchlength!, reduce_to_mcc, reduce_to_mcc!
+include("mcc_base.jl")
+export naive_mccs, reduce_to_mcc, reduce_to_mcc!
 
+include("mcc_splits.jl")
+include("mcc_tools.jl")
 include("resolving.jl")
-export resolve!, resolve_from_mccs!, resolve_polytomy, resolve_polytomies
+export resolve!, resolve_from_mccs!
 
 include("reading.jl")
 include("SplitGraph/SplitGraph.jl")
@@ -31,7 +32,7 @@ include("objects.jl")
 export OptArgs
 
 include("main.jl")
-export runopt
+export computeMCCs, computeMCCs!
 
 include("artificialdata.jl")
 

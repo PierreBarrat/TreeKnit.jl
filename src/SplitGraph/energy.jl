@@ -25,13 +25,13 @@ function compute_energy(conf::Array{Bool,1}, g::Graph)
 				a1 = g.leaves[i].anc[k1]
 				# If ancestor is identical to leaf for given configuration (i.e. only one spin up), go up
 				# ie go up to the first non trivial split
-				while onespinup(a1.conf, conf) && !a1.isroot 
+				while onespinup(a1.conf, conf) && !a1.isroot
 					a1 = a1.anc::SplitNode
 				end
 				for k2 in (k1+1):g.K
-					# Same for 
+					# Same for
 					a2 = g.leaves[i].anc[k2]
-					while onespinup(a2.conf, conf) && !a2.isroot 
+					while onespinup(a2.conf, conf) && !a2.isroot
 						a2 = a2.anc
 					end
 
@@ -64,9 +64,9 @@ end
 """
 	are_equal_with_resolution(g, aconf1, aconf2, k2, conf)
 
-For every leaf `n` in `a1.conf`, all the ancestors of `n` in tree `k2` up to `a2` should have a split that is contained in `a1.conf`, for `conf` as a leaves state. If so, the split `a1.conf` (for `conf`) can be transformed into a clade in the other tree (`k2`) by adding one internal node.  
+For every leaf `n` in `a1.conf`, all the ancestors of `n` in tree `k2` up to `a2` should have a split that is contained in `a1.conf`, for `conf` as a leaves state. If so, the split `a1.conf` (for `conf`) can be transformed into a clade in the other tree (`k2`) by adding one internal node.
 
-**Expects `is_contained(a1.conf, a2.conf, conf)` to return `true`.**  
+**Expects `is_contained(a1.conf, a2.conf, conf)` to return `true`.**
 """
 function are_equal_with_resolution(g::SplitGraph.Graph, aconf1, aconf2, k2::Int64, conf)
 	for (i,s) in enumerate(aconf1)
@@ -88,7 +88,7 @@ function onespinup(nodeconf, conf)
 	@inbounds @simd for i in 1:length(conf)
 		if nodeconf[i] & conf[i]
 			n += 1
-			if n > 1 
+			if n > 1
 				return false
 			end
 		end
@@ -107,7 +107,7 @@ function nspinup(nodeconf, conf)
 end
 function are_disjoint(nconf1, nconf2, conf)
 	for (i,s) in enumerate(conf)
-		if s 
+		if s
 			if nconf1[i] === nconf2[i]
 				return false
 			end
@@ -115,7 +115,7 @@ function are_disjoint(nconf1, nconf2, conf)
 	end
 	return true
 end
-function is_contained(nconf1, nconf2, conf) # is 1 in 2 ? 
+function is_contained(nconf1, nconf2, conf) # is 1 in 2 ?
 	@inbounds @simd for i in 1:length(conf)
 		if conf[i] &  nconf1[i] & ~nconf2[i]
 			return false
@@ -123,7 +123,7 @@ function is_contained(nconf1, nconf2, conf) # is 1 in 2 ?
 	end
 	return true
 end
-function are_equal(nconf1, nconf2, conf) 
+function are_equal(nconf1, nconf2, conf)
 	@inbounds @simd for i in 1:length(conf)
 		if conf[i] & (nconf1[i] !== nconf2[i])
 			return false
@@ -153,12 +153,12 @@ function doMCMC(g::Graph, conf::Array{Bool,1}, M::Int64; T=1, γ=1)
 	_conf = copy(conf)
 	E = compute_energy(_conf, g)
 	F = E + γ*(length(conf) - sum(conf))
-	## 
+	##
 	ee = zeros(Real,M+1)
 	ff = zeros(Real,M+1)
 	ee[1] = E
 	ff[1] = F
-	## 
+	##
 	Fmin = F
 	oconf = [copy(_conf)]
 	for m in 1:M
@@ -197,7 +197,7 @@ end
 """
 function sa_opt(g::Graph; Trange=1.:-0.01:0.1, γ=1.05, M=1000, rep=1, resolve=true)
 	set_resolve(resolve)
-	# 
+	#
 	oconf = Any[]
 	E = Int64[]
 	F = Int64[]
@@ -247,7 +247,7 @@ end
 """
 	count_mismatches(g::Graph)
 
-Count the number of topological mismatches in `g`. Equivalent to `compute_energy(conf, g)` with `conf = ones(Bool)`. 
+Count the number of topological mismatches in `g`. Equivalent to `compute_energy(conf, g)` with `conf = ones(Bool)`.
 """
 function count_mismatches(g::Graph)
 	conf = ones(Bool, length(g.leaves))
@@ -260,7 +260,7 @@ end
 function count_mismatches(t::Vararg{Tree})
 	treelist = deepcopy(collect(t))
 	mcc = naive_mccs(treelist)
-	mcc_names = name_mcc_clades!(treelist, mcc)
+	mcc_names = RecombTools.name_mcc_clades!(treelist, mcc)
 	for (i,t) in enumerate(treelist)
 		RecombTools.reduce_to_mcc!(t, mcc)
 	end
