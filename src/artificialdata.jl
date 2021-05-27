@@ -234,24 +234,24 @@ function _eval_mcc_inf(rMCC, iMCC, t1::Tree)
     for n in Iterators.filter(x->!x.isroot, values(t1.lnodes))
         if RecombTools.is_branch_in_mccs(n,iMCC) # Branch predicted to be shared with the other tree
             if RecombTools.is_branch_in_mccs(n, rMCC) # Correct prediction
-                τc_p += n.data.tau
+                τc_p += n.tau
                 νc_p += 1.
             else
-                τc_n += n.data.tau
+                τc_n += n.tau
                 νc_n += 1.
             end
         else # Branch predicted to not be shared with the other tree
             if !RecombTools.is_branch_in_mccs(n, rMCC) # Correct prediction
-                τnc_p += n.data.tau
+                τnc_p += n.tau
                 νnc_p += 1.
             else
-                τnc_n += n.data.tau
+                τnc_n += n.tau
                 νnc_n += 1.
             end
         end
     end
     νc_p /= (length(t1.lnodes)-1); νnc_p /= (length(t1.lnodes)-1); νc_n /= (length(t1.lnodes)-1); νnc_n /= (length(t1.lnodes)-1)
-    T = sum(skipmissing(x.data.tau for x in values(t1.lnodes))) # Total branch length
+    T = sum(skipmissing(x.tau for x in values(t1.lnodes))) # Total branch length
     τc_p /= T; τnc_p /= T; τc_n /= T; τnc_n /= T
 
     return Dict(:τc_p => τc_p, :τnc_p => τnc_p, :τc_n => τc_n, :τnc_n => τnc_n,
@@ -358,14 +358,14 @@ end
     remove_branches!(n::TreeNode, p::Distribution)
 """
 function remove_branches!(n::TreeNode, p::Distribution)
-    if !ismissing(n.data.tau) && n.data.tau < rand(p)
+    if !ismissing(n.tau) && n.tau < rand(p)
         if !n.isleaf
             nr = delete_node!(n)
             for c in nr.child
                 remove_branches!(c, p)
             end
         else
-            n.data.tau = 0.
+            n.tau = 0.
         end
     else
         for c in n.child

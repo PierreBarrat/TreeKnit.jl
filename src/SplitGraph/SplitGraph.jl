@@ -72,6 +72,7 @@ function sortconf(oconfs, trees, g::Graph, seq_lengths, mcc_names, likelihood_so
 	else # Removing configurations where nothing is removed
 		oconfs_ = oconfs[findall(c->sum(c)<length(c), oconfs)]
 	end
+
 	# Sorting the remaining configurations using Poisson likelihood ratios
 	if length(oconfs_) == 1
 		return oconfs_[1], Union{Missing,Float64}[]
