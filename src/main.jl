@@ -120,7 +120,8 @@ end
 		runopt(oa::OptArgs, t1::Tree, t2::Tree)
 		runopt(oa::OptArgs, trees::Dict{<:Any,<:Tree})
 
-Run optimization at constant γ. See `?Optargs` for arguments.
+Run optimization at constant γ. See `?Optargs` for arguments. In the first form, keyword
+  arguments are given to `OptArgs`.
 """
 runopt(t1::Tree, t2::Tree; kwargs...) = runopt(OptArgs(;kwargs...), t1, t2)
 
