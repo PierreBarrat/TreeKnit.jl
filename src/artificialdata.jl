@@ -384,12 +384,6 @@ function remove_branches!(t::Tree, p)
     node2tree!(t, t.root)
     nothing
 end
-"""
-    remove_branches(t::Tree, p)
-"""
-function remove_branches(t::Tree, p)
-    tt = deepcopy(t)
-    remove_branches!(tt, p)
-    node2tree!(tt, tt.root)
-    return tt
-end
+remove_branches!(t::Tree, c::Real, N::Int) = remove_branches!(t, Exponential(c*N))
+
+

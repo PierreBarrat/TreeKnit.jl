@@ -3,19 +3,19 @@
 ###############################################################################################################
 
 """
-	resolve!(t::Tree, S::SplitList; conflict=:ignore, usemask=false, tau=0.)
+	resolve!(t::Tree, S::SplitList; conflict=:fail, usemask=false, tau=0.)
 
 Add splits in `S` to `t` by introducing internal nodes. New nodes are assigned a time `tau` (`0` by default).
 If `conflict != :ignore`, will fail if a split `s` in `S` is not compatible with `t`. Otherwise, silently skip the conflicting splits.
 """
-function resolve!(t::Tree{T}, S::SplitList; conflict=:ignore, usemask=false, tau=0.) where T
+function resolve!(t::Tree{T}, S::SplitList; conflict=:fail, usemask=false, tau=0.) where T
 	# Label for created nodes
 	label_i = parse(Int64, TreeTools.create_label(t, "RESOLVED")[10:end])
 	#
 	tsplits = SplitList(t)
 	for (i,s) in enumerate(S)
-		if !in(s, tsplits)
-			if iscompatible(s, tsplits, usemask=usemask)
+		if !in(s, tsplits; usemask)
+			if iscompatible(s, tsplits; usemask)
 				if usemask
 					roots = TreeTools.blca([t.lleaves[x] for x in S.leaves[S[i].dat .* S.mask]]...)
 				else
@@ -52,48 +52,112 @@ function resolve(trees::Dict{T, <:Tree}, splits::Dict{T, <:SplitList}; kwargs...
 	return resolved_trees
 end
 
-"""
-	resolve_ref!(Sref::SplitList, S::Vararg{SplitList}, usemask=false)
+#"""
+#	resolve_ref!(Sref::SplitList, S::Vararg{SplitList}, usemask=false)
 
-Add new and compatible splits of `S` to `Sref`. If `usemask`, masks are used to determine compatibility. Return the number of added splits.
-**Note**: the order of `S` matters if its elements contain incompatible splits!
+#Add new and compatible splits of `S` to `Sref`. If `usemask`, masks are used to determine compatibility. Return the number of added splits.
+#**Note**: the order of `S` matters if its elements contain incompatible splits!
+#"""
+#function resolve_ref!(Sref::SplitList, S::Vararg{SplitList}; usemask=false)
+#	c = 0
+#	for s in S
+#		for x in s
+#			if !in(x, Sref; usemask) && iscompatible(x, Sref; usemask)
+#				push!(Sref.splits, x)
+#				c += 1
+#			end
+#		end
+#	end
+#	return c
+#end
+
+#"""
+#	resolve!(S::Vararg{SplitList})
+
+#Resolve each element of `S` using other elements by calling `resolve!(S[i],S)` for all `i` until no new split can be added. If `usemask`, masks are used to determine compatibility.
+#"""
+#function resolve!(S::Vararg{SplitList}; usemask=false)
+#	nit = 0
+#	nitmax = 20
+#	flag = true
+#	while flag && nit < nitmax
+#		flag = false
+#		for s in S
+#			c = resolve_ref!(s, S...; usemask)
+#			if c != 0
+#				flag = true
+#			end
+#		end
+#		nit += 1
+#	end
+#	if nit == nitmax
+#		@warn "Maximum number of iterations reached"
+#	end
+#	nothing
+#end
+
+
+#####
+#####
 """
-function resolve_ref!(Sref::SplitList, S::Vararg{SplitList}; usemask=false)
+	resolve!(S1::SplitList, t1::Tree, S2::SplitList)
+
+Add splits of `S2` in `S1` if they resolve `t1`.
+"""
+function resolve!(S1new, S1::SplitList, t1::Tree, S2::SplitList)
 	c = 0
-	for s in S
-		for x in s
-			if !in(x, Sref) && iscompatible(x, Sref, usemask=usemask)
-				push!(Sref.splits, x)
+	for s2 in S2
+		r1 = lca(t1, S2.leaves[s2.dat]) # Ancestor of nodes in s2 in t1
+		s1 = S1.splitmap[r1.label]
+		if s1 != s2 && !in(s2, S1new) && arecompatible(s1, s2)
+			# Consider the set of splits just below r1 that are subsplits of s2
+			# If I join those, I should get exactly s2
+			# Otherwise, can't use s2 to resolve r1
+			stmp = Split(length(s2))
+			for n in r1.child
+				if n.isleaf
+					i = findfirst(==(n.label), S2.leaves)
+					if s2.dat[i]
+						stmp.dat[i] = true
+					end
+				else
+					if TreeTools.is_sub_split(S1.splitmap[n.label], s2)
+						TreeTools.joinsplits!(stmp, S1.splitmap[n.label])
+					end
+				end
+			end
+			if stmp == s2
+				println("add split $(S2.leaves[s2.dat])")
+				push!(S1.splits, s2)
+				push!(S1new, s2)
 				c += 1
 			end
 		end
 	end
+
 	return c
 end
 
-"""
-	resolve!(S::Vararg{SplitList})
-
-Resolve each element of `S` using other elements by calling `resolve!(S[i],S)` for all `i` until no new split can be added. If `usemask`, masks are used to determine compatibility.
-"""
-function resolve!(S::Vararg{SplitList}; usemask=false)
+function resolve!(S1::SplitList, S2::SplitList, t1::Tree, t2::Tree)
 	nit = 0
 	nitmax = 20
 	flag = true
+	S1new = []
+	S2new = []
 	while flag && nit < nitmax
 		flag = false
-		for s in S
-			c = resolve_ref!(s, S..., usemask=usemask)
-			if c != 0
-				flag = true
-			end
-		end
+		c = resolve!(S1new, S1, t1, S2)
+		c != 0 && (flag = true)
+		c = resolve!(S2new, S2, t2, S1)
+		c != 0 && (flag = true)
 		nit += 1
 	end
+
 	if nit == nitmax
 		@warn "Maximum number of iterations reached"
 	end
-	nothing
+
+	return nothing
 end
 
 ###############################################################################################################
@@ -107,13 +171,14 @@ Resolve `t1` using splits of `t2` and inversely. Every split of `t2` a tree that
 """
 function resolve!(t1::Tree, t2::Tree; tau=0.)
 	S = [SplitList(t) for t in (t1,t2)]
-	tsplits_a = deepcopy(S)
-	resolve!(S...; usemask=false)
+	tsplits_a = deepcopy(S) # for comparison in return value
+	#resolve!(S...; usemask=false)
+	resolve!(S[1], S[2], t1, t2)
 	for (t,s) in zip((t1,t2), S)
-		resolve!(t, s, conflict=:fail, usemask=true, tau=tau)
+		resolve!(t, s, conflict=:fail, usemask=false, tau=tau)
 	end
-	# return [SplitList(S[i].leaves, setdiff(S[i], tsplits_a[i]), S[i].mask, S[i].splitmap) for i in 1:length(S)]
-	return [setdiff(S[i], tsplits_a[i]) for i in eachindex(S)]
+
+	return [setdiff(S[i], tsplits_a[i], :none) for i in eachindex(S)]
 end
 
 

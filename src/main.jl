@@ -24,13 +24,25 @@ Controls parameters of the MCC inference (unless `naive=true`). See `?OptArgs` f
 - Else, use a pseudo-parsimonious method based (mostly) on topology. The method
   `runopt(oa,t1,t2)` is called on every pair of trees.
   by calling function `runopt(oa,t1,t2)` on pairs of trees. Return MCCs and resolved splits.
+
+### `output = :mccs`
+Control the type of output. If `:mccs`, only MCCs are returned. If `:all`, splits added
+	in trees during the inference process are returned as well.
 """
 function computeMCCs(
 	trees::Dict{<:Any, <:Tree}, oa::OptArgs=OptArgs();
-	preresolve=true, naive=false
+	preresolve = true, naive = false, output = :mccs,
 )
 	ct = deepcopy(trees)
-	computeMCCs!(ct, oa, preresolve=preresolve, naive=naive)
+	mccs, splits = computeMCCs!(ct, oa, preresolve=preresolve, naive=naive)
+	if output == :mccs
+		return mccs
+	elseif output == :all
+		return mccs, splits
+	else
+		@warn "Possible values for `output`: `:mccs` and `:all`. Using `:all`"
+		return mccs, splits
+	end
 end
 """
 	computeMCCs!(

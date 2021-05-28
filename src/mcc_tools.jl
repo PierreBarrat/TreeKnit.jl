@@ -154,11 +154,11 @@ function is_linked_pair(n1::T, n2::T, mccs::Array{Array{T,1},1}) where T
 end
 
 """
-    find_mcc_with_node(n::String, mccs::Array{Array{T,1},1}) where T
+    find_mcc_with_node(n::String, mccs::Array{Array{<:AbstractString,1},1})
 
 Find MCC to which `n` belongs.
 """
-function find_mcc_with_node(n::String, mccs::Array{Array{T,1},1}) where T
+function find_mcc_with_node(n::String, mccs)
     for m in mccs
         if in(n, m)
             return m
@@ -166,8 +166,8 @@ function find_mcc_with_node(n::String, mccs::Array{Array{T,1},1}) where T
     end
     return nothing
 end
-find_mcc_with_node(n::TreeNode, mccs) = find_mcc_with_node(n1.label, mccs)
-find_mcc_with_node(n::ARGNode, mccs) = find_mcc_with_node(n1.label, mccs)
+find_mcc_with_node(n::TreeNode, mccs) = find_mcc_with_node(n.label, mccs)
+find_mcc_with_node(n::ARGNode, mccs) = find_mcc_with_node(n.label, mccs)
 
 
 
