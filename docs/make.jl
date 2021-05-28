@@ -12,7 +12,9 @@ Documenter.makedocs(;
 	expandfirst = [],
 	pages = [
 		"Index" => "index.md",
+		"Usage" => "usage.md",
 		"Library" => [
+			"Types" => "types.md",
 			"Functions" => "functions.md",
 		]
 	]
