@@ -8,13 +8,13 @@
 Add splits in `S` to `t` by introducing internal nodes. New nodes are assigned a time `tau` (`0` by default).
 If `conflict != :ignore`, will fail if a split `s` in `S` is not compatible with `t`. Otherwise, silently skip the conflicting splits.
 """
-function resolve!(t::Tree{T}, S::SplitList; conflict=:fail, usemask=false, tau=0.) where T
+function resolve!(t::Tree{T}, S::SplitList; conflict=:fail, usemask=false, tau=0., safe=false) where T
 	# Label for created nodes
 	label_i = parse(Int64, TreeTools.create_label(t, "RESOLVED")[10:end])
 	#
 	tsplits = SplitList(t)
 	for (i,s) in enumerate(S)
-		if !in(s, tsplits; usemask)
+		if !safe && !in(s, tsplits; usemask)
 			if iscompatible(s, tsplits; usemask)
 				if usemask
 					roots = TreeTools.blca([t.lleaves[x] for x in S.leaves[S[i].dat .* S.mask]]...)
@@ -171,14 +171,14 @@ Resolve `t1` using splits of `t2` and inversely. Every split of `t2` a tree that
 """
 function resolve!(t1::Tree, t2::Tree; tau=0.)
 	S = [SplitList(t) for t in (t1,t2)]
-	tsplits_a = deepcopy(S) # for comparison in return value
+	Sref = [SplitList(t) for t in (t1,t2)] # for comparison in return value
 	#resolve!(S...; usemask=false)
 	resolve!(S[1], S[2], t1, t2)
 	for (t,s) in zip((t1,t2), S)
 		resolve!(t, s, conflict=:fail, usemask=false, tau=tau)
 	end
 
-	return [setdiff(S[i], tsplits_a[i], :none) for i in eachindex(S)]
+	return [setdiff(S[i], Sref[i], :none) for i in eachindex(S)]
 end
 
 

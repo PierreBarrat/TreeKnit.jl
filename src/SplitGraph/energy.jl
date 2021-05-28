@@ -85,15 +85,10 @@ end
 
 function onespinup(nodeconf, conf)
 	n = 0
-	@inbounds @simd for i in 1:length(conf)
-		if nodeconf[i] & conf[i]
-			n += 1
-			if n > 1
-				return false
-			end
-		end
+	@inbounds for i in eachindex(conf)
+		n += nodeconf[i] & conf[i]
 	end
-	return true
+	return n < 2
 end
 
 function nspinup(nodeconf, conf)

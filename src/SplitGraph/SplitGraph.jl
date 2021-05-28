@@ -21,8 +21,8 @@ let verbose::Bool = false, vverbose::Bool = false
 end
 
 
-opttrees(t...; kwargs...) = opttrees!(deepcopy(t)...; kwargs...)
-opttrees(γ, Trange, M, seq_lengths, t...) = opttrees!(γ, Trange, M, seq_lengths, deepcopy(t)...)
+opttrees(t...; kwargs...) = opttrees!([copy(x) for x in t]...; kwargs...)
+opttrees(γ, Trange, M, seq_lengths, t...) = opttrees!(γ, Trange, M, seq_lengths, [copy(x) for x in t]...)
 """
 	opttrees!(t... ; γ=1.05, Trange=0.5:-0.01:0.05, M = 1000)
 
