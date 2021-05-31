@@ -32,8 +32,6 @@ Output:
 """
 opttrees!(t... ; γ=1.05, seq_lengths=1000 * ones(Int64, length(t)), Trange=reverse(0.01:0.05:1.1), M = 1000, likelihood_sort=true, resolve=true, sa_rep = 1) = opttrees!(γ, Trange, M, seq_lengths, t...; likelihood_sort=likelihood_sort, resolve=resolve, sa_rep = sa_rep)
 function opttrees!(γ, Trange, M, seq_lengths, t::Vararg{Tree}; likelihood_sort=true, resolve=true, sa_rep=1)
-	# length(seq_lengths) != length(collect(t)) && @error "`seq_lengths` and `trees` do not have the same length."
-	#
 	treelist = collect(t)
 	mcc = naive_mccs(treelist)
 	if length(mcc) == 1

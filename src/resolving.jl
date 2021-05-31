@@ -127,7 +127,7 @@ function resolve!(S1new, S1::SplitList, t1::Tree, S2::SplitList)
 				end
 			end
 			if stmp == s2
-				println("add split $(S2.leaves[s2.dat])")
+				#println("add split $(S2.leaves[s2.dat])")
 				push!(S1.splits, s2)
 				push!(S1new, s2)
 				c += 1

@@ -54,7 +54,7 @@ function conf_likelihood_(divfunction, conf::Array{Bool,1}, g::Graph, seq_length
 				# Going up in SplitGraph and tree at the same time
 				a1 = g.leaves[i].anc[k1]
 				ta1 = tn1.anc
-				while onespinup(a1.conf, conf) && !a1.isroot 
+				while is_trivial_split(a1.conf, conf) && !a1.isroot
 					a1 = a1.anc::SplitNode
 					ta1 = ta1.anc
 				end
@@ -64,13 +64,13 @@ function conf_likelihood_(divfunction, conf::Array{Bool,1}, g::Graph, seq_length
 					# Going up in SplitGraph and tree at the same time
 					a2 = g.leaves[i].anc[k2]
 					ta2 = tn2.anc
-					while onespinup(a2.conf, conf) && !a2.isroot 
+					while is_trivial_split(a2.conf, conf) && !a2.isroot
 						a2 = a2.anc
 						ta2 = ta2.anc
 					end
 					# If a1.conf and a2.conf are equal, we just inferred that this branch is common to trees k1 and k2
-					# if are_equal(a1.conf, a2.conf, conf)
-					if are_equal_with_resolution(g, a1.conf, a2.conf, conf, k1, k2)
+					if (!get_resolve() && are_equal(a1.conf, a2.conf, conf)) ||
+						(get_resolve() && are_equal_with_resolution(g, a1.conf, a2.conf, conf, k1, k2))
 						tau1 = divfunction(tn1, ta1)
 						tau2 = divfunction(tn2, ta2)
 						v && println("No inconsistency for leaf $i ($(g.labels[i]))")
@@ -100,7 +100,7 @@ function conf_likelihood_times(conf::Array{Bool,1}, g::Graph, μ, trees; v=false
 				# Going up in SplitGraph and tree at the same time
 				a1 = g.leaves[i].anc[k1]
 				ta1 = tn1.anc
-				while onespinup(a1.conf, conf) && !a1.isroot 
+				while is_trivial_split(a1.conf, conf) && !a1.isroot
 					a1 = a1.anc::SplitNode
 					ta1 = ta1.anc
 				end
@@ -110,7 +110,7 @@ function conf_likelihood_times(conf::Array{Bool,1}, g::Graph, μ, trees; v=false
 					# Going up in SplitGraph and tree at the same time
 					a2 = g.leaves[i].anc[k2]
 					ta2 = tn2.anc
-					while onespinup(a2.conf, conf) && !a2.isroot 
+					while is_trivial_split(a2.conf, conf) && !a2.isroot
 						a2 = a2.anc
 						ta2 = ta2.anc
 					end

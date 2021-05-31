@@ -1,2 +1,3 @@
 tests
 tests/performance*
+tests/tmp_*
