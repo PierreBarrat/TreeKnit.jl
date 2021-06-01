@@ -301,8 +301,8 @@ end
 """
 	count_mismatches(t::Vararg{Tree})
 """
-function count_mismatches(t::Vararg{Tree})
-	treelist = deepcopy(collect(t))
+function count_mismatches(trees::Vararg{Tree})
+	treelist = [copy(t) for t in trees]
 	mcc = naive_mccs(treelist)
 	mcc_names = RecombTools.name_mcc_clades!(treelist, mcc)
 	for (i,t) in enumerate(treelist)
@@ -310,6 +310,7 @@ function count_mismatches(t::Vararg{Tree})
 	end
 	g = trees2graph(treelist)
 	conf = ones(Bool, length(g.leaves))
+
 	return compute_energy(conf, g)
 end
 
