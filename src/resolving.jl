@@ -8,7 +8,10 @@
 Add splits in `S` to `t` by introducing internal nodes. New nodes are assigned a time `tau` (`0` by default).
 If `conflict != :ignore`, will fail if a split `s` in `S` is not compatible with `t`. Otherwise, silently skip the conflicting splits.
 """
-function resolve!(t::Tree{T}, S::SplitList; conflict=:fail, usemask=false, tau=0., safe=false) where T
+function resolve!(
+	t::Tree{T}, S::SplitList;
+	conflict=:fail, usemask=false, tau=0., safe=false
+) where T
 	# Label for created nodes
 	label_i = parse(Int64, TreeTools.create_label(t, "RESOLVED")[10:end])
 	#
@@ -52,50 +55,6 @@ function resolve(trees::Dict{T, <:Tree}, splits::Dict{T, <:SplitList}; kwargs...
 	return resolved_trees
 end
 
-#"""
-#	resolve_ref!(Sref::SplitList, S::Vararg{SplitList}, usemask=false)
-
-#Add new and compatible splits of `S` to `Sref`. If `usemask`, masks are used to determine compatibility. Return the number of added splits.
-#**Note**: the order of `S` matters if its elements contain incompatible splits!
-#"""
-#function resolve_ref!(Sref::SplitList, S::Vararg{SplitList}; usemask=false)
-#	c = 0
-#	for s in S
-#		for x in s
-#			if !in(x, Sref; usemask) && iscompatible(x, Sref; usemask)
-#				push!(Sref.splits, x)
-#				c += 1
-#			end
-#		end
-#	end
-#	return c
-#end
-
-#"""
-#	resolve!(S::Vararg{SplitList})
-
-#Resolve each element of `S` using other elements by calling `resolve!(S[i],S)` for all `i` until no new split can be added. If `usemask`, masks are used to determine compatibility.
-#"""
-#function resolve!(S::Vararg{SplitList}; usemask=false)
-#	nit = 0
-#	nitmax = 20
-#	flag = true
-#	while flag && nit < nitmax
-#		flag = false
-#		for s in S
-#			c = resolve_ref!(s, S...; usemask)
-#			if c != 0
-#				flag = true
-#			end
-#		end
-#		nit += 1
-#	end
-#	if nit == nitmax
-#		@warn "Maximum number of iterations reached"
-#	end
-#	nothing
-#end
-
 
 #####
 #####
@@ -127,9 +86,8 @@ function resolve!(S1new, S1::SplitList, t1::Tree, S2::SplitList)
 				end
 			end
 			if stmp == s2
-				#println("add split $(S2.leaves[s2.dat])")
 				push!(S1.splits, s2)
-				push!(S1new, s2)
+				push!(S1new.splits, s2)
 				c += 1
 			end
 		end
@@ -142,8 +100,8 @@ function resolve!(S1::SplitList, S2::SplitList, t1::Tree, t2::Tree)
 	nit = 0
 	nitmax = 20
 	flag = true
-	S1new = []
-	S2new = []
+	S1new = SplitList(S1.leaves)
+	S2new = SplitList(S2.leaves)
 	while flag && nit < nitmax
 		flag = false
 		c = resolve!(S1new, S1, t1, S2)
@@ -157,7 +115,7 @@ function resolve!(S1::SplitList, S2::SplitList, t1::Tree, t2::Tree)
 		@warn "Maximum number of iterations reached"
 	end
 
-	return nothing
+	return [S1new, S2new]
 end
 
 ###############################################################################################################
@@ -171,14 +129,14 @@ Resolve `t1` using splits of `t2` and inversely. Every split of `t2` a tree that
 """
 function resolve!(t1::Tree, t2::Tree; tau=0.)
 	S = [SplitList(t) for t in (t1,t2)]
-	Sref = [SplitList(t) for t in (t1,t2)] # for comparison in return value
+	#Sref = [SplitList(t) for t in (t1,t2)] # for comparison in return value
 	#resolve!(S...; usemask=false)
-	resolve!(S[1], S[2], t1, t2)
-	for (t,s) in zip((t1,t2), S)
+	Snew = resolve!(S[1], S[2], t1, t2)
+	for (t, s) in zip((t1,t2), S)
 		resolve!(t, s, conflict=:fail, usemask=false, tau=tau)
 	end
 
-	return [setdiff(S[i], Sref[i], :none) for i in eachindex(S)]
+	return Snew
 end
 
 
