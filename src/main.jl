@@ -33,7 +33,7 @@ function computeMCCs(
 	trees::Dict{<:Any, <:Tree}, oa::OptArgs=OptArgs();
 	preresolve = true, naive = false, output = :mccs,
 )
-	ct = deepcopy(trees)
+	ct = Dict(k=>copy(t) for (k,t) in trees)
 	mccs, splits = computeMCCs!(ct, oa, preresolve=preresolve, naive=naive)
 	if output == :mccs
 		return mccs
@@ -142,7 +142,7 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree)
 end
 function runopt(oa::OptArgs, trees::Dict)
 	#
-	ot = deepcopy(trees)
+	ot = Dict(k=>copy(t) for (k,t) in trees)
 	oa.resolve && resolve!(values(ot)...)
 	#
 	iMCCs = naive_mccs(values(ot)...)

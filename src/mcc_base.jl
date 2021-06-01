@@ -213,9 +213,12 @@ function reduce_to_mcc!(tree::Tree, MCC)
     for m in MCC
         r = lca([tree.lnodes[x] for x in m])
         if r.isroot
-            node2tree!(tree, TreeNode(r.data, isleaf=true, isroot = true, label=r.label))
+            node2tree!(tree, TreeNode(
+                    r.data;
+                    isleaf=true, isroot = true, label=r.label, r.tau
+                ))
         elseif !r.isleaf
-            rn = TreeNode(r.data, isleaf=true, isroot = true, label=r.label)
+            rn = TreeNode(r.data, isleaf=true, isroot = true, label=r.label, tau = r.tau)
             a = r.anc
             prunenode!(r)
             graftnode!(a, rn)

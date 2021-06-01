@@ -182,10 +182,11 @@ function eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
                 MCCs, resolved_splits = computeMCCs!(trees, oa, preresolve=preresolve)
                 return MCCs, resolved_splits, init_splits
             catch err
+                mkpath("tmp")
                 write_newick("tmp/tree1.nwk", trees[1])
                 write_newick("tmp/tree2.nwk", trees[2])
-                TreeTools.write_fasta("tmp/aln1.fasta", trees[1], :selfseq)
-                TreeTools.write_fasta("tmp/aln2.fasta", trees[2], :selfseq)
+                #TreeTools.write_fasta("tmp/aln1.fasta", trees[1], :selfseq)
+                #TreeTools.write_fasta("tmp/aln2.fasta", trees[2], :selfseq)
                 error(err)
             end
         end

@@ -25,16 +25,15 @@ function compute_energy(conf::Array{Bool,1}, g::Graph)
 				a1 = g.leaves[i].anc[k1]
 				# If ancestor is identical to leaf for given configuration (i.e. only one spin up), go up
 				# ie go up to the first non trivial split
-				while onespinup(a1.conf, conf) && !a1.isroot
+				while is_trivial_split(a1.conf, conf) && !a1.isroot
 					a1 = a1.anc::SplitNode
 				end
 				for k2 in (k1+1):g.K
 					# Same for
 					a2 = g.leaves[i].anc[k2]
-					while onespinup(a2.conf, conf) && !a2.isroot
+					while is_trivial_split(a2.conf, conf) && !a2.isroot
 						a2 = a2.anc
 					end
-
 					if get_resolve() && !are_equal_with_resolution(g, a1.conf, a2.conf, conf, k1, k2)
 						E += 1
 					elseif !get_resolve() && !are_equal(a1.conf, a2.conf, conf)
@@ -46,6 +45,39 @@ function compute_energy(conf::Array{Bool,1}, g::Graph)
 	end
 	return E
 end
+
+#function are_equal(nconf1, nconf2, conf)
+#	@inbounds for i in 1:length(conf)
+#		if conf[i] & (nconf1[i] !== nconf2[i])
+#			return false
+#		end
+#	end
+#	return true
+#end
+"""
+	 are_equal(nconf1, nconf2, conf)
+
+Are internal configurations `nconf1` and `nconf2` equal for leaf configuration `conf`?
+"""
+function are_equal(nconf1, nconf2, conf)
+	_in = max(length(nconf1), length(nconf2)) > 25 ? insorted : in
+
+	@inbounds for n1 in nconf1
+		if conf[n1] && !_in(n1, nconf2)
+			return false
+		end
+	end
+
+	@inbounds for n2 in nconf2
+		if conf[n2] && !_in(n2, nconf1)
+			return false
+		end
+	end
+
+	return true
+end
+
+
 
 """
 	are_equal_with_resolution(g, aconf1, aconf2, conf, k1, k2)
@@ -69,10 +101,22 @@ For every leaf `n` in `a1.conf`, all the ancestors of `n` in tree `k2` up to `a2
 **Expects `is_contained(a1.conf, a2.conf, conf)` to return `true`.**
 """
 function are_equal_with_resolution(g::SplitGraph.Graph, aconf1, aconf2, k2::Int64, conf)
-	for (i,s) in enumerate(aconf1)
-		if s && conf[i]
+	#for (i,s) in enumerate(aconf1)
+	#	if s && conf[i]
+	#		a = g.leaves[i].anc[k2]
+	#		while !are_equal(a.conf, aconf2)
+	#			if !is_contained(a.conf, aconf1, conf)
+	#				return false
+	#			end
+	#			a = a.anc::SplitNode
+	#		end
+	#	end
+	#end
+
+	for i in aconf1
+		if conf[i]
 			a = g.leaves[i].anc[k2]
-			while !are_equal(a.conf, aconf2)
+			while a.conf != aconf2
 				if !is_contained(a.conf, aconf1, conf)
 					return false
 				end
@@ -82,53 +126,58 @@ function are_equal_with_resolution(g::SplitGraph.Graph, aconf1, aconf2, k2::Int6
 	end
 	return true
 end
+#function are_equal(nconf1, nconf2)
+#	@inbounds @simd for i in 1:length(nconf1)
+#		if nconf1[i] !== nconf2[i]
+#			return false
+#		end
+#	end
+#	return true
+#end
 
-function onespinup(nodeconf, conf)
+#function onespinup(nodeconf, conf)
+#	n = 0
+#	@inbounds for i in eachindex(conf)
+#		n += nodeconf[i] & conf[i]
+#	end
+#	return n < 2
+#end
+function is_trivial_split(nodeconf, conf)
 	n = 0
-	@inbounds for i in eachindex(conf)
-		n += nodeconf[i] & conf[i]
+	@inbounds for i in nodeconf
+		n += conf[i]
 	end
 	return n < 2
 end
 
-function nspinup(nodeconf, conf)
-	n = 0
-	@inbounds @simd for i in 1:length(nodeconf)
-		if nodeconf[i] & conf[i]
-			n += 1
-		end
-	end
-	return n
-end
-function are_disjoint(nconf1, nconf2, conf)
-	for (i,s) in enumerate(conf)
-		if s
-			if nconf1[i] === nconf2[i]
-				return false
-			end
-		end
-	end
-	return true
-end
-function is_contained(nconf1, nconf2, conf) # is 1 in 2 ?
-	@inbounds @simd for i in 1:length(conf)
-		if conf[i] &  nconf1[i] & ~nconf2[i]
-			return false
-		end
-	end
-	return true
-end
-function are_equal(nconf1, nconf2, conf)
-	@inbounds @simd for i in 1:length(conf)
-		if conf[i] & (nconf1[i] !== nconf2[i])
-			return false
-		end
-	end
-	return true
-end
-function are_equal(nconf1, nconf2)
-	@inbounds @simd for i in 1:length(nconf1)
-		if nconf1[i] !== nconf2[i]
+#function nspinup(nodeconf, conf)
+#	n = 0
+#	@inbounds @simd for i in 1:length(nodeconf)
+#		if nodeconf[i] & conf[i]
+#			n += 1
+#		end
+#	end
+#	return n
+#end
+#function are_disjoint(nconf1, nconf2, conf)
+#	for (i,s) in enumerate(conf)
+#		if s
+#			if nconf1[i] === nconf2[i]
+#				return false
+#			end
+#		end
+#	end
+#	return true
+#end
+"""
+	is_contained(nconf1, nconf2, conf)
+
+Is `nconf1` in `nconf2` for leaf configuration `conf`?
+"""
+function is_contained(nconf1, nconf2, conf)
+	_in = max(length(nconf2)) > 25 ? insorted : in
+	@inbounds for i in nconf1
+		if conf[i] && !_in(i, nconf2)
 			return false
 		end
 	end
@@ -252,8 +301,8 @@ end
 """
 	count_mismatches(t::Vararg{Tree})
 """
-function count_mismatches(t::Vararg{Tree})
-	treelist = deepcopy(collect(t))
+function count_mismatches(trees::Vararg{Tree})
+	treelist = [copy(t) for t in trees]
 	mcc = naive_mccs(treelist)
 	mcc_names = RecombTools.name_mcc_clades!(treelist, mcc)
 	for (i,t) in enumerate(treelist)
@@ -261,6 +310,7 @@ function count_mismatches(t::Vararg{Tree})
 	end
 	g = trees2graph(treelist)
 	conf = ones(Bool, length(g.leaves))
+
 	return compute_energy(conf, g)
 end
 

@@ -16,10 +16,17 @@ mutable struct SplitNode <: GraphNode
 	anc::Union{SplitNode,Nothing}
 	child::Array{GraphNode,1}
 	color::Int64
-	conf::Array{Bool,1}
+	conf::Array{Int,1}
 	isroot::Bool
+	SplitNode(anc, child, color, conf, isroot) = new(anc, child, color, sort(conf), isroot)
 end
-function SplitNode( ; anc=nothing, child=Array{GraphNode,1}(undef, 0), color=0, conf=Array{Bool,1}(undef,0), isroot=true)
+function SplitNode(;
+	anc=nothing,
+	child=Array{GraphNode,1}(undef, 0),
+	color=0,
+	conf=Array{Int,1}(undef,0),
+	isroot=true
+)
 	return  SplitNode(anc, child, color, conf, isroot)
 end
 
@@ -27,16 +34,21 @@ end
 	mutable struct LeafNode <: GraphNode
 
 Represent a leaf in the graph of splits. 
-- `anc::Array{SplitNode,1}`: One `SplitNode` ancestor for each segment. 
-- `conf::Array{Bool,1}`: there is only one `i` for which `conf[i]`, by definition.
-- `index::Int64`: `conf[index]==true`
 """
 mutable struct LeafNode <: GraphNode
 	anc::Array{SplitNode,1}
-	conf::Array{Bool,1}
-	index::Int64
+	conf::Array{Int,1}
+	index::Int
+	LeafNode(anc, conf, index::Int) = begin
+		if length(conf) == 1 && conf[1] == index
+			return new(anc, conf, index)
+		else
+			error("Can't create LeafNode from conf=$conf and index=$index")
+		end
+	end
 end
-function LeafNode(;anc=Array{SplitNode,1}(undef, 0), conf=Array{Bool,1}(undef,0), index=0)
+LeafNode(anc, index::Int) = LeafNode(anc, [index], index)
+function LeafNode(;anc = Array{SplitNode}(undef, 0), conf = Int[0], index=0)
 	return LeafNode(anc, conf, index)
 end
 
