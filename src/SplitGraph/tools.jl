@@ -75,7 +75,12 @@ function tree2splitnodes!(g::Graph, r::TreeTools.TreeNode, sr::SplitNode, k::Int
 		)
 		push!(g.internals, sr)
 	end
-
+	# Special case of single leaf tree
+	if r.isleaf
+		push!(sr.child, g.lleaves[r.label])
+		g.lleaves[r.label].anc[k] = sr
+	end
+	#
 	for (i,c) in enumerate(r.child)
 		if !c.isleaf
 			sc = SplitNode(;
