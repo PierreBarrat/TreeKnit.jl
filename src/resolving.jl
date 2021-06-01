@@ -56,8 +56,6 @@ function resolve(trees::Dict{T, <:Tree}, splits::Dict{T, <:SplitList}; kwargs...
 end
 
 
-#####
-#####
 """
 	resolve!(S1::SplitList, t1::Tree, S2::SplitList)
 
@@ -129,8 +127,6 @@ Resolve `t1` using splits of `t2` and inversely. Every split of `t2` a tree that
 """
 function resolve!(t1::Tree, t2::Tree; tau=0.)
 	S = [SplitList(t) for t in (t1,t2)]
-	#Sref = [SplitList(t) for t in (t1,t2)] # for comparison in return value
-	#resolve!(S...; usemask=false)
 	Snew = resolve!(S[1], S[2], t1, t2)
 	for (t, s) in zip((t1,t2), S)
 		resolve!(t, s, conflict=:fail, usemask=false, tau=tau)
