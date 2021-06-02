@@ -218,7 +218,7 @@ end
 Reduce `tree` to its MCC by grouping leaves. Returns a tree with `length(MCC)` leaves.
 """
 function reduce_to_mcc(tree::Tree, MCC)
-    out = copy(tree)
+    out = copy(tree, TreeTools.EmptyData)
     reduce_to_mcc!(out, MCC)
     return out
 end

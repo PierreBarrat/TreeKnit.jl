@@ -9,7 +9,7 @@ function _splits_in_mcc(m::Array{<:AbstractString}, t::Tree, leaves::Array{<:Abs
     end
     #
     r = lca(t.lleaves[x] for x in m)
-    S = SplitList(r, leaves, mask)
+    S = SplitList(r, leaves, mask, leafmap)
     TreeTools.clean!(S, clean_root=false)
     return S
 end

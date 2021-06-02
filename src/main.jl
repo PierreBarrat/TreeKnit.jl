@@ -34,7 +34,21 @@ function computeMCCs(
 	preresolve = true, naive = false, output = :mccs,
 )
 	ct = Dict(k=>copy(t) for (k,t) in trees)
-	mccs, splits = computeMCCs!(ct, oa, preresolve=preresolve, naive=naive)
+	return computeMCCs!(ct, oa; preresolve, naive, output)
+end
+"""
+	computeMCCs!(
+		trees::Dict{<:Any, <:Tree}, oa::OptArgs=OptArgs();
+		preresolve = true, naive = false, output = :mccs
+	)
+
+See `computeMCCs`.
+"""
+function computeMCCs!(
+	trees::Dict{<:Any, <:Tree}, oa::OptArgs=OptArgs();
+	preresolve = true, naive = false, output = :mccs
+)
+	mccs, splits = _computeMCCs!(trees, oa; preresolve, naive)
 	if output == :mccs
 		return mccs
 	elseif output == :all
@@ -44,15 +58,7 @@ function computeMCCs(
 		return mccs, splits
 	end
 end
-"""
-	computeMCCs!(
-		trees::Dict{<:Any, <:Tree}, oa::OptArgs=OptArgs();
-		preresolve=true, naive=false
-	)
-
-See `computeMCCs`.
-"""
-function computeMCCs!(
+function _computeMCCs!(
 	trees::Dict{<:Any, <:Tree}, oa::OptArgs=OptArgs();
 	preresolve=true, naive=false
 )
@@ -142,7 +148,8 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree)
 end
 function runopt(oa::OptArgs, trees::Dict)
 	#
-	ot = Dict(k=>copy(t) for (k,t) in trees)
+	datatype = oa.crossmap_prune ? TreeTools.MiscData : TreeTools.EmptyData
+	ot = Dict(k=>copy(t, datatype) for (k,t) in trees)
 	oa.resolve && resolve!(values(ot)...)
 	#
 	iMCCs = naive_mccs(values(ot)...)

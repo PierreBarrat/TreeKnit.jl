@@ -48,7 +48,7 @@ end
 Resolve `trees[s]` with splits in `splits[s]` by calling `resolve!`. Return dictionary of resolved trees. `trees` and `splits` must share keys. This is meant to be used for dictionaries of trees/splits indexed by flu segments.
 """
 function resolve(trees::Dict{T, <:Tree}, splits::Dict{T, <:SplitList}; kwargs...) where T
-	resolved_trees = deepcopy(trees)
+	resolved_trees = Dict(k => copy(t) for (k,t) in trees)
 	for (s,S) in splits
 		resolve!(resolved_trees[s], S; kwargs...)
 	end
@@ -64,7 +64,11 @@ Add splits of `S2` in `S1` if they resolve `t1`.
 function resolve!(S1new, S1::SplitList, t1::Tree, S2::SplitList)
 	c = 0
 	for s2 in S2
-		r1 = lca(t1, S2.leaves[s2.dat]) # Ancestor of nodes in s2 in t1
+		r1 = t1.lleaves[S2.leaves[s2.dat[1]]]
+		for i in 2:length(s2.dat)
+			r1 = lca(r1, t1.lleaves[S2.leaves[s2.dat[i]]])
+		end
+		#r1 = lca(t1, S2.leaves[s2.dat]) # Ancestor of nodes in s2 in t1
 		s1 = S1.splitmap[r1.label]
 		if s1 != s2 && !in(s2, S1new) && arecompatible(s1, s2)
 			# Consider the set of splits just below r1 that are subsplits of s2

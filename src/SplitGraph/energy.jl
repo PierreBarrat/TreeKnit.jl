@@ -18,7 +18,7 @@ function compute_energy(conf::Array{Bool,1}, g::Graph)
 	if length(g.leaves) + length(g.internals) == 1
 		return E
 	end
-	for (i,s) in enumerate(conf)
+	@inbounds for (i,s) in enumerate(conf)
 		if s
 			for k1 in 1:g.K
 				# Ancestors in tree k1
@@ -46,14 +46,6 @@ function compute_energy(conf::Array{Bool,1}, g::Graph)
 	return E
 end
 
-#function are_equal(nconf1, nconf2, conf)
-#	@inbounds for i in 1:length(conf)
-#		if conf[i] & (nconf1[i] !== nconf2[i])
-#			return false
-#		end
-#	end
-#	return true
-#end
 """
 	 are_equal(nconf1, nconf2, conf)
 
@@ -101,19 +93,7 @@ For every leaf `n` in `a1.conf`, all the ancestors of `n` in tree `k2` up to `a2
 **Expects `is_contained(a1.conf, a2.conf, conf)` to return `true`.**
 """
 function are_equal_with_resolution(g::SplitGraph.Graph, aconf1, aconf2, k2::Int64, conf)
-	#for (i,s) in enumerate(aconf1)
-	#	if s && conf[i]
-	#		a = g.leaves[i].anc[k2]
-	#		while !are_equal(a.conf, aconf2)
-	#			if !is_contained(a.conf, aconf1, conf)
-	#				return false
-	#			end
-	#			a = a.anc::SplitNode
-	#		end
-	#	end
-	#end
-
-	for i in aconf1
+	@inbounds for i in aconf1
 		if conf[i]
 			a = g.leaves[i].anc[k2]
 			while a.conf != aconf2
@@ -126,49 +106,18 @@ function are_equal_with_resolution(g::SplitGraph.Graph, aconf1, aconf2, k2::Int6
 	end
 	return true
 end
-#function are_equal(nconf1, nconf2)
-#	@inbounds @simd for i in 1:length(nconf1)
-#		if nconf1[i] !== nconf2[i]
-#			return false
-#		end
-#	end
-#	return true
-#end
 
-#function onespinup(nodeconf, conf)
-#	n = 0
-#	@inbounds for i in eachindex(conf)
-#		n += nodeconf[i] & conf[i]
-#	end
-#	return n < 2
-#end
 function is_trivial_split(nodeconf, conf)
 	n = 0
 	@inbounds for i in nodeconf
-		n += conf[i]
+		if conf[i]
+			n += 1
+		end
 	end
 	return n < 2
 end
 
-#function nspinup(nodeconf, conf)
-#	n = 0
-#	@inbounds @simd for i in 1:length(nodeconf)
-#		if nodeconf[i] & conf[i]
-#			n += 1
-#		end
-#	end
-#	return n
-#end
-#function are_disjoint(nconf1, nconf2, conf)
-#	for (i,s) in enumerate(conf)
-#		if s
-#			if nconf1[i] === nconf2[i]
-#				return false
-#			end
-#		end
-#	end
-#	return true
-#end
+
 """
 	is_contained(nconf1, nconf2, conf)
 
@@ -302,7 +251,7 @@ end
 	count_mismatches(t::Vararg{Tree})
 """
 function count_mismatches(trees::Vararg{Tree})
-	treelist = [copy(t) for t in trees]
+	treelist = [copy(t, TreeTools.EmptyData) for t in trees]
 	mcc = naive_mccs(treelist)
 	mcc_names = RecombTools.name_mcc_clades!(treelist, mcc)
 	for (i,t) in enumerate(treelist)
