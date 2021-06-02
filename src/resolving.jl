@@ -20,9 +20,9 @@ function resolve!(
 		if !safe && !in(s, tsplits; usemask)
 			if iscompatible(s, tsplits; usemask)
 				if usemask
-					roots = TreeTools.blca([t.lleaves[x] for x in S.leaves[S[i].dat .* S.mask]]...)
+					roots = TreeTools.blca([t.lleaves[x] for x in leaves(S,i)]...)
 				else
-					roots = TreeTools.blca([t.lleaves[x] for x in S.leaves[S[i].dat]]...)
+					roots = TreeTools.blca([t.lleaves[x] for x in leaves(S,i)]...)
 				end
 				R = lca(roots)
 				# Creating a new node with `roots` as children and `r` as ancestor.
@@ -70,12 +70,12 @@ function resolve!(S1new, S1::SplitList, t1::Tree, S2::SplitList)
 			# Consider the set of splits just below r1 that are subsplits of s2
 			# If I join those, I should get exactly s2
 			# Otherwise, can't use s2 to resolve r1
-			stmp = Split(length(s2))
+			stmp = Split(0)
 			for n in r1.child
 				if n.isleaf
 					i = findfirst(==(n.label), S2.leaves)
-					if s2.dat[i]
-						stmp.dat[i] = true
+					if in(i, s2.dat)
+						TreeTools.joinsplits!(stmp, Split([i]))
 					end
 				else
 					if TreeTools.is_sub_split(S1.splitmap[n.label], s2)
@@ -83,6 +83,7 @@ function resolve!(S1new, S1::SplitList, t1::Tree, S2::SplitList)
 					end
 				end
 			end
+
 			if stmp == s2
 				push!(S1.splits, s2)
 				push!(S1new.splits, s2)
@@ -271,14 +272,19 @@ resolve_crossmapped_muts!(t::Tree, refseg=nothing; cmkey=:cmmuts) = resolve!(t, 
 function _add_splits!(Snew, polyS, Sref)
 	for ps in polyS
 		snew = TreeTools.Split(length(Snew.leaves))
-		for (i,x) in enumerate(ps.dat)
-			if x # Polytomy-level leaf `i` is in the split
-				sref = get(Sref.splitmap, polyS.leaves[i]) do
-					snew.dat[findfirst(==(polyS.leaves[i]), Sref.leaves)] = true
-					nothing
-				end # Corresponding split at the tree level - if it's a leaf, it won't be there, hence the get(f,dict,key) do syntax
-				!isnothing(sref) && TreeTools.joinsplits!(snew, sref)
+		for i in ps
+			# Polytomy-level leaf `i` is in the split
+			sref = get(Sref.splitmap, polyS.leaves[i]) do
+				TreeTools.joinsplits!(
+					snew,
+					Split([findfirst(==(polyS.leaves[i]), Sref.leaves)])
+				)
+				#snew.dat[findfirst(==(polyS.leaves[i]), Sref.leaves)] = true
+				nothing
+			# Corresponding split at the tree level
+			# if it's a leaf, it won't be there, hence the get(f,dict,key) do syntax
 			end
+			!isnothing(sref) && TreeTools.joinsplits!(snew, sref)
 		end
 		push!(Snew.splits, snew)
 	end
@@ -287,7 +293,11 @@ end
 """
 	resolve_polytomy(a::TreeNode, refseg=nothing; cmkey=:cmmuts)
 
-Attempt to resolve polytomy with root `a` using mutations from other segments. For all children of `c` of `a`, search for mutations in other segments `s` in `c.data.dat[cmkey][s]`. If `isnothing(refseg)`, consider all other segments. Otherwise, consider the ones in `refseg`.
+Attempt to resolve polytomy with root `a` using mutations from other segments.
+  For all children of `c` of `a`, search for mutations in other segments `s`
+  in `c.data.dat[cmkey][s]`.
+  If `isnothing(refseg)`, consider all other segments.
+  Otherwise, consider the ones in `refseg`.
 Return a `TreeTools.SplitList` object containing new splits. Does not modify the tree.
 
 ## Warning

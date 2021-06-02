@@ -3,13 +3,15 @@
 
 Find sets of nodes which are:
 - clades in all trees of `treelist`,
-- all subclades of nodes are clades in all trees of `treelist` (both of these properties define consistency),
-- maximal: adding a node to a set results it in not being a clade in at least one of the trees.
+- all subclades of nodes are clades in all trees of `treelist`
+  (both of these properties define consistency),
+- maximal: adding a node to a set results it in not being a clade in at least
+  one of the trees.
+
 All the trees of `treelist` should share the same leaf nodes.
 """
 function naive_mccs(treelist)
-
-    # Checking that trees have the same label for leaf nodes
+    # Check that trees share leaves
     sh = mapreduce(t->share_labels(t[1],t[2]), *, zip(treelist[1:end-1], treelist[2:end]))
     !sh && error("Can only be used on trees that share leaf nodes.")
 
@@ -24,20 +26,36 @@ function naive_mccs(treelist)
     mc_clades = []
     for (cl,v) in checklist
         if !v # If leave not already visited
-            # We're going to go up in all trees at the same time
-            croot = [t.lleaves[cl] for t in treelist] # Root of current maximal clade, in all trees
-            clabel = [cl]
+            # Root of current maximal clade, in all trees
+            croot = [t.lleaves[cl] for t in treelist]
             # Initial individual, always a common clade in all trees since it's a leaf.
+            clabel = [cl]
+
+            # We're going to go up in all trees at the same time
             flag = true
             while flag && prod(!x.isroot for x in croot)
-                nroot = [x.anc for x in croot] # Ancestors of current maximal clade in all trees
-                # Each element of `nroot` defines a new set of labels corresponding to one tree. There are two possibilites
-                # (i) Those sets of labels match. In this case, we have a potential consistent clade. To check further, call `is_coherent_clade`.
-                # (ii) Otherwise, the topology of trees in `treelist` is inconsistent above `croot`. `croot` is an MCC, break.
-                if mapreduce(i->S[1].splitmap[nroot[1].label] == S[i].splitmap[nroot[i].label], *, 2:length(nroot))
-                    # --> `r \in nroot` is the same split in all trees
-                    if is_coherent_clade(nroot,S) # check if children of `r` are also same splits in all trees
-                        if nroot == croot # Singleton in the tree, or clade with a single node --> the algorithm is getting stuck on this node
+                # Ancestors of current maximal clade in all trees
+                nroot = [x.anc for x in croot]
+                # Each element of `nroot` defines a set of labels corresponding to a tree.
+                # There are two possibilites
+                # (i) Those sets of labels match.
+                ## In this case, we have a potential consistent clade.
+                ## To check further, call `is_coherent_clade`.
+                ## This is checked using the previously computed `SplitList`
+                # (ii) Else,
+                ## The topology of trees is inconsistent above `croot`.
+                ## `croot` is an MCC, break.
+                if mapreduce(
+                        i->S[1].splitmap[nroot[1].label] == S[i].splitmap[nroot[i].label],
+                        *,
+                        2:length(nroot)
+                    )
+                    # --> `r ∈ nroot` is the same split in all trees
+                    # check if children of `r` are also same splits in all trees
+                    if is_coherent_clade(nroot,S)
+                        if nroot == croot
+                            # Singleton in the tree, or clade with a single node
+                            # --> the algorithm is stuck on this node
                             croot = [x.anc for x in croot]
                         else
                             croot = nroot
