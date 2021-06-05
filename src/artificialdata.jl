@@ -69,10 +69,6 @@ function eval_naive_inf(N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
         push!(dat, d)
     end
     #
-    if out != ""
-        CSV.write(out, dat)
-    end
-    #
     return dat
 end
 
@@ -103,10 +99,6 @@ function eval_real(N::Int, n::Int, ρ::Float64, simtype::Symbol;
         d = td[1]
         d[:ρ] = ρ
         push!(dat, d)
-    end
-    #
-    if out != ""
-        CSV.write(out, dat)
     end
     #
     return dat
@@ -201,10 +193,6 @@ function eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
             d[f] = args[f]
         end
         push!(dat, d)
-    end
-    #
-    if out != ""
-        CSV.write(out, dat)
     end
     #
     return dat
