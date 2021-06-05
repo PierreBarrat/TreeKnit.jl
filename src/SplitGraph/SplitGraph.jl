@@ -44,7 +44,7 @@ function opttrees!(t...;
 end
 function opttrees!(
 	γ, Trange, M, seq_lengths, t::Vararg{Tree};
-	likelihood_sort=true, resolve=true, sa_rep=1
+	likelihood_sort=true, resolve=true, sa_rep=1,
 )
 	treelist = convert(Vector{Any}, collect(t))
 	mcc = naive_mccs(treelist)

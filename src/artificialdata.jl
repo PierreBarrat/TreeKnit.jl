@@ -54,7 +54,7 @@ function eval_naive_inf(N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
         end
         init_splits = Dict(1=>SplitList(t1), 2=>SplitList(t2))
         trees = Dict(1=>t1, 2=>t2)
-        MCCs, resolved_splits = computeMCCs!(trees, naive=true)
+        MCCs, resolved_splits = computeMCCs!(trees; naive=true, output=:all)
         return MCCs, resolved_splits, init_splits
     end
     #
@@ -171,7 +171,10 @@ function eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
                 verbose=verbose,
             )
             try
-                MCCs, resolved_splits = computeMCCs!(trees, oa, preresolve=preresolve)
+                MCCs, resolved_splits = computeMCCs!(
+                    trees, oa;
+                    preresolve=preresolve, output=:all
+                )
                 return MCCs, resolved_splits, init_splits
             catch err
                 mkpath("tmp")

@@ -156,11 +156,11 @@ end
     name_mcc_clades!(treelist, MCC)
 
 For each clade `m` in `MCC`:
-- Rename the root `r` of `m` to `MCC_\$(i)` or (`\$(r.label)` if `r` is a leaf) where `i` is an integer starting at `label_init`.
-- Rename each non-leaf internal node of `m` to `shared_\$i_\$j` where `j` is an index specific to `m`.
+- Rename the root `r` of `m` to `MCC_\$(i)` or (`\$(r.label)` if `r` is a leaf) where `i`
+  is an integer starting at `label_init`.
+- Rename each non-leaf internal node of `m` to `shared_\$i_\$j` where `j` is an index
+  specific to `m`.
 
-## Procedure
-In an MCC internal node is defined in all trees by the clade it forms.
 """
 function name_mcc_clades!(treelist, MCC)
     # Finding initial label
@@ -187,26 +187,29 @@ function name_mcc_clades!(treelist, MCC)
             nd[new_label] = m
         end
 
-        # Renaming internal nodes - Using the first element of treelist to iterate through internal nodes
-        r1 = lca([treelist[1].lnodes[x] for x in m])
-        j = 1
-        for n in TreeTools.POT(r1)
-            if n!=r1 && !n.isleaf
-                # Relevant internal node. Rename it in all trees
-                # `llist` acts as a common identifier for `n` in all trees
-                llist = [x.label for x in TreeTools.POTleaves(n)]
-                for t in treelist
-                    ln = lca([t.lnodes[x] for x in llist])
-                    old_label = ln.label
-                    new_label = "shared_$(cl)_$j"
-                    ln.label = new_label
-                    delete!(t.lnodes, old_label)
-                    t.lnodes[new_label] = ln
-                end
-                j += 1
-            end
-        end
+    #     # Renaming internal nodes - Using the first element of treelist to iterate through internal nodes
+    #     r1 = lca([treelist[1].lnodes[x] for x in m])
+    #     j = 1
+    #     for n in TreeTools.POT(r1)
+    #         if n!=r1 && !n.isleaf
+    #             # Relevant internal node. Rename it in all trees
+    #             # `llist` acts as a common identifier for `n` in all trees
+    #             llist = [x.label for x in TreeTools.POTleaves(n)]
+    #             for t in treelist
+    #                 ln = lca([t.lnodes[x] for x in llist])
+    #                 old_label = ln.label
+    #                 new_label = "shared_$(cl)_$j"
+    #                 ln.label = new_label
+    #                 delete!(t.lnodes, old_label)
+    #                 t.lnodes[new_label] = ln
+    #             end
+    #             j += 1
+    #         end
+    #     end
+    # end
+    # return nd
     end
+
     return nd
 end
 
