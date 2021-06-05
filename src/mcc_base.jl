@@ -178,7 +178,7 @@ function name_mcc_clades!(treelist, MCC)
         cl = i + label_init - 1
         # Renaming root
         for t in treelist
-            r = lca([t.lnodes[x] for x in m])
+            r = lca(t, m)
             old_label = r.label
             new_label = r.isleaf ? "$(old_label)" : "MCC_$(cl)"
             r.label = new_label

@@ -147,28 +147,39 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree)
 	runopt(oa, Dict(1=>t1, 2=>t2))
 end
 function runopt(oa::OptArgs, trees::Dict)
+
 	#
 	datatype = oa.crossmap_prune ? TreeTools.MiscData : TreeTools.EmptyData
+
+	# Copying input trees for optimization
 	ot = Dict(k=>copy(t, datatype) for (k,t) in trees)
 	oa.resolve && resolve!(values(ot)...)
-	#
-	iMCCs = naive_mccs(values(ot)...)
-	Einit = SplitGraph.count_mismatches(values(ot)...)
-	n0 = length(first(values(ot)).lleaves)
-	dflog = DataFrame(nleaves=Int64[n0],
-		nMCCs=length(iMCCs),
-		method=Any[:init],
-		γ=Any[missing],
-		M=Any[missing],
-		newMCCs=Any[[]],
-		AllFinalMCCs=Any[[]],
-		RemainingConsistentClades=Any[iMCCs],
-		Efinal=Any[Einit],
-		Ffinal=Any[Einit],
-	)
+
+	# Writing details to a dataframe object
+	use_df_log = (oa.output != :mccs)
+	if use_df_log
+		iMCCs = naive_mccs(values(ot)...)
+		Einit = SplitGraph.count_mismatches(values(ot)...)
+		n0 = length(first(values(ot)).lleaves)
+		dflog = DataFrame(nleaves=Int64[n0],
+			nMCCs=length(iMCCs),
+			method=Any[:init],
+			γ=Any[missing],
+			M=Any[missing],
+			newMCCs=Any[[]],
+			AllFinalMCCs=Any[[]],
+			RemainingConsistentClades=Any[iMCCs],
+			Efinal=Any[Einit],
+			Ffinal=Any[Einit],
+		)
+		Evals = Any[]
+		Fvals = Any[]
+	else
+		dflog = nothing
+	end
 	MCCs = [] # All final MCCs found up to now
-	Evals = Any[]
-	Fvals = Any[]
+
+	# Misc.
 	SplitGraph.set_verbose(oa.verbose)
 	SplitGraph.set_vverbose(oa.vv)
 	SplitGraph.set_resolve(oa.resolve)
@@ -179,7 +190,7 @@ function runopt(oa::OptArgs, trees::Dict)
 	end
 	for i in 1:oa.itmax
 		flag = :init
-		oa.verbose && println("\n --- \nIteration $i/$(oa.itmax) - $(dflog.nleaves[end]) leaves remaining")
+		oa.verbose && println("\n --- \nIteration $i/$(oa.itmax) - $(length(leaves(first(values(ot))))) leaves remaining")
 
 		# Find MCCs by pruning suspicious branches
 		if oa.crossmap_prune
@@ -209,7 +220,7 @@ function runopt(oa::OptArgs, trees::Dict)
 		!prod([check_tree(t) for t in values(ot)]) && @error "Problem in a tree"
 
 		# Log results
-		update_df!(
+		use_df_log && update_df!(
 			dflog, length(first(values(ot)).lleaves), length(rMCCs), oa.γ, M, Efinal, Ffinal,
 			mccs, MCCs, rMCCs, :topology_optimization
 		)
@@ -243,7 +254,7 @@ function crossmap_prune!(ot, MCCs, logdf, oa)
 	!prod([check_tree(t) for t in values(ot)]) && @error "Problem in a tree"
 
 	# Log results
-	update_df!(
+	!isnothing(dflog) && update_df!(
 		logdf, length(first(values(ot)).lleaves), length(rMCCs), missing, missing,
 		missing, missing, mccs, MCCs, rMCCs, :crossmapped_mutations
 	)
@@ -255,7 +266,8 @@ end
 """
 function crossmap_prune(trees, suspmut_threshold)
 	ot = deepcopy(trees)
-	# Self ancestral states can be computed once and for all at the start, but we need to introduce mutations above new resolved internal nodes
+	# Self ancestral states can be computed once and for all at the start,
+	# but we need to introduce mutations above new resolved internal nodes
 	for t in values(ot), n in values(t.lnodes)
 		!haskey(n.data.dat, :selfmuts) && (n.data.dat[:selfmuts] = Array{TreeTools.Mutation,1}(undef, 0))
 	end

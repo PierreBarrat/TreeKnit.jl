@@ -23,7 +23,7 @@ function compute_energy(conf::Array{Bool,1}, g::Graph)
 			for k1 in 1:g.K
 				# Ancestors in tree k1
 				a1 = g.leaves[i].anc[k1]
-				# If ancestor is identical to leaf for given configuration (i.e. only one spin up), go up
+				# If ancestor is identical to leaf for given configuration, go up
 				# ie go up to the first non trivial split
 				while is_trivial_split(a1.conf, conf) && !a1.isroot
 					a1 = a1.anc::SplitNode
@@ -74,7 +74,7 @@ end
 """
 	are_equal_with_resolution(g, aconf1, aconf2, conf, k1, k2)
 """
-function are_equal_with_resolution(g::SplitGraph.Graph, aconf1, aconf2, conf, k1::Int64, k2::Int64)
+function are_equal_with_resolution(g, aconf1, aconf2, conf, k1::Int, k2::Int)
 	if are_equal(aconf1, aconf2, conf)
 		return true
 	elseif is_contained(aconf1, aconf2, conf) && are_equal_with_resolution(g, aconf1, aconf2, k2, conf)
@@ -88,11 +88,14 @@ end
 """
 	are_equal_with_resolution(g, aconf1, aconf2, k2, conf)
 
-For every leaf `n` in `a1.conf`, all the ancestors of `n` in tree `k2` up to `a2` should have a split that is contained in `a1.conf`, for `conf` as a leaves state. If so, the split `a1.conf` (for `conf`) can be transformed into a clade in the other tree (`k2`) by adding one internal node.
+For every leaf `n` in `a1.conf`, check if all ancestors of `n` in tree `k2` up to `a2`
+  have a split that is contained in `a1.conf`, for `conf` as a leaves state.
+  If so, the split `a1.conf` (for `conf`) can be transformed into a clade in the other
+  tree `k2` by adding one internal node.
 
 **Expects `is_contained(a1.conf, a2.conf, conf)` to return `true`.**
 """
-function are_equal_with_resolution(g::SplitGraph.Graph, aconf1, aconf2, k2::Int64, conf)
+function are_equal_with_resolution(g::SplitGraph.Graph, aconf1, aconf2, k2::Int, conf)
 	@inbounds for i in aconf1
 		if conf[i]
 			a = g.leaves[i].anc[k2]
@@ -224,7 +227,8 @@ function _sa_opt(g::Graph, γ, Trange, M)
 		tmp_oconf, e, f = SplitGraph.doMCMC(g, oconf[rand(1:length(oconf))], M, T=T,γ=γ)
 		append!(E,e)
 		append!(F,f)
-		# If a better conf is found than all configurations in oconf (which is the min of `f` from doMCMC), completely replace oconf
+		# If a better conf is found than all configurations in oconf
+		# (which is the min of `f` from doMCMC), completely replace oconf
 		if findmin(f)[1] < Fmin
 			oconf = tmp_oconf
 			Fmin = findmin(F)[1]
@@ -240,7 +244,8 @@ end
 """
 	count_mismatches(g::Graph)
 
-Count the number of topological mismatches in `g`. Equivalent to `compute_energy(conf, g)` with `conf = ones(Bool)`.
+Count the number of topological mismatches in `g`.
+  Equivalent to `compute_energy(conf, g)` with `conf = ones(Bool)`.
 """
 function count_mismatches(g::Graph)
 	conf = ones(Bool, length(g.leaves))
