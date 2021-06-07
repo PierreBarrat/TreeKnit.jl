@@ -210,7 +210,7 @@ Reduce `tree` to `MCCs` by grouping leaves.
 """
 function reduce_to_mcc!(tree::Tree, MCC)
     for m in MCC
-        r = lca([tree.lnodes[x] for x in m])
+        r = lca(tree, m)
         if r.isroot
             node2tree!(tree, TreeNode(
                     r.data;
