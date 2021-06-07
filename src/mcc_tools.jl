@@ -47,7 +47,6 @@ function is_branch_in_mccs(n::TreeNode, mccs::Dict)
     cl = [x.label for x in POTleaves(n)]
     for mcc in values(mccs)
         if is_branch_in_mcc(n, mcc)
-        # if !isempty(intersect(cl, mcc)) && !isempty(setdiff(mcc, intersect(cl, mcc)))
             return true
         end
     end
@@ -57,7 +56,6 @@ function is_branch_in_mccs(n::TreeNode, mccs)
     cl = [x.label for x in POTleaves(n)]
     for mcc in mccs
         if is_branch_in_mcc(n, mcc)
-            # if !isempty(intersect(cl, mcc)) && !isempty(setdiff(mcc, intersect(cl, mcc)))
             return true
         end
     end
