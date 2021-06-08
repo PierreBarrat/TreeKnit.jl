@@ -35,7 +35,7 @@ function resolve!(
 				graftnode!(R, nr, tau=tau)
 				push!(tsplits.splits, s)
 			elseif conflict != :ignore
-				@error "Conflicting splits"
+				error("Conflicting splits")
 			end
 		end
 	end

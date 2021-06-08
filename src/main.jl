@@ -31,7 +31,7 @@ Control the type of output. If `:mccs`, only MCCs are returned. If `:all`, split
 """
 function computeMCCs(
 	trees::Dict{<:Any, <:Tree}, oa::OptArgs=OptArgs();
-	preresolve = true, naive = false, output = :mccs,
+	preresolve = true, naive = false,
 )
 	ct = Dict(k=>copy(t) for (k,t) in trees)
 	return computeMCCs!(ct, oa; preresolve, naive, output)
@@ -39,28 +39,14 @@ end
 """
 	computeMCCs!(
 		trees::Dict{<:Any, <:Tree}, oa::OptArgs=OptArgs();
-		preresolve = true, naive = false, output = :mccs
+		preresolve = true, naive = false,
 	)
 
 See `computeMCCs`.
 """
 function computeMCCs!(
 	trees::Dict{<:Any, <:Tree}, oa::OptArgs=OptArgs();
-	preresolve = true, naive = false, output = :mccs
-)
-	mccs, splits = _computeMCCs!(trees, oa; preresolve, naive)
-	if output == :mccs
-		return mccs
-	elseif output == :all
-		return mccs, splits
-	else
-		@warn "Possible values for `output`: `:mccs` and `:all`. Using `:all`"
-		return mccs, splits
-	end
-end
-function _computeMCCs!(
-	trees::Dict{<:Any, <:Tree}, oa::OptArgs=OptArgs();
-	preresolve=true, naive=false
+	preresolve=true, naive=false,
 )
 	if naive
 		return computeMCCs_naive!(trees)
@@ -68,15 +54,13 @@ function _computeMCCs!(
 	if preresolve
 		return computeMCCs_preresolve!(trees, oa)
 	else
-		return computeMCCs_dynresolve!(trees, oa)
+		return computeMCCs_dynresolve(trees, oa)
 	end
 end
 
 function computeMCCs_naive!(trees::Dict{<:Any, <:Tree})
 	rS = resolve!(values(trees)...)
-	resolved_splits = Dict(k=>rS[i] for (i,k) in enumerate(keys(trees)))
-	MCCs = _computeMCCs(ts -> RecombTools.naive_mccs(collect(values(ts))...), trees)
-	return MCCs, resolved_splits
+	return _computeMCCs(ts -> RecombTools.naive_mccs(collect(values(ts))...), trees)
 end
 
 function computeMCCs_preresolve!(trees::Dict{<:Any, <:Tree}, oa::OptArgs)
@@ -84,22 +68,15 @@ function computeMCCs_preresolve!(trees::Dict{<:Any, <:Tree}, oa::OptArgs)
 	# are compatible with all trees
 	oac = @set oa.resolve = true
 	oac = @set oa.output = :mccs
-	resolved_splits = resolve_from_mccs!(ts -> runopt(oac,ts), trees)
+	resolve_from_mccs!(ts -> runopt(oac,ts), trees)
 	# Second pass: compute MCCs with pre-resolved trees.
 	oac = @set oa.resolve = false
 	MCCs = _computeMCCs(ts -> runopt(oac,ts), trees)
-	return MCCs, resolved_splits
+	return MCCs
 end
 
-function computeMCCs_dynresolve!(trees::Dict{<:Any, <:Tree}, oa::OptArgs)
-	MCCs = _computeMCCs(ts -> runopt(oa,ts), trees)
-	resolved_splits = new_splits(trees, MCCs)
-	# new_splits returns a Dict{T, Array{SplitList}}
-	resolved_splits = Dict(k=>TreeTools.cat(aS...) for (k,aS) in resolved_splits)
-	for k in keys(trees)
-		resolve!(trees[k], resolved_splits[k])
-	end
-	return MCCs, resolved_splits
+function computeMCCs_dynresolve(trees::Dict{<:Any, <:Tree}, oa::OptArgs)
+	return _computeMCCs(ts -> runopt(oa,ts), trees)
 end
 
 """
