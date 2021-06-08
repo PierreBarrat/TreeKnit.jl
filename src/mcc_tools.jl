@@ -165,7 +165,7 @@ function find_mcc_with_node(n::String, mccs)
     return nothing
 end
 find_mcc_with_node(n::TreeNode, mccs) = find_mcc_with_node(n.label, mccs)
-find_mcc_with_node(n::ARGNode, mccs) = find_mcc_with_node(n.label, mccs)
+find_mcc_with_node(n, mccs) = find_mcc_with_node(n.label, mccs)
 
 
 

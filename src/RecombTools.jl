@@ -3,13 +3,10 @@ module RecombTools
 
 # To remove eventually
 using DataFrames
-using Distributions
-#External modules
+# External modules
 using Parameters
-using StatsBase
 using Setfield
 # Personal modules
-using ARGTools
 using TreeTools
 
 
@@ -34,10 +31,5 @@ export OptArgs
 include("main.jl")
 export computeMCCs, computeMCCs!
 
-include("artificialdata.jl")
 
-
-
-
-
-end
+end # module

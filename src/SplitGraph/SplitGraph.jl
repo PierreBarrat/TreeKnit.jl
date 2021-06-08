@@ -1,7 +1,6 @@
 module SplitGraph
 
 using RecombTools
-using StatsBase
 using TreeTools
 
 include("objects.jl")
