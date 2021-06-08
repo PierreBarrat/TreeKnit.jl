@@ -111,10 +111,8 @@ end
     cutoff = 0.,
     Nrep = 1,
     preresolve = true,
-    crossmap_prune=false,
-    crossmap_resolve=false,
     simulate_seqs = false,
-    sfields::Tuple = (:ρ,:cutoff, :preresolve, :crossmap_prune, :crossmap_resolve),
+    sfields::Tuple = (:ρ,:cutoff, :preresolve),
     out = "",
     verbose=false
 )
@@ -126,11 +124,8 @@ function eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
     cutoff = 0.,
     Nrep = 1,
     preresolve = true,
-    crossmap_resolve = false,
-    crossmap_prune = false,
-    suspmut_threshold = 2,
     simulate_seqs = false,
-    sfields::Tuple = (:ρ,:cutoff, :preresolve, :crossmap_prune, :crossmap_resolve),
+    sfields::Tuple = (:ρ,:cutoff, :preresolve),
     out = "",
     verbose=false
 )
@@ -138,8 +133,7 @@ function eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
     args = Dict(:γ=>γ, :N=>N, :n=>n, :ρ=>ρ, :simtype=>simtype,
         :Md=>Md, :Tmin=>Tmin, :dT=>dT, :Tmax=>Tmax, :lk_sort=>lk_sort,
         :cutoff=>cutoff, :preresolve=>preresolve,
-        :crossmap_resolve=>crossmap_resolve, :crossmap_prune=>crossmap_prune,
-        :suspmut_threshold=>suspmut_threshold)
+    )
     #
     dat = DataFrame(df_fields())
     for f in sfields
@@ -153,11 +147,9 @@ function eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
         let cutoff=cutoff, N=N
             t1, t2 = ARGTools.trees_from_ARG(arg)
             trees = Dict(1=>t1, 2=>t2)
-            if cutoff != 0 && !crossmap_prune && !crossmap_resolve
+            if cutoff != 0
                 remove_branches!(t1, Distributions.Exponential(cutoff*N))
                 remove_branches!(t2, Distributions.Exponential(cutoff*N))
-            elseif crossmap_prune || crossmap_resolve || simulate_seqs
-                simulate_sequences!(trees, N, cutoff)
             end
             init_splits = Dict(1=>SplitList(t1), 2=>SplitList(t2))
             oa = OptArgs(
@@ -165,9 +157,6 @@ function eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
                 Tmin=Tmin, dT=dT, Tmax=Tmax,
                 Md=Md,
                 likelihood_sort=lk_sort,
-                crossmap_resolve=crossmap_resolve,
-                crossmap_prune=crossmap_prune,
-                suspmut_threshold=suspmut_threshold,
                 verbose=verbose,
             )
             try
@@ -180,8 +169,6 @@ function eval_runopt(γ::Real, N::Int64, n::Int64, ρ::Float64, simtype::Symbol;
                 mkpath("tmp")
                 write_newick("tmp/tree1.nwk", trees[1])
                 write_newick("tmp/tree2.nwk", trees[2])
-                #TreeTools.write_fasta("tmp/aln1.fasta", trees[1], :selfseq)
-                #TreeTools.write_fasta("tmp/aln2.fasta", trees[2], :selfseq)
                 error(err)
             end
         end
@@ -210,8 +197,6 @@ function simulate_sequences!(trees::Dict, N, c = 0.5, L = 1000; polytomies=true)
         TreeTools.compute_mutations!(n -> n.data.dat[:selfseq], t, :realmuts)
         c != 0 && polytomies && TreeTools.delete_branches!(n->isempty(n.data.dat[:realmuts]), t)
     end
-    # Cross-map sequences
-    crossmap_sequences!(trees, :selfseq, :cmseq)
     #
     return nothing
 end
