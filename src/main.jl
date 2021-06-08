@@ -62,9 +62,6 @@ function _computeMCCs!(
 	trees::Dict{<:Any, <:Tree}, oa::OptArgs=OptArgs();
 	preresolve=true, naive=false
 )
-	if oa.crossmap_resolve
-		resolve_crossmapped_muts!(trees)
-	end
 	if naive
 		return computeMCCs_naive!(trees)
 	end
@@ -149,7 +146,7 @@ end
 function runopt(oa::OptArgs, trees::Dict)
 
 	#
-	datatype = oa.crossmap_prune ? TreeTools.MiscData : TreeTools.EmptyData
+	datatype = TreeTools.EmptyData
 
 	# Copying input trees for optimization
 	ot = Dict(k=>copy(t, datatype) for (k,t) in trees)
@@ -184,20 +181,9 @@ function runopt(oa::OptArgs, trees::Dict)
 	SplitGraph.set_vverbose(oa.vv)
 	SplitGraph.set_resolve(oa.resolve)
 
-	# If using crossmapped mutations, we also need to compute self mutations for reference
-	if oa.crossmap_prune
-		ancestral_sequences!(ot, self=true, crossmapped=false)
-	end
 	for i in 1:oa.itmax
 		flag = :init
 		oa.verbose && println("\n --- \nIteration $i/$(oa.itmax) - $(length(leaves(first(values(ot))))) leaves remaining")
-
-		# Find MCCs by pruning suspicious branches
-		if oa.crossmap_prune
-			oa.verbose && println("\n## Using cross-mapped mutations to cut branches...")
-			flag = crossmap_prune!(ot, MCCs, dflog, oa)
-			(flag == :stop) && break
-		end
 
 		# Topology based inference
 		oa.verbose && println("\n## Running optimization to find MCCs...")
@@ -237,45 +223,6 @@ function runopt(oa::OptArgs, trees::Dict)
 	else
 		error("Unknown `oa.output` $(oa.output)")
 	end
-end
-
-
-function crossmap_prune!(ot, MCCs, logdf, oa)
-	!share_labels(values(ot)...) && error("Trees do not share leaves")
-	mccs = crossmap_prune(ot, oa.suspmut_threshold) # Makes a copy of the trees
-	!isempty(mccs) && append!(MCCs, mccs)
-	oa.verbose && println("Found $(length(mccs)) new mccs.")
-
-	# Stop condition
-	oa.verbose && println("\n## Proceeding based on newly found MCCs...")
-	flag, rMCCs = stop_conditions!(MCCs, mccs, oa, values(ot)...; hardstop=false)
-
-	# Checks
-	!prod([check_tree(t) for t in values(ot)]) && @error "Problem in a tree"
-
-	# Log results
-	!isnothing(dflog) && update_df!(
-		logdf, length(first(values(ot)).lleaves), length(rMCCs), missing, missing,
-		missing, missing, mccs, MCCs, rMCCs, :crossmapped_mutations
-	)
-	#
-	return flag
-end
-
-"""
-"""
-function crossmap_prune(trees, suspmut_threshold)
-	ot = deepcopy(trees)
-	# Self ancestral states can be computed once and for all at the start,
-	# but we need to introduce mutations above new resolved internal nodes
-	for t in values(ot), n in values(t.lnodes)
-		!haskey(n.data.dat, :selfmuts) && (n.data.dat[:selfmuts] = Array{TreeTools.Mutation,1}(undef, 0))
-	end
-	# Cross-mapped mutations
-	ancestral_sequences!(ot, self=false, crossmapped=true)
-	suspicious_branches!(ot)
-	#
-	mccs = prune_suspicious_mccs!(deepcopy(ot), :suspicious_muts, suspmut_threshold)
 end
 
 function stop_conditions!(previous_mccs, new_mccs, oa, trees... ; hardstop=true)

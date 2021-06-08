@@ -4,14 +4,12 @@ module RecombTools
 # To remove eventually
 using DataFrames
 using Distributions
-using JSON3
 #External modules
 using Parameters
 using StatsBase
 using Setfield
 # Personal modules
 using ARGTools
-using TreeAlgs, TreeAlgs.CompatibilityTree
 using TreeTools
 
 
@@ -29,8 +27,6 @@ include("reading.jl")
 
 include("SplitGraph/SplitGraph.jl")
 using RecombTools.SplitGraph
-
-include("mut_crossmap.jl")
 
 include("objects.jl")
 export OptArgs

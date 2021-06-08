@@ -128,7 +128,7 @@ end
 """
 	resolve!(t1::Tree, t2::Tree; tau=0.)
 
-Resolve `t1` using splits of `t2` and inversely. Every split of `t2` a tree that is compatible with `t1` is introduced in `t1` (and inversely). Return new splits in each tree.
+Resolve `t1` using splits of `t2` and inversely. Every split of `t2` a tree that is compatible with `t1` is introduced in `t1` with branch length `tau` (and inversely). Return new splits in each tree.
 """
 function resolve!(t1::Tree, t2::Tree; tau=0.)
 	S = [SplitList(t) for t in (t1,t2)]
@@ -239,114 +239,4 @@ function compatible_splits(rS::Dict{<:Any, Array{SplitList,1}})
         cs[seg] = unique(cs[seg])
     end
     return cs
-end
-
-
-
-###############################################################################################################
-############################# Resolve polytomies using cross-mapped mutations #################################
-###############################################################################################################
-"""
-	resolve_crossmapped_muts!(trees::Dict; cmkey=:cmmuts)
-"""
-function resolve_crossmapped_muts!(trees::Dict; cmkey=:cmmuts, infer_ancestral=true)
-	infer_ancestral && ancestral_sequences!(trees, self=false, crossmapped=true)
-	for (sref, tref) in trees
-		Snew = resolve_crossmapped_muts!(tref, cmkey=cmkey)
-	end
-end
-"""
-	resolve_crossmapped_muts(t::Tree, refseg=nothing; cmkey=:cmmuts)
-
-Resolve polytomies in `t` using crossmapped mutations from other segments. For each tree node `n`, if `isnothing(refseg)`, consider all other segments in `n.data.dat[cmkey]`. Otherwise, consider only mutations in `n.data.dat[cmkey][s]` for `s` in `refseg`.
-"""
-function resolve_crossmapped_muts(t::Tree, refseg=nothing; cmkey=:cmmuts)
-	Sref = SplitList(t)
-	Snew = SplitList(copy(Sref.leaves))
-	for n in values(t.lnodes)
-		if length(n.child) > 2
-			polyS = resolve_polytomy(n, refseg; cmkey=cmkey)
-			_add_splits!(Snew, polyS, Sref)
-		end
-	end
-	return Snew
-end
-resolve_crossmapped_muts!(t::Tree, refseg=nothing; cmkey=:cmmuts) = resolve!(t, resolve_crossmapped_muts(t, refseg, cmkey=cmkey))
-
-function _add_splits!(Snew, polyS, Sref)
-	for ps in polyS
-		snew = TreeTools.Split(length(Snew.leaves))
-		for i in ps
-			# Polytomy-level leaf `i` is in the split
-			sref = get(Sref.splitmap, polyS.leaves[i]) do
-				TreeTools.joinsplits!(
-					snew,
-					Split([findfirst(==(polyS.leaves[i]), Sref.leaves)])
-				)
-				#snew.dat[findfirst(==(polyS.leaves[i]), Sref.leaves)] = true
-				nothing
-			# Corresponding split at the tree level
-			# if it's a leaf, it won't be there, hence the get(f,dict,key) do syntax
-			end
-			!isnothing(sref) && TreeTools.joinsplits!(snew, sref)
-		end
-		push!(Snew.splits, snew)
-	end
-end
-
-"""
-	resolve_polytomy(a::TreeNode, refseg=nothing; cmkey=:cmmuts)
-
-Attempt to resolve polytomy with root `a` using mutations from other segments.
-  For all children of `c` of `a`, search for mutations in other segments `s`
-  in `c.data.dat[cmkey][s]`.
-  If `isnothing(refseg)`, consider all other segments.
-  Otherwise, consider the ones in `refseg`.
-Return a `TreeTools.SplitList` object containing new splits. Does not modify the tree.
-
-## Warning
-Returned splits are based on nodes below `a`.
-"""
-function resolve_polytomy(a::TreeNode, refseg=nothing; cmkey=:cmmuts)
-	# Count mutations
-	mutcount = Dict{Any, Int64}()
-	for c in a.child
-		for (s,muts) in c.data.dat[cmkey], m in muts
-			if isnothing(refseg) || _inrefseg(s,refseg)
-				mutcount[s,m] = get(mutcount, (s,m), 0) + 1
-			end
-		end
-	end
-	# Build character table from mutations that appear more than once
-	chartab, labels, charid = get_cmmut_chartab(a, mutcount, cmkey)
-	#
-	return CompatibilityTree.max_compatibility_splits(chartab, labels)
-end
-_inrefseg(s, refseg::AbstractArray) = in(s,refseg)
-_inrefseg(s, refseg::AbstractString) = (s == refseg)
-
-function get_cmmut_chartab(a::TreeNode, mutcount, cmkey)
-	# Map of mutation to id in chartable
-	charid = Dict()
-	j = 1
-	for (m,c) in mutcount
-		if c > 1
-			charid[m] = j
-			j += 1
-		end
-	end
-	nsegregating = length(charid)
-	#
-	chartab = zeros(Bool, length(a.child) + 1, nsegregating)
-	labels = Array{String,1}(undef, length(a.child) + 1)
-	for (i,c) in enumerate(a.child)
-		labels[i] = c.label
-		for (s,muts) in c.data.dat[cmkey], m in muts
-			if haskey(charid, (s,m))
-				chartab[i,charid[s,m]] = true
-			end
-		end
-	end
-	labels[end] = a.label
-	return chartab, labels, charid
 end

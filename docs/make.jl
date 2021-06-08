@@ -13,6 +13,7 @@ Documenter.makedocs(;
 	pages = [
 		"Index" => "index.md",
 		"Usage" => "usage.md",
+		"Resolving" => "resolving.md",
 		"Library" => [
 			"Types" => "types.md",
 			"Functions" => "functions.md",

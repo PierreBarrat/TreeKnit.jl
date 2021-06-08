@@ -29,9 +29,6 @@ Storing parameters for `SplitGraph.runopt` function.
 	likelihood_sort::Bool = true
 	resolve::Bool = true
 	seq_lengths = ones(Int64, 2)
-	crossmap_resolve::Bool = false
-	crossmap_prune::Bool = false
-	suspmut_threshold::Int = 2
 	# For the annealing
 	Md::Real = 10
 	Tmin::Float64 = 1e-3
