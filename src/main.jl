@@ -34,7 +34,7 @@ function computeMCCs(
 	preresolve = true, naive = false,
 )
 	ct = Dict(k=>copy(t) for (k,t) in trees)
-	return computeMCCs!(ct, oa; preresolve, naive, output)
+	return computeMCCs!(ct, oa; preresolve, naive)
 end
 """
 	computeMCCs!(

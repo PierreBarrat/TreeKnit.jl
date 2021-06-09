@@ -33,18 +33,12 @@ function write_mccs!(t::Tree, MCCs, key=:mcc_id; overwrite=false)
 end
 
 """
-    is_branch_in_mcc(n::TreeNode, mccs::Dict)
-    is_branch_in_mcc(n::TreeNode, mccs::Array)
+    is_branch_in_mccs(n::TreeNode, mccs::Array)
 
 
-Is the branch from `n` to `n.anc` in an MCC?
-The clade defined by `n` has to intersect with an MCC, and this intersection should be strictly smaller than the mcc itself.
-
-# Note
-This can be proven. The MCC found is unique, and `n` belongs to it.
+Is the branch from `n` to `n.anc` in an element of `mccs`?
 """
 function is_branch_in_mccs(n::TreeNode, mccs::Dict)
-    cl = [x.label for x in POTleaves(n)]
     for mcc in values(mccs)
         if is_branch_in_mcc(n, mcc)
             return true
@@ -53,7 +47,6 @@ function is_branch_in_mccs(n::TreeNode, mccs::Dict)
     return false
 end
 function is_branch_in_mccs(n::TreeNode, mccs)
-    cl = [x.label for x in POTleaves(n)]
     for mcc in mccs
         if is_branch_in_mcc(n, mcc)
             return true
@@ -69,24 +62,20 @@ Is the branch from `n` to `n.anc` in `mcc`?
 The clade defined by `n` has to intersect with `mcc`, and this intersection should be strictly smaller `mcc`.
 """
 function is_branch_in_mcc(n::TreeNode, mcc::Array{<:AbstractString,1})
-    cl = [x.label for x in POTleaves(n)]
-    # Check if intersection is empty
-    flag = false
-    for n in cl
-        if in(n, mcc)
-            flag = true
-            break
-        end
+    # Simple check
+    if n.isleaf
+        return length(mcc) > 1 && in(n.label, mcc)
     end
-    !flag && return false
 
-    # Check that the intersection is smaller than `mcc`, i.e. `mcc` should have one leaf that cl does not have
-    for n in mcc
-        if !in(n, cl)
-            return true
+    # Check size of intersection
+    i = 0
+    for c in POTleaves(n)
+        if in(c.label, mcc)
+            i += 1
         end
     end
-    return false
+
+    return (i > 0 && i < length(mcc))
 end
 """
     find_mcc_with_branch(n::TreeNode, mccs::Dict)
