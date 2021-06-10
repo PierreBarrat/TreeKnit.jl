@@ -12,11 +12,18 @@ Documenter.makedocs(;
 	expandfirst = [],
 	pages = [
 		"Index" => "index.md",
-		"Usage" => "usage.md",
-		"Resolving" => "resolving.md",
+		"Usage" => [
+			"Overview" => "overview.md",
+			"Important options" => "options.md",
+		],
+		"Under the hood" => [
+			"`opttrees`" => "opttrees.md",
+			"`runopt`" => "runopt.md",
+			"Resolving" => "resolving.md",
+		],
 		"Library" => [
-			"Types" => "types.md",
+			"OptArgs" => "types.md",
 			"Functions" => "functions.md",
-		]
+		],
 	]
 )
