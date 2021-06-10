@@ -171,7 +171,7 @@ function doMCMC(g::Graph, conf::Array{Bool,1}, M::Int64; T=1, γ=1)
 			push!(oconf, copy(_conf))
 		end
 	end
-	return oconf,ee,ff
+	return oconf, _conf, ee, ff
 end
 
 """
@@ -219,12 +219,13 @@ function sa_opt(g::Graph; Trange=1.:-0.01:0.1, γ=1.05, M=1000, rep=1, resolve=t
 end
 
 function _sa_opt(g::Graph, γ, Trange, M)
-	oconf = [ones(Bool, length(g.leaves))]
+	conf = ones(Bool, length(g.leaves))
+	oconf = [copy(conf)]
 	E = [compute_energy(oconf[1],g)]
 	F = Array{Float64,1}([E[1]])
 	Fmin = F[1]
 	for T in Trange
-		tmp_oconf, e, f = SplitGraph.doMCMC(g, oconf[rand(1:length(oconf))], M, T=T,γ=γ)
+		tmp_oconf, conf, e, f = SplitGraph.doMCMC(g, conf, M, T=T,γ=γ)
 		append!(E,e)
 		append!(F,f)
 		# If a better conf is found than all configurations in oconf

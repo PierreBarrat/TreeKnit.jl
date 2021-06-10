@@ -44,4 +44,4 @@ Storing parameters for `SplitGraph.runopt` function.
 	# Output
 	output = :mccs
 end
-getM(n,Md) = ceil(Int64, n/Md)
+

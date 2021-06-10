@@ -1,6 +1,6 @@
 """
 	computeMCCs(
-		trees::Dict{<:Any, <:Tree}[, oa::OptArgs=OptArgs()];
+		trees::Dict{<:Any, <:Tree} [, oa::OptArgs=OptArgs()];
 		preresolve=true, naive=false
 	)
 
@@ -19,17 +19,13 @@ Controls parameters of the MCC inference (unless `naive=true`). See `?OptArgs` f
   introduce incompatible splits in case of poorly resolved input trees.
 
 In general, this should be set to `true` if more than two trees are used, and to `false`
-  for only two trees.
+  for only two trees (for speed).
 
 ### `naive = false`
 - If `true`, use a naive estimation for MCCs, *i.e.* find all clades that have an exactly
   matching topology in all trees.
 - Else, use a pseudo-parsimonious method based (mostly) on topology. The method
   `runopt(oa,t1,t2)` is called on every pair of trees.
-
-### `output = :mccs`
-Control the type of output. If `:mccs`, only MCCs are returned. If `:all`, splits added
-	in trees during the inference process are returned as well.
 """
 function computeMCCs(
 	trees::Dict{<:Any, <:Tree}, oa::OptArgs=OptArgs();
@@ -251,6 +247,16 @@ function stop_conditions!(previous_mccs, new_mccs, oa, it, trees... ; hardstop=f
 		return :next, remaining_mccs
 	end
 end
+
+function getM(L, Md)
+	if L < 10 && Md >= 1
+		return 10
+	else
+		return _getM(L, Md)
+	end
+	tmp
+end
+_getM(n,Md) = ceil(Int, n/Md)
 
 """
 	pruneconf!(clades, trees::Vararg{Tree})
