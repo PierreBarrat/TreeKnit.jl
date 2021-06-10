@@ -68,7 +68,7 @@ end
 function computeMCCs_preresolve!(trees::Dict{<:Any, <:Tree}, oa::OptArgs)
 	# First pass: compute MCCs while resolving, and keep only introduced splits that
 	# are compatible with all trees
-	oac = @set oa.resolve = true
+	# oac = @set oa.resolve = true
 	oac = @set oa.output = :mccs
 	resolve_from_mccs!(ts -> runopt(oac,ts), trees)
 	# Second pass: compute MCCs with pre-resolved trees.
@@ -206,7 +206,7 @@ function runopt(oa::OptArgs, trees::Dict)
 	end
 end
 
-function stop_conditions!(previous_mccs, new_mccs, oa, it, trees... ; hardstop=true)
+function stop_conditions!(previous_mccs, new_mccs, oa, it, trees... ; hardstop=false)
 	# If no solution was found
 	if length(new_mccs) == 0
 		oa.verbose && print("No solution found... ")
