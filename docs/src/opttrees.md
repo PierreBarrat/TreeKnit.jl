@@ -4,7 +4,7 @@ The core of the heuristic `RecombTools` is based on happens in the `opttrees` fu
   Given two trees, `opttrees` attempts to reconcile them by pruning certain clades. 
   A quick description of how the function operates is given here, with the two simple trees below as an example case: 
 ```@example opttrees
-using RecombTools, TreeTools # hide
+using RecombTools# hide
 nwk1 = "(((A1:1,A2:2):2,(B1:2,(B2:1,B3:1):1):2):2,(C1:1,C2:2):4)";
 nwk2 = "((A1:1,A2:2):2,((B1:2,(B2:1,B3:1):1):1,(C1:1,C2:2):1):1)";
 t1 = node2tree(parse_newick(nwk1))

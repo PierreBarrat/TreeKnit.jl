@@ -31,5 +31,10 @@ export OptArgs
 include("main.jl")
 export computeMCCs, computeMCCs!
 
+# TreeTools re-exports for docs
+import TreeTools: node2tree, parse_newick
+export node2tree
+export parse_newick
+
 
 end # module

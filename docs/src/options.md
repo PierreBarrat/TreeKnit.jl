@@ -14,7 +14,7 @@ Here, we assign the score $\gamma$ to each pruned clade, and count as $1$ each i
   For infinite $\gamma$, pruning clades is impossible, and we fall back on the [naive estimation of MCCs](@ref naive_mccs). 
 The example below illustrates the difference between different $\gamma$ values: 
 ```@example gamma1
-using RecombTools, TreeTools # hide
+using RecombTools # hide
 t1 = node2tree(parse_newick("((((A,B),C),D),E)"))
 t2 = node2tree(parse_newick("((((D,B),E),A),C)")) # Same topology, but shuffled leaves
 trees = Dict(1=>t1, 2=>t2)
@@ -37,7 +37,7 @@ See [Resolving](@ref)
 When several MCC decompositions are possible, degeneracy is removed by using the `likelihood_sort` option (activated by default). 
 In the example below, there are three equivalent decompositions if only topology is considered: 
 ```@example degeneracy
-using RecombTools, TreeTools # hide
+using RecombTools # hide
 t1 = node2tree(parse_newick("((A:2,B:2):2,C:4)"))
 t2 = node2tree(parse_newick("(A:2,(B:1,C:1):1)"))
 trees = Dict(1=>t1, 2=>t2)

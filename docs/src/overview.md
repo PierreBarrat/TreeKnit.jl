@@ -4,7 +4,7 @@
 
 Let's see how to infer MCCs for a very simple case: two trees with five leaves. 
 ```@example basic; continued = true 
-using RecombTools, TreeTools
+using RecombTools
 t1 = node2tree(parse_newick("((A,B),(C,(D,X)))"))
 t2 = node2tree(parse_newick("((A,(B,X)),(C,D))"))
 ```
@@ -27,7 +27,7 @@ By convention, `mccs[i,i]` is always empty.
 ## More than two trees
 If more than two trees are given as input, `computeMCCs` infers MCCs for all pairs of trees.  
 ```@example more_trees
-using RecombTools, TreeTools # hide
+using RecombTools # hide
 t1 = node2tree(parse_newick("((A,B),((C,Y),(D,X)))"))
 t2 = node2tree(parse_newick("((A,(B,X)),((C,Y),D))"))
 t3 = node2tree(parse_newick("((A,(B,Y)),(C,(D,X)))"))
@@ -43,7 +43,7 @@ mccs[1,3]
 It is also possible to compute a "naive" estimation of MCCs using the `naive` keyword. 
   When `naive` is set to `true`, `computeMCCs` returns maximum clades that are exactly compatible between pairs of trees: 
 ```@example naive
-using RecombTools, TreeTools # hide
+using RecombTools # hide
 t1 = node2tree(parse_newick("(((A1,A2),(B1,B2)),(C1,C2))"))
 t2 = node2tree(parse_newick("(((A1,A2),(C1,C2)),(B1,B2))"))
 trees = Dict(1=>t1, 2=>t2)

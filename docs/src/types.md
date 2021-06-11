@@ -1,8 +1,5 @@
 ```@meta
 CurrentModule = RecombTools
-DocTestSetup  = quote
-    using TreeTools
-end	
 ```
  
 # The `OptArgs` object

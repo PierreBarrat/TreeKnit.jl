@@ -4,7 +4,7 @@ The lack of resolution in the inference of phylogenetic trees results in *polyto
   Polytomies can cause the topology of two trees to differ, which cause problems when inferring reassortments using topological information. 
   Suppose for instance that we have a first tree (*e.g.* for a given segment of flu): 
 ```@example 1
-using TreeTools, RecombTools # hide
+using RecombTools # hide
 t1 = node2tree(parse_newick("(A,(B,C))"))
 ```
 where we can identify the clade `(B,C)` because of a mutation in this segment present in `B` and `C` but not in `A`. 
@@ -28,7 +28,7 @@ In this case, we can simply resolve `t2` by adding each split in `t1` with which
   If `t1` has polytomies, the same could be done to resolve `t1` using `t2`. 
   This operation is performed by the `resolve!` function: 
 ```@setup 2
-using TreeTools, RecombTools
+using RecombTools
 t1 = node2tree(parse_newick("(A,(B,C))"))
 t2 = node2tree(parse_newick("(A,B,C)"))
 ```
@@ -37,7 +37,7 @@ new_splits = resolve!(t1, t2);
 t2
 ```
 
-`resolve!` returns an array of `TreeTools.SplitList` objects containing the new splits introduced in each of the two trees: 
+`resolve!` returns an array of `SplitList` objects (of the `TreeTools` package) containing the new splits introduced in each of the two trees: 
 ```@repl 2
 isempty(new_splits[1])
 new_splits[2]
@@ -49,7 +49,7 @@ If the `resolve` option is passed to `computeMCCs` (through `OptArgs`), `resolve
 The above resolving method works fine for simple "obvious" cases, where a split in one tree directly resolves a polytomy in another. 
 However, consider the following case: 
 ```@setup 3
-using RecombTools, TreeTools
+using RecombTools
 ```
 ```@example 3; continued = true
 t1 = node2tree(parse_newick("((A,B),(C,(D,(E,X))))"))
