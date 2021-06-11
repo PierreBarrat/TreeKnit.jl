@@ -1,6 +1,6 @@
 # The `opttrees` function
 
-The core of the heuristic `RecombTools` is based on happens in the `opttrees` function, found in the `SplitGraph` submodule. 
+The core of the heuristic *RecombTools* is based on happens in the `opttrees` function, found in the `SplitGraph` submodule. 
   Given two trees, `opttrees` attempts to reconcile them by pruning certain clades. 
   A quick description of how the function operates is given here, with the two simple trees below as an example case: 
 ```@example opttrees
