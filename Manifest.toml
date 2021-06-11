@@ -347,9 +347,9 @@ version = "0.9.5"
 
 [[TreeTools]]
 deps = ["FASTX"]
-git-tree-sha1 = "a9f4e2251e6c61c21ed9c23359daf19d0c11f4f4"
+git-tree-sha1 = "1a040b1ab6e93372c45fa506b3be109cfa0a6fae"
 repo-rev = "master"
-repo-url = "../TreeTools"
+repo-url = "https://github.com/PierreBarrat/TreeTools"
 uuid = "62f0eae3-8c0e-4032-a621-7756092209e5"
 version = "0.1.0"
 
