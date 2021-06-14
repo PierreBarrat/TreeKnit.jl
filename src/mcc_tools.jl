@@ -68,12 +68,13 @@ function is_branch_in_mcc(n::TreeNode, mcc::Array{<:AbstractString,1})
     end
 
     # Check size of intersection
-    i = 0
-    for c in POTleaves(n)
-        if in(c.label, mcc)
-            i += 1
-        end
-    end
+    # i = 0
+    # for c in POTleaves(n)
+    #     if in(c.label, mcc)
+    #         i += 1
+    #     end
+    # end
+    i = count(c -> c.isleaf && in(c.label, mcc), n)
 
     return (i > 0 && i < length(mcc))
 end

@@ -87,3 +87,9 @@ computeMCCs(Dict(1=>t1, 2=>t2), OptArgs(;resolve=true))[1,2]
 ```
 
 ## Pre-resolving for more than two trees
+
+## Resolving with inferred MCCs
+
+`computeMCCs` internally resolves trees to infer MCCs. 
+  However, all resolution operations are performed on a copy of the input trees, leaving them unchanged. 
+  To recover this information in order to resolve polytomies using other trees, only the knowledge of MCCs is necessary. 
