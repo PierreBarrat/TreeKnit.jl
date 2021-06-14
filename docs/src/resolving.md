@@ -37,7 +37,7 @@ new_splits = resolve!(t1, t2);
 t2
 ```
 
-`resolve!` returns an array of `SplitList` objects (of the `TreeTools` package) containing the new splits introduced in each of the two trees: 
+`resolve!` returns an array of `SplitList` objects (of the *TreeTools* package) containing the new splits introduced in each of the two trees: 
 ```@repl 2
 isempty(new_splits[1])
 new_splits[2]
@@ -69,7 +69,7 @@ Indeed, there is no split in `t1` that can directly help us resolve `t2`.
   If we knew beforehand that `X` is reassorted, we could simply ignore it while resolving `t2`. 
   The `(D,E,X)` split in `t1` would become `(D,E)`, which is compatible with `t2`, and the `resolve!` function would handle this.  
 
-However, the topology-based heuristic used by `RecombTools` is not able to detect that `X` is the only reassorted leaf *if the trees are not resolved*!
+However, the topology-based heuristic used by *RecombTools* is not able to detect that `X` is the only reassorted leaf *if the trees are not resolved*!
   Indeed, if we "remove" `X` from the trees, some incompatibilities will remain. 
   For instance, the split above `E` will be `(D,E)` in the first tree and `(C,D,E)` in the second. 
   Without resolving, the heuristic will predict a reassortment above almost every leaf: 

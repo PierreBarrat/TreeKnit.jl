@@ -1,4 +1,2 @@
-tests
-tests/performance*
 docs/build*
 *.mem

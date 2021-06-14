@@ -1,5 +1,14 @@
 # Overview
 
+## Handling trees
+
+Functions that direclty handle trees are found in the separate *TreeTools* package. 
+  Here is a short list of useful ones: 
+  - `read_tree(file)`: read tree from newick file. 
+  - `parse_newick(string)`: parse newick `string` into a `TreeNode` object
+  - `node2tree(n::TreeNode)`: create a `Tree` object from node `n`, using it as a root. 
+  - `write_newick(file::String, t::Tree)`/`write_newick([file::String], n::TreeNode)`: write tree to `file` using newick format (or optionally return a newick string). 
+
 ## Simple case 
 
 Let's see how to infer MCCs for a very simple case: two trees with five leaves. 
