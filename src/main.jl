@@ -29,10 +29,10 @@ In general, this should be set to `true` if more than two trees are used, and to
 """
 function computeMCCs(
 	trees::Dict{<:Any, <:Tree}, oa::OptArgs=OptArgs();
-	preresolve = true, naive = false,
+	preresolve = true, naive = false, seqlengths = Dict(s=>1 for s in keys(trees)),
 )
 	ct = Dict(k=>copy(t) for (k,t) in trees)
-	return computeMCCs!(ct, oa; preresolve, naive)
+	return computeMCCs!(ct, oa; preresolve, naive, seqlengths)
 end
 """
 	computeMCCs!(
@@ -44,15 +44,17 @@ See `computeMCCs`.
 """
 function computeMCCs!(
 	trees::Dict{<:Any, <:Tree}, oa::OptArgs=OptArgs();
-	preresolve=true, naive=false,
+	preresolve=true, naive=false, seqlengths = Dict(s=>1 for s in keys(trees)),
 )
 	if naive
 		return computeMCCs_naive!(trees)
-	end
-	if preresolve
-		return computeMCCs_preresolve!(trees, oa)
 	else
-		return computeMCCs_dynresolve(trees, oa)
+		oac = @set oa.seq_lengths = seqlengths
+		if preresolve
+			return computeMCCs_preresolve!(trees, oac)
+		else
+			return computeMCCs_dynresolve(trees, oac)
+		end
 	end
 end
 
@@ -167,7 +169,7 @@ function runopt(oa::OptArgs, trees::Dict)
 		M = getM(length(first(values(ot)).lleaves), oa.Md)
 		mccs, Efinal, Ffinal, E, F, lk = SplitGraph.opttrees(
 			values(ot)...;
-			γ=oa.γ, seq_lengths = oa.seq_lengths, M=M, Trange=oa.Trange,
+			γ=oa.γ, seq_lengths = [oa.seq_lengths[x] for x in keys(ot)], M=M, Trange=oa.Trange,
 			likelihood_sort=oa.likelihood_sort, resolve=oa.resolve, sa_rep = oa.sa_rep
 		)
 		!isempty(mccs) && append!(MCCs, mccs)

@@ -9,8 +9,9 @@ Storing parameters for `SplitGraph.runopt` function.
 - `likelihood_sort::Bool = true`: sort equivalent configurations using likelihood test
   based on branch length.
 - `resolve::Bool = true`: try to resolve trees while finding MCCs.
-- `seq_lengths = ones(Int64, 2)`: lengths of sequences that trees were built from.
+- `seq_lengths`: lengths of sequences that trees were built from.
   Used in likelihood calculations.
+  This is initialized from other input arguments, and defaults to sequences of length one.
 ### Simulated annealing
 - `Md::Real = 10`:  Number of SA iterations (per temperature) for a tree of `n` leaves is
   `ceil(Int, n/Md)`
@@ -30,7 +31,7 @@ Storing parameters for `SplitGraph.runopt` function.
 	itmax::Int64 = 15
 	likelihood_sort::Bool = true
 	resolve::Bool = true
-	seq_lengths = ones(Int64, 2)
+	seq_lengths = Dict(1=>1, 2=>2)
 	# For the annealing
 	Md::Real = 10
 	Tmin::Float64 = 1e-3
