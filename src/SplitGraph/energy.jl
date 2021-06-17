@@ -190,6 +190,9 @@ function mcmcstep!(conf, g, F, T, γ)
 end
 
 """
+	sa_opt(g::Graph; Trange=1.:-0.01:0.1, γ=1.05, M=1000, rep=1, resolve=true)
+
+Call `_sa_opt` repeatedly to find a set of optimal confs.
 """
 function sa_opt(g::Graph; Trange=1.:-0.01:0.1, γ=1.05, M=1000, rep=1, resolve=true)
 	set_resolve(resolve)

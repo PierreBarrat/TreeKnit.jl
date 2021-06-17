@@ -7,7 +7,7 @@ Functions that direclty handle trees are found in the separate *TreeTools* packa
   - `read_tree(file)`: read tree from newick file. 
   - `parse_newick(string)`: parse newick `string` into a `TreeNode` object
   - `node2tree(n::TreeNode)`: create a `Tree` object from node `n`, using it as a root. 
-  - `write_newick(file::String, t::Tree)`/`write_newick([file::String], n::TreeNode)`: write tree to `file` using newick format (or optionally return a newick string). 
+  - `write_newick(file::String, t::Tree)`/`write_newick([file::String], n::TreeNode)`: write tree to `file` using newick format. Return a newick string if `file` is not provided. 
 
 ## Simple case 
 

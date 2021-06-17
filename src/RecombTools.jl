@@ -20,8 +20,6 @@ include("mcc_tools.jl")
 include("resolving.jl")
 export resolve!, resolve_from_mccs!
 
-include("reading.jl")
-
 include("SplitGraph/SplitGraph.jl")
 using RecombTools.SplitGraph
 
@@ -30,6 +28,9 @@ export OptArgs
 
 include("main.jl")
 export computeMCCs, computeMCCs!
+
+include("Flu.jl")
+export Flu
 
 # TreeTools re-exports for docs
 import TreeTools: node2tree, parse_newick

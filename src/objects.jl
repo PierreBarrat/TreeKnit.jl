@@ -36,7 +36,7 @@ Storing parameters for `SplitGraph.runopt` function.
 	Md::Real = 10
 	Tmin::Float64 = 1e-3
 	Tmax::Float64 = 1.; @assert Tmax > Tmin
-	dT::Float64 = 5e-2
+	dT::Float64 = 1e-2
 	Trange = reverse(Tmin:dT:Tmax)
 	sa_rep::Int64 = 1
 	# Verbosity
@@ -45,4 +45,5 @@ Storing parameters for `SplitGraph.runopt` function.
 	# Output
 	output = :mccs
 end
+
 

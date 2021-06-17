@@ -22,7 +22,7 @@ nothing # hide
 ```
 Here, pruning the two leaves `(A,C)` or `(D,E)` results in compatible trees (resp. `((B,D),E)` and `((A,B),C)`). 
   These moves each have a cost 2$\gamma$ (removing 2 clades), but bring us from trees with 5 incompatibilities to 0. 
-  It will thus be accepted only if $\gamma \leq 2.5$. 
+  They will only be accepted if $\gamma \leq 2.5$. 
 
 ```@repl gamma1
   computeMCCs(trees, OptArgs(γ=2))[1,2]
@@ -33,7 +33,7 @@ Here, pruning the two leaves `(A,C)` or `(D,E)` results in compatible trees (res
 ## Resolving trees with polytomies 
 See [Resolving](@ref)
 
-## Degeneracy: sorting with likelihood
+## [Degeneracy: sorting with likelihood](@id likelihood)
 When several MCC decompositions are possible, degeneracy is removed by using the `likelihood_sort` option (activated by default). 
 In the example below, there are three equivalent decompositions if only topology is considered: 
 ```@example degeneracy

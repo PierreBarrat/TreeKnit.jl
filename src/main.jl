@@ -1,7 +1,7 @@
 """
 	computeMCCs(
-		trees::Dict{<:Any, <:Tree} [, oa::OptArgs=OptArgs()];
-		preresolve=true, naive=false
+		trees::Dict, oa::OptArgs=OptArgs();
+		preresolve = true, naive = false, seqlengths = Dict(s=>1 for s in keys(trees)),
 	)
 
 Compute pairwise MCCs for `trees`. Return MCCs and resolved splits. The `computeMCCs!`
@@ -28,7 +28,7 @@ In general, this should be set to `true` if more than two trees are used, and to
   `runopt(oa,t1,t2)` is called on every pair of trees.
 """
 function computeMCCs(
-	trees::Dict{<:Any, <:Tree}, oa::OptArgs=OptArgs();
+	trees::Dict, oa::OptArgs=OptArgs();
 	preresolve = true, naive = false, seqlengths = Dict(s=>1 for s in keys(trees)),
 )
 	ct = Dict(k=>copy(t) for (k,t) in trees)
@@ -36,14 +36,14 @@ function computeMCCs(
 end
 """
 	computeMCCs!(
-		trees::Dict{<:Any, <:Tree}, oa::OptArgs=OptArgs();
-		preresolve = true, naive = false,
+		trees::Dict, oa::OptArgs=OptArgs();
+		preresolve = true, naive = false, seqlengths = Dict(s=>1 for s in keys(trees)),
 	)
 
 See `computeMCCs`.
 """
 function computeMCCs!(
-	trees::Dict{<:Any, <:Tree}, oa::OptArgs=OptArgs();
+	trees::Dict, oa::OptArgs=OptArgs();
 	preresolve=true, naive=false, seqlengths = Dict(s=>1 for s in keys(trees)),
 )
 	if naive
@@ -58,12 +58,12 @@ function computeMCCs!(
 	end
 end
 
-function computeMCCs_naive!(trees::Dict{<:Any, <:Tree})
+function computeMCCs_naive!(trees::Dict)
 	rS = resolve!(values(trees)...)
 	return _computeMCCs(ts -> RecombTools.naive_mccs(collect(values(ts))...), trees)
 end
 
-function computeMCCs_preresolve!(trees::Dict{<:Any, <:Tree}, oa::OptArgs)
+function computeMCCs_preresolve!(trees::Dict, oa::OptArgs)
 	# First pass: compute MCCs while resolving, and keep only introduced splits that
 	# are compatible with all trees
 	# oac = @set oa.resolve = true
@@ -75,19 +75,19 @@ function computeMCCs_preresolve!(trees::Dict{<:Any, <:Tree}, oa::OptArgs)
 	return MCCs
 end
 
-function computeMCCs_dynresolve(trees::Dict{<:Any, <:Tree}, oa::OptArgs)
+function computeMCCs_dynresolve(trees::Dict, oa::OptArgs)
 	return _computeMCCs(ts -> runopt(oa,ts), trees)
 end
 
 """
-	_computeMCCs(f::Function, trees::Dict{<:Any, <:Tree})
+	_computeMCCs(f::Function, trees::Dict)
 
 Compute MCCs for each pair of trees in `trees` by calling `f(t1,t2)`.
 Return a dictionary indexed with pairs of keys of `trees`.
 For simplicity, output for a pair of the same key is `[String[]]`
   (instead of not being indexed at all)
 """
-function _computeMCCs(f::Function, trees::Dict{<:Any, <:Tree})
+function _computeMCCs(f::Function, trees::Dict)
 	MCCs = Dict()
 	segments = collect(keys(trees))
 	for i in 1:length(trees), j in (i+1):length(trees)
