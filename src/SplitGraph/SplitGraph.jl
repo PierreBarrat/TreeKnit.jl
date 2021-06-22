@@ -94,9 +94,9 @@ function sortconf(oconfs, trees, g::Graph, seq_lengths, mcc_names, likelihood_so
 		v() && println("Comparing $(length(oconfs_)) configurations using likelihood")
 		L = Union{Missing,Float64}[]
 		for conf in oconfs_
-			vv() && println("## Looking at configuration $conf with energy $(compute_energy(conf,g))")
+			# vv() && println("## Looking at configuration $conf with energy $(compute_energy(conf,g))")
 			push!(L, conf_likelihood(conf, g, seq_lengths, trees, mode=:time, v=vv()))
-			vv() && println()
+			# vv() && println()
 		end
 		vv() && println("Confs: ", [[mcc_names[x] for x in g.labels[.!conf]] for conf in oconfs_])
 		v() && println("Likelihoods: ", L)

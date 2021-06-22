@@ -184,10 +184,14 @@ function runopt(oa::OptArgs, trees::Dict)
 		!prod([check_tree(t) for t in values(ot)]) && @error "Problem in a tree"
 
 		# Log results
-		use_df_log && update_df!(
-			dflog, length(first(values(ot)).lleaves), length(rMCCs), oa.γ, M, Efinal, Ffinal,
-			mccs, MCCs, rMCCs, :topology_optimization
-		)
+		if use_df_log
+			update_df!(
+				dflog, length(first(values(ot)).lleaves), length(rMCCs), oa.γ, M, Efinal, Ffinal,
+				mccs, MCCs, rMCCs, :topology_optimization
+			)
+			push!(Evals, E)
+			push!(Fvals, F)
+		end
 		(flag == :stop) && break
 		it += 1
 	end

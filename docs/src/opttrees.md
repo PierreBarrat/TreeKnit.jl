@@ -122,9 +122,9 @@ Here we go: by removing a leaf, *i.e.* by "enforcing" a reassortment right above
 ```@repl opttrees
 conf0 = ones(Bool, length(g.leaves)) # Configuration with all leaves
 SplitGraph.compute_F(conf, g, 1) - SplitGraph.compute_F(conf0, g, 1)
-SplitGraph.compute_F(conf, g, 2) - SplitGraph.compute_F(conf0, g, 1)
-SplitGraph.compute_F(conf, g, 3) - SplitGraph.compute_F(conf0, g, 1)
-SplitGraph.compute_F(conf, g, 4) - SplitGraph.compute_F(conf0, g, 1)
+SplitGraph.compute_F(conf, g, 2) - SplitGraph.compute_F(conf0, g, 2)
+SplitGraph.compute_F(conf, g, 3) - SplitGraph.compute_F(conf0, g, 3)
+SplitGraph.compute_F(conf, g, 4) - SplitGraph.compute_F(conf0, g, 4)
 ```
 
 ## Simulated annealing 

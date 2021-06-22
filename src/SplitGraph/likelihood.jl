@@ -73,18 +73,18 @@ function conf_likelihood_(divfunction, conf::Array{Bool,1}, g::Graph, seq_length
 						(get_resolve() && are_equal_with_resolution(g, a1.conf, a2.conf, conf, k1, k2))
 						tau1 = divfunction(tn1, ta1)
 						tau2 = divfunction(tn2, ta2)
-						v && println("No inconsistency for leaf $i ($(g.labels[i]))")
-						v && println("Inferring that times $(tau1) on tree $k1 and $(tau2) on tree $k2 are the same.")
+						# v && println("No inconsistency for leaf $i ($(g.labels[i]))")
+						# v && println("Inferring that times $(tau1) on tree $k1 and $(tau2) on tree $k2 are the same.")
 						dL = branch_likelihood(tau1, tau2, seq_lengths[k1], seq_lengths[k2])
 						L += dL
 						Z += 1.
-						v && println("Corresponding likelihood is $dL.")
+						# v && println("Corresponding likelihood is $dL.")
 					end
 				end
 			end
 		end
 	end
-	v && println("--> Final likelihood $(L/max(Z,1))")
+	# v && println("--> Final likelihood $(L/max(Z,1))")
 	return L/max(Z,1)
 end
 """
