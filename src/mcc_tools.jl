@@ -15,7 +15,7 @@ end
 
 Write MCCs id to field `data.dat[key]` of tree nodes.
 """
-function write_mccs!(t::Tree, MCCs, key=:mcc_id; overwrite=false)
+function write_mccs!(t::Tree{TreeTools.MiscData}, MCCs, key=:mcc_id; overwrite=false)
     for (i,mcc) in enumerate(MCCs)
         for label in mcc
             t.lleaves[label].data.dat[key] = i

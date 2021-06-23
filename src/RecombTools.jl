@@ -17,6 +17,9 @@ include("mcc_splits.jl")
 
 include("mcc_tools.jl")
 
+include("mcc_IO.jl")
+export read_mccs, write_mccs
+
 include("resolving.jl")
 export resolve!, resolve_from_mccs!
 

@@ -31,7 +31,7 @@ Storing parameters for `SplitGraph.runopt` function.
 	itmax::Int64 = 15
 	likelihood_sort::Bool = true
 	resolve::Bool = true
-	seq_lengths = Dict(1=>1, 2=>2)
+	seq_lengths = Dict(1=>1, 2=>1)
 	# For the annealing
 	Md::Real = 10
 	Tmin::Float64 = 1e-3
