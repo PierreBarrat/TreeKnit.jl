@@ -50,11 +50,11 @@ Once the trees reduced to their naive MCCs, we construct a `SplitGraph` object f
 The `SplitGraph` is a directed graph that is based on both trees, and has two kind of nodes: 
 - leaf nodes correspond to leaves of the trees, and are identifier by integers. 
   They have as many ancestors as there are trees in the `SplitGraph`. 
-- internal nodes, called `SplitNode`s, correspond to internal nodes in one of the two trees: a `color::Int` attribute identifies the tree they belong to (*e.g.* 1 for the first tree, 2 for the second, etc...).
+- internal nodes, called `SplitNode`s, correspond to internal nodes in one of the two trees. A `color::Int` attribute identifies the tree to which they belong (*e.g.* 1 for the first tree, 2 for the second, etc...).
   They have only one ancestor, of the same color. 
   Importantly, they are identified by the ensemble of leaf nodes that are "below" them, that is the subset of all their direct and indirect offsprings that are leaves. 
   As such, they uniquely correspond to a split in one of the two trees. 
-  This information is stored as an array of integer in the `conf` attribute. 
+  This information is stored as an array of integer in their `conf` field. 
 
 Let us know build the `SplitGraph` object: 
 ```@example opttrees
@@ -63,20 +63,24 @@ g = SplitGraph.trees2graph(treelist);
 g.labels_to_int
 ```
 
+!!! warn 
+    It is recommemded that you add `;` to the end of lines when working with `SplitGraph`, `SplitNode` or `LeafNode` in the REPL. 
+    If you forget, you will quickly see why :-) 
+
 We now see that the three leaves from our coarse-grained trees have been attributed an integer index in the `SplitGraph`. 
   Let us take a look at the internal nodes above the leaf `MCC_3`: 
 ```@repl opttrees
 a1 = g.leaves[g.labels_to_int["MCC_3"]].anc[1]; # Ancestor for the first tree
 a2 = g.leaves[g.labels_to_int["MCC_3"]].anc[2]; # Ancestor for the second tree
 [a1.color, a2.color] # a1 and a2 resp. belong to trees 1 and 2
-a1.conf # list of leaves below `a1`
+a1.conf # list of leaves below `a1`. Among those is the index for "MCC_3".
 [g.labels[i] for i in a1.conf] # Same as above, with labels
 [g.labels[i] for i in a2.conf] # and the same for a2 
 ```
-We now immediatly see that the internal node above `MCC_3` in the two trees defines a different split: `(MCC_1, MCC_3)` in the first tree is different from `(MCC_2, MCC_3)` in the second tree. 
+We now immediatly see that the internal nodes above `MCC_3` in the two trees define different splits: `(MCC_1, MCC_3)` in the first tree is different from `(MCC_2, MCC_3)` in the second tree. 
   This is the idea underlying the inference of MCCs. 
 
-## Counting inconsistencies 
+## Counting incompatibilities
 
 In the example above, the ancestors of leaf `MCC_3` in the two trees define different splits: this is called an incompatibility. 
   Examination of the trees reveals that there are also similar incompatibilitie for the two other leaves `MCC_1` and `MCC_2`. 
@@ -98,7 +102,7 @@ However, it is possible to explain the two example trees using less than three r
 ```@example opttrees
   conf = ones(Bool, length(g.leaves))
   conf[g.labels_to_int["MCC_1"]] = false # Remove `MCC_3` from the configuration
-  nothing # hide
+  conf
 ```
 
 To compute the number of incompatibilities given a configuration, we use the `compute_energy` function. The result is interpreted as the "energy" of this configuration given the graph `g`: 
@@ -113,10 +117,12 @@ SplitGraph.compute_energy(conf, g)
     conf = ones(Bool, length(g.leaves))
     SplitGraph.compute_energy(conf, g)
     ```
+    In other words, it computes the energy for the configuration where all leaves are present. 
 
-Here we go: by removing a leaf, *i.e.* by "enforcing" a reassortment right above it, we've reduced the number of incompatibilities for the remaining ones to 0. 
-  Since removing a leaf corresponds to introducing a reassortment, we have to assign a cost to it, that we call $\gamma$. 
-  Depending on the value of $\gamma$, the difference in overall score associated to removing a leaf or keeping it will change from positive to negative. 
+By removing a leaf, *i.e.* by "enforcing" a reassortment right above it, we've reduced the number of incompatibilities for the remaining ones to 0. 
+  Since removing a leaf corresponds to "enforcing" a reassortment, we have to assign a cost to it, that we call $\gamma$. 
+  This defines a score for each configuration, defined as the difference between the energy of the configuration and $\gamma$ times the number of leaves that were removed.
+Depending on the value of $\gamma$, the difference in overall score associated to removing a leaf or keeping it will change from negative to positive. 
   Scores are computed with the `compute_F` function that takes $\gamma$ as its last argument.
   Here are the differences in scores before and after removing `MCC_3`, for different values of $\gamma$:   
 ```@repl opttrees
@@ -127,10 +133,22 @@ SplitGraph.compute_F(conf, g, 3) - SplitGraph.compute_F(conf0, g, 3)
 SplitGraph.compute_F(conf, g, 4) - SplitGraph.compute_F(conf0, g, 4)
 ```
 
+For this simple example, $\gamma = 3$ is the "critical" value above which the fact of removing `MCC_3` or any other leaf is not considered a good move. 
+  The inference of MCCs for $\gamma \leq 3$ and $\gamma > 3$ will thus give different results. 
+  In the first case, two MCCs will be found, corresponding to one reassortment event (above `MCC_3` for instance)
+. 
+  In the second, three MCCs and three reassortments will be found. 
+
+```@repl opttrees
+trees = Dict(1=>t1, 2=>t2);
+computeMCCs(trees, OptArgs(γ=3.1))[1,2]
+computeMCCs(trees, OptArgs(γ=2.9))[1,2]
+```
+
 ## Simulated annealing 
 
 The `opttrees` function attempts to find the configuration, *i.e.* a set of leaves to remove, that minimizes the compatibility score presented above. 
-  Since this is a discrete optimization problem with no clear mathematical formalization, we chose to use the [simulated annealing](https://en.wikipedia.org/wiki/Simulated_annealing) technique. 
+  Since this is a discrete optimization problem with no clear mathematical formalization, we choose to use the [simulated annealing](https://en.wikipedia.org/wiki/Simulated_annealing) technique. 
 Let us find optimum configurations for our simple trees: 
 
 ```@example opttrees

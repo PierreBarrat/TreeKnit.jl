@@ -15,6 +15,7 @@ Documenter.makedocs(;
 		"Usage" => [
 			"Overview" => "overview.md",
 			"Important options" => "options.md",
+			"Flu example" => "flu_example.md",
 		],
 		"Under the hood" => [
 			"`opttrees`" => "opttrees.md",
