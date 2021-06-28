@@ -1,4 +1,4 @@
-# The `opttrees` function
+# [The `opttrees` function](@id opttrees)
 
 The core of the heuristic *RecombTools* is based on happens in the `opttrees` function, found in the `SplitGraph` submodule. 
   Given two trees, `opttrees` attempts to reconcile them by pruning certain clades. 
@@ -63,7 +63,7 @@ g = SplitGraph.trees2graph(treelist);
 g.labels_to_int
 ```
 
-!!! warn 
+!!! warning
     It is recommemded that you add `;` to the end of lines when working with `SplitGraph`, `SplitNode` or `LeafNode` in the REPL. 
     If you forget, you will quickly see why :-) 
 

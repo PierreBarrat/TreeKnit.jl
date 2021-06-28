@@ -6,8 +6,8 @@
 ```@example flu
 using RecombTools
 tree_files = Dict(
-	"ha" => pathof(RecombTools) * "examples/tree_h3n2_ha.nwk",
-	"na" => pathof(RecombTools) * "examples/tree_h3n2_na.nwk"
+	"ha" => dirname(pathof(RecombTools)) * "/../examples/tree_h3n2_ha.nwk",
+	"na" => dirname(pathof(RecombTools)) * "/../examples/tree_h3n2_na.nwk"
 )
 flutrees = Flu.read_flu_trees(tree_files)
 ```
@@ -19,4 +19,9 @@ flutrees = Flu.read_flu_trees(tree_files)
   It is necessary to remove these branches. 
   The threshold below which a branch is removed is $\frac{1}{2L}$ where $L$ is the length of the gene sequence. 
 
+We can now simply infer MCCs for these trees:
+
+```@example flu
+computeMCCs(flutrees)["ha", "na"]
+```
 

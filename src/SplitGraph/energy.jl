@@ -194,7 +194,7 @@ end
 
 Call `_sa_opt` repeatedly to find a set of optimal confs.
 """
-function sa_opt(g::Graph; Trange=1.:-0.01:0.1, γ=1.05, M=1000, rep=1, resolve=true)
+function sa_opt(g::Graph; Trange=reverse(1e-3:1e-2:1), γ=2., M=10, rep=1, resolve=true)
 	set_resolve(resolve)
 	#
 	oconf = Any[]

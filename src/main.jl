@@ -208,7 +208,7 @@ function runopt(oa::OptArgs, trees::Dict)
 	end
 end
 
-function stop_conditions!(previous_mccs, new_mccs, oa, it, trees... ; hardstop=false)
+function stop_conditions!(previous_mccs, new_mccs, oa, it, trees... ; hardstop=true)
 	# If no solution was found
 	if length(new_mccs) == 0
 		oa.verbose && print("No solution found... ")
