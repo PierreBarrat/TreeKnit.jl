@@ -47,7 +47,11 @@ function computeMCCs!(
 	preresolve=true, naive=false, seqlengths = Dict(s=>1 for s in keys(trees)),
 )
 	if naive
-		return computeMCCs_naive!(trees, oa.resolve)
+		if preresolve
+			return computeMCCs_naive_preresolve!(trees, oa.resolve)
+		else
+			return computeMCCs_naive_dynresolve!(trees, oa.resolve)
+		end
 	else
 		oac = @set oa.seq_lengths = seqlengths
 		if preresolve
@@ -58,9 +62,26 @@ function computeMCCs!(
 	end
 end
 
-function computeMCCs_naive!(trees::Dict, resolve)
-	resolve && (rS = resolve!(values(trees)...))
-	return _computeMCCs(ts -> RecombTools.naive_mccs(collect(values(ts))...), trees)
+function computeMCCs_naive_dynresolve!(trees::Dict, resolve)
+	# resolve && (rS = resolve!(values(trees)...))
+	function naive_inf(trees::Dict, resolve)
+		ts = Dict(k=>copy(t) for (k,t) in trees)
+		resolve && resolve!(collect(values(ts))...)
+		RecombTools.naive_mccs(collect(values(ts))...)
+	end
+	return _computeMCCs(ts -> naive_inf(ts, resolve), trees)
+end
+
+function computeMCCs_naive_preresolve!(trees::Dict, resolve)
+	# resolve && (rS = resolve!(values(trees)...))
+	function naive_inf(trees::Dict, resolve)
+		ts = Dict(k=>copy(t) for (k,t) in trees)
+		resolve && resolve!(collect(values(ts))...)
+		RecombTools.naive_mccs(collect(values(ts))...)
+	end
+	resolve_from_mccs!(ts -> naive_inf(ts, resolve), trees)
+	MCCs = _computeMCCs(ts -> naive_inf(ts, false), trees)
+	return MCCs
 end
 
 function computeMCCs_preresolve!(trees::Dict, oa::OptArgs)

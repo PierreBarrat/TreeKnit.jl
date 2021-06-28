@@ -178,7 +178,7 @@ end
 
 function _resolve_from_mccs!(infer_mccs::Function, trees::Dict{<:Any, <:Tree}; verbose=false)
 	verbose && println("--- Resolving with MCCs... ---\n")
-	# 1. `MCCs[u,v]` gives corresponds to `trees[u]` and `trees[v]`
+	# 1. `MCCs[u,v]` corresponds to `trees[u]` and `trees[v]`
 	MCCs = _computeMCCs(infer_mccs, trees)
 	# 2. `resolvable_splits[s]` is an array of `SplitList` objects that can be introduced in `trees[s]` from each other tree.
 	resolvable_splits = RecombTools.new_splits(trees, MCCs)
