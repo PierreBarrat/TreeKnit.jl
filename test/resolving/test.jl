@@ -55,7 +55,10 @@ println("##### Resolve using MCCs #####")
 
 # ╔═╡ 93ccb338-8e0d-11eb-0f36-49bebaf5570b
 function infer_mccs(trees;kwargs...)
-	RecombTools.runopt(OptArgs(;kwargs...), trees)
+	RecombTools.runopt(
+		OptArgs(;seq_lengths = Dict(s=>1 for s in keys(trees)), kwargs...),
+		trees
+	)
 end
 
 # ╔═╡ 45e695a6-8e0d-11eb-178d-97bf0cb45379
@@ -103,6 +106,25 @@ trees2 = Dict(1=>deepcopy(t3), 2=>deepcopy(t4))
 	@test nS2[2] == [["A1", "A2"]]
 	@test nS2[1] == [["A1", "A2", "A3"], ["B1", "B2"], ["A1", "A2", "A3", "A4", "B1", "B2"]]
 end
+
+
+# Testing max-clique splits
+# trees 2 and 3 try to resolve 1 in a different way.
+nwk1 = "((A,B,C),(D,E,F,G))"
+nwk2 = "(((A,B),C),(D,(E,(F,G))))"
+nwk3 = "(((A,B),C),(D,(E,F),G))"
+trees = Dict(i=>node2tree(parse_newick(nwk)) for (i,nwk) in enumerate([nwk1, nwk2, nwk3]))
+MCCs = RecombTools._computeMCCs(infer_mccs, trees)
+resolvable_splits = RecombTools.new_splits(trees, MCCs)
+@testset "max-clique splits" begin
+	S1 = RecombTools.max_clique_splits(resolvable_splits[1])
+	S2 = RecombTools.max_clique_splits(resolvable_splits[2])
+	S3 = RecombTools.max_clique_splits(resolvable_splits[3])
+	@test length(S1) == 3 # would be 0 with compat
+	@test length(S2) == 0 # is already resolved
+	@test length(S3) == 1 # one split from tree 2 (depending if E or G is an MCC)
+end
+
 
 # ╔═╡ Cell order:
 # ╠═2ea1ccbc-8e0d-11eb-29c3-05a91ea18a6f

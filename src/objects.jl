@@ -4,7 +4,7 @@
 Storing parameters for `SplitGraph.runopt` function.
 
 ### General
-- `γ::Real = 3`
+- `γ::Real = 2`
 - `itmax::Int64 = 15`: Maximal number of iterations of naive MCCs / SA cycles
 - `likelihood_sort::Bool = true`: sort equivalent configurations using likelihood test
   based on branch length.
@@ -27,7 +27,7 @@ Storing parameters for `SplitGraph.runopt` function.
   `runopt`.
 """
 @with_kw struct OptArgs
-	γ::Real  = 3
+	γ::Real = 2
 	itmax::Int64 = 15
 	likelihood_sort::Bool = true
 	resolve::Bool = true

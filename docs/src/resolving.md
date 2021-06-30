@@ -74,7 +74,7 @@ However, the topology-based heuristic used by *RecombTools* is not able to detec
   For instance, the split above `E` will be `(D,E)` in the first tree and `(C,D,E)` in the second. 
   Without resolving, the heuristic will predict a reassortment above almost every leaf: 
 ```@example 3
-computeMCCs(Dict(1=>t1, 2=>t2), OptArgs(;resolve=false))[1,2]
+computeMCCs(Dict(1 => t1, 2 => t2), OptArgs(;resolve=false))[1,2]
 ```
 
 In order to achieve progress in this kind of situation, we have to perform two operations at the same time: 
@@ -83,7 +83,7 @@ In order to achieve progress in this kind of situation, we have to perform two o
 
 This is done automatically during MCC inference if the `resolve` option of `OptArgs` is given (default):  
 ```@example 3
-computeMCCs(Dict(1=>t1, 2=>t2), OptArgs(;resolve=true))[1,2]
+computeMCCs(Dict(1 => t1, 2 => t2), OptArgs(;resolve=true))[1,2]
 ```
 
 ## Pre-resolving for more than two trees

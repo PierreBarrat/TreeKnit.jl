@@ -1,7 +1,12 @@
 """
 Core function for computing splits in MCCs. Include root of MCC if it's not root of tree.
 """
-function _splits_in_mcc(m::Array{<:AbstractString}, t::Tree, leaves::Array{<:AbstractString}, leafmap::Dict)
+function _splits_in_mcc(
+	m::Array{<:AbstractString},
+	t::Tree,
+	leaves::Array{<:AbstractString},
+	leafmap::Dict
+)
     # Mask corresponding to leaves in the MCC
     mask = zeros(Bool, length(leaves))
     for l in m

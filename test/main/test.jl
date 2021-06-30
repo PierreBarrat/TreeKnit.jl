@@ -18,7 +18,7 @@ out = RecombTools.runopt(t1, t2; likelihood_sort=false, verbose=true)
 trees = Dict(1=>deepcopy(t1), 2=>deepcopy(t2));
 @testset "Pre-resolve" begin
 	MCCs = RecombTools.computeMCCs!(
-		trees, OptArgs(likelihood_sort=false);
+		trees, OptArgs(likelihood_sort=false, γ=3);
 		preresolve = true,
 	)
 	@test MCCs[1,2] == [["1"], ["2"], ["6"], ["3", "4", "5"]]
@@ -35,7 +35,7 @@ solutions = [
 ]
 @testset "Dyn-resolve" begin
 	MCCs = RecombTools.computeMCCs!(
-		trees2, OptArgs(likelihood_sort=false);
+		trees2, OptArgs(likelihood_sort=false, γ=3);
 		preresolve=false,
 	)
 	@test in(MCCs[1,2], solutions)

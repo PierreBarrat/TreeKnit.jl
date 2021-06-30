@@ -4,6 +4,7 @@ module RecombTools
 # To remove eventually
 using DataFrames
 # External modules
+using LightGraphs
 using Parameters
 using Setfield
 # Personal modules

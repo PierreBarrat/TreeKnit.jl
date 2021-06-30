@@ -6,6 +6,7 @@ version = "0.1.0"
 [deps]
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+LightGraphs = "093fc24a-ae57-5d10-9952-331d41423f4d"
 Parameters = "d96e819e-fc66-5662-9728-84c9c7592b0a"
 Setfield = "efcf1570-3423-57d1-acb7-fd33fddbac46"
 TreeTools = "62f0eae3-8c0e-4032-a621-7756092209e5"

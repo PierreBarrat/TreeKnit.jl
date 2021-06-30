@@ -147,6 +147,7 @@ end
 ###############################################################################################################
 
 """
+	resolve_from_mccs!(infer_mccs::Function, trees::Vararg{Tree}; verbose=false, kwargs...)
 	resolve_from_mccs!(infer_mccs::Function, trees::Dict; verbose=false, kwargs...)
 
 Resolve `trees` using pairwise MCC inference. The `infer_mccs` function must take a `Dict{<:Any, Tree}` as input. `kwargs...` are fed to `infer_mccs`. Return the set of compatible splits introduced.
@@ -189,8 +190,10 @@ function _resolve_from_mccs!(infer_mccs::Function, trees::Dict{<:Any, <:Tree}; v
 		end
 		println()
 	end
-	# 3. `cmpt_splits[s]` is a `SplitList` object containing only splits compatible with all others
-	cmpt_splits = RecombTools.compatible_splits(resolvable_splits)
+	# 3. `cmpt_splits[s]` is a `SplitList` object containing a selection of splits
+	# we can choose between several methods for this choice.
+	cmpt_splits = RecombTools.max_clique_splits(resolvable_splits; verbose)
+	# cmpt_splits = RecombTools.compatible_splits(resolvable_splits)
 	if verbose
 		for (s,t) in trees
 			println("Tree $s: $(length(cmpt_splits[s])) compatible resolvable splits.")
@@ -206,10 +209,16 @@ function _resolve_from_mccs!(infer_mccs::Function, trees::Dict{<:Any, <:Tree}; v
 	return cmpt_splits
 end
 
-"""
-	resolve_from_mccs!(infer_mccs::Function, trees::Vararg{Tree}; verbose=false, kwargs...)
-"""
-resolve_from_mccs!(infer_mccs::Function, trees::Vararg{Tree}; verbose=false, kwargs...) = resolve_from_mccs!(infer_mccs, Dict(i=>t for (i,t) in enumerate(trees)), verbose=verbose; kwargs...)
+
+function resolve_from_mccs!(
+	infer_mccs::Function, trees::Vararg{Tree};
+	verbose=false, kwargs...
+)
+	resolve_from_mccs!(
+		infer_mccs, Dict(i=>t for (i,t) in enumerate(trees));
+		verbose=verbose, kwargs...
+	)
+end
 
 
 """
@@ -239,4 +248,40 @@ function compatible_splits(rS::Dict{<:Any, Array{SplitList,1}})
         cs[seg] = unique(cs[seg])
     end
     return cs
+end
+
+function max_clique_splits(nS::Dict; verbose=false)
+	cS = Dict{Any, SplitList}()
+	for (seg, S) in nS
+		verbose && println(seg)
+		cS[seg] = max_clique_splits(S)
+	end
+	return cS
+end
+function max_clique_splits(nS; verbose=true)
+	S = union(nS...)
+	verbose && println("Finding max clique among $(length(S)) splits.")
+	g = build_compat_graph(S)
+	all_cliques = LightGraphs.maximal_cliques(g)
+	verbose && println("Found $(length(all_cliques)) cliques.")
+	if isempty(all_cliques)
+		return S
+	else
+		max_clique = sort(all_cliques, by=x->length(x), rev=true)[1]
+		# Delete splits not in the max clique
+		todel = findall(!in(max_clique), 1:length(S))
+		deleteat!(S.splits, todel)
+		return S
+	end
+end
+
+function build_compat_graph(S::SplitList)
+	L = length(S)
+	g = Graph(L)
+	for i in 1:L, j in (i+1):L
+		if arecompatible(S[i], S[j])
+			add_edge!(g, i, j)
+		end
+	end
+	return g
 end
