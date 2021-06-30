@@ -162,10 +162,13 @@ These four steps are **iterated**, while new compatible splits are found.
 When no new compatible split is found, compute final MCCs without resolving.
 """
 function resolve_from_mccs!(infer_mccs::Function, trees::Dict{<:Any, <:Tree}; verbose=false)
-	newsplits = _resolve_from_mccs!(infer_mccs, trees, verbose=verbose)
-	nS = newsplits
 	maxit = 10
-	it = 0
+	#
+	verbose && println("It. 1/$(maxit)")
+	newsplits = _resolve_from_mccs!(infer_mccs, trees, verbose=verbose)
+	#
+	nS = newsplits
+	it = 1
 	while !mapreduce(isempty, *, values(nS), init=true) && it < maxit
 		verbose && println("It. $(it+1)/$(maxit)")
 		nS = _resolve_from_mccs!(infer_mccs, trees, verbose=verbose)
@@ -185,7 +188,7 @@ function _resolve_from_mccs!(infer_mccs::Function, trees::Dict{<:Any, <:Tree}; v
 	resolvable_splits = RecombTools.new_splits(trees, MCCs)
 	if verbose
 		for (s,t) in trees
-			Y = unique(vcat([x.splits for x in resolvable_splits[s]]...))
+			Y = union(resolvable_splits[s]...)
 			println("Tree $s: $(length(Y)) resolvable splits (potentially incompatible).")
 		end
 		println()
