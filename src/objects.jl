@@ -34,10 +34,14 @@ Storing parameters for `SplitGraph.runopt` function.
 	seq_lengths = Dict(1=>1, 2=>1)
 	# For the annealing
 	Md::Real = 10
-	Tmin::Float64 = 1e-3
-	Tmax::Float64 = 1.; @assert Tmax > Tmin
-	dT::Float64 = 1e-2
-	Trange = reverse(Tmin:dT:Tmax)
+	# Tmin::Float64 = 1e-3
+	# Tmax::Float64 = 1.; @assert Tmax > Tmin
+	# dT::Float64 = 1e-2
+	βmin = 1
+	βmax = 100
+	nβ = 100
+	βrange = range(βmin, βmax; length=100)
+	Trange = [1/β for β in βrange]
 	sa_rep::Int64 = 1
 	# Verbosity
 	verbose::Bool = false
