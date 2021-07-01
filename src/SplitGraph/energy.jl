@@ -150,28 +150,30 @@ function doMCMC(g::Graph, conf::Array{Bool,1}, M::Int64; T=1, γ=1)
 	E = compute_energy(_conf, g)
 	F = E + γ*(length(conf) - sum(conf))
 	##
-	ee = zeros(Real,M+1)
-	ff = zeros(Real,M+1)
-	ee[1] = E
-	ff[1] = F
+	# ee = zeros(Int,M+1)
+	# ff = zeros(Float64,M+1)
+	# ee[1] = E
+	# ff[1] = F
 	##
 	Fmin = F
 	oconf = [copy(_conf)]
 	for m in 1:M
 		E, F = mcmcstep!(_conf, g, F, T, γ)
-		ee[m+1] = E
-		ff[m+1] = F
+		# ee[m+1] = E
+		# ff[m+1] = F
 		# If new minimum is found
 		if F < Fmin
 			Fmin = F
-			oconf = [copy(_conf)]
+			# oconf = [copy(_conf)]
+			oconf[1] .= _conf
+			deleteat!(oconf, 2:length(oconf))
 		end
 		# If equal minimum is found
-		if F == Fmin && mapreduce(x->x!=_conf, *, oconf)
+		if F == Fmin && !in(_conf, oconf) #mapreduce(x->x!=_conf, *, oconf)
 			push!(oconf, copy(_conf))
 		end
 	end
-	return oconf, _conf, ee, ff
+	return oconf, _conf, Fmin
 end
 
 """
@@ -194,60 +196,55 @@ end
 
 Call `_sa_opt` repeatedly to find a set of optimal confs.
 """
-function sa_opt(g::Graph; Trange=reverse(1e-3:1e-2:1), γ=2., M=10, rep=1, resolve=true)
+function sa_opt(g::Graph; Trange=reverse(1e-3:1e-2:0.6), γ=2., M=10, rep=1, resolve=true)
 	set_resolve(resolve)
 	#
 	oconf = Any[]
-	E = Int64[]
 	F = Int64[]
 	Fmin = Inf
 	nfound = 0
 	for r in 1:rep
-		oconf_, E_, F_ = _sa_opt(g, γ, Trange, M)
+		oconf_, F_ = _sa_opt(g, γ, Trange, M)
 		Fm = minimum(F_)
 		if Fm == Fmin
 			append!(oconf, oconf_)
-			append!(E, E_)
 			append!(F, F_)
 			nfound += 1
 		elseif Fm < Fmin
 			Fmin = Fm
 			oconf = oconf_
-			E = E_
 			F = F_
 			nfound = 1
 		end
 	end
-	return unique(oconf), E, F, nfound
+	return unique(oconf), F, nfound
 end
 
 function _sa_opt(g::Graph, γ, Trange, M)
 	reset_chance = 0.0
 	conf = ones(Bool, length(g.leaves))
 	oconf = [copy(conf)]
-	E = [compute_energy(oconf[1],g)]
-	F = Array{Float64,1}([E[1]])
+	F = Float64[Inf]
 	Fmin = F[1]
 	for T in Trange
 		if rand() < reset_chance
-			tmp_oconf, conf, e, f = doMCMC(g, oconf[rand(1:length(oconf))], M, T=T,γ=γ)
+			tmp_oconf, conf, fmin = doMCMC(g, oconf[rand(1:length(oconf))], M, T=T,γ=γ)
 		else
-			tmp_oconf, conf, e, f = doMCMC(g, conf, M, T=T,γ=γ)
+			tmp_oconf, conf, fmin = doMCMC(g, conf, M, T=T,γ=γ)
 		end
-		append!(E,e)
-		append!(F,f)
+		append!(F,fmin)
 		# If a better conf is found than all configurations in oconf
 		# (which is the min of `f` from doMCMC), completely replace oconf
-		if findmin(f)[1] < Fmin
+		if fmin < Fmin
 			oconf = tmp_oconf
-			Fmin = findmin(F)[1]
+			Fmin = fmin
 		# If equally good confs have been found
-		elseif findmin(f)[1] == Fmin
+		elseif fmin == Fmin
 			append!(oconf, tmp_oconf)
 			oconf = unique(oconf)
 		end
 	end
-	return oconf,E,F
+	return oconf,F
 end
 
 """

@@ -89,10 +89,13 @@ function computeMCCs_preresolve!(trees::Dict, oa::OptArgs)
 	# are compatible with all trees
 	# oac = @set oa.resolve = true
 	oac = @set oa.output = :mccs
-	resolve_from_mccs!(ts -> runopt(oac,ts), trees)
+	oac = @set oac.verbose = false
+	t = @elapsed resolve_from_mccs!(ts -> runopt(oac,ts), trees; verbose=oa.verbose)
+	println("Spent $t resolving.")
 	# Second pass: compute MCCs with pre-resolved trees.
 	oac = @set oa.resolve = false
-	MCCs = _computeMCCs(ts -> runopt(oac,ts), trees)
+	t = @elapsed(MCCs = _computeMCCs(ts -> runopt(oac,ts), trees))
+	println("Spent $t on the second pass")
 	return MCCs
 end
 
@@ -164,11 +167,9 @@ function runopt(oa::OptArgs, trees::Dict)
 			newMCCs=Any[[]],
 			AllFinalMCCs=Any[[]],
 			RemainingConsistentClades=Any[iMCCs],
-			Efinal=Any[Einit],
 			Ffinal=Any[Einit],
+			Efinal=Any[Einit]
 		)
-		Evals = Any[]
-		Fvals = Any[]
 	else
 		dflog = nothing
 	end
@@ -188,7 +189,7 @@ function runopt(oa::OptArgs, trees::Dict)
 		oa.verbose && println("\n## Running optimization to find MCCs...")
 		!share_labels(values(ot)...) && error("Trees do not share leaves")
 		M = getM(length(first(values(ot)).lleaves), oa.Md)
-		mccs, Efinal, Ffinal, E, F, lk = SplitGraph.opttrees(
+		mccs, Efinal, Ffinal, lk = SplitGraph.opttrees(
 			values(ot)...;
 			γ=oa.γ, seq_lengths = [oa.seq_lengths[x] for x in keys(ot)], M=M, Trange=oa.Trange,
 			likelihood_sort=oa.likelihood_sort, resolve=oa.resolve, sa_rep = oa.sa_rep
@@ -210,8 +211,6 @@ function runopt(oa::OptArgs, trees::Dict)
 				dflog, length(first(values(ot)).lleaves), length(rMCCs), oa.γ, M, Efinal, Ffinal,
 				mccs, MCCs, rMCCs, :topology_optimization
 			)
-			push!(Evals, E)
-			push!(Fvals, F)
 		end
 		(flag == :stop) && break
 		it += 1
@@ -219,7 +218,7 @@ function runopt(oa::OptArgs, trees::Dict)
 
 	# Output
 	if oa.output == :all
-		return RecombTools.sort_mccs(MCCs), dflog, values(ot), Evals, Fvals
+		return RecombTools.sort_mccs(MCCs), dflog, values(ot)
 	elseif oa.output == :mccs
 		return RecombTools.sort_mccs(MCCs)
 	elseif oa.output == :mccs_df
@@ -293,7 +292,7 @@ Prune `clades` from `trees...`.
 function pruneconf!(clades, trees::Vararg{Tree})
 	for t in trees
 		for st in clades
-			TreeTools.prunesubtree!(t, st, clade_only=true)
+			TreeTools.prunesubtree!(t, st, clade_only=false)
 		end
 		TreeTools.remove_internal_singletons!(t, ptau=true)
 	end

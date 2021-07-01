@@ -16,9 +16,12 @@ let verbose::Bool = false, vverbose::Bool = false
 end
 
 
-opttrees(t...; kwargs...) = opttrees!([copy(x, TreeTools.EmptyData) for x in t]...; kwargs...)
-function opttrees(γ, Trange, M, seq_lengths, t...)
-	opttrees!(γ, Trange, M, seq_lengths, [copy(x, TreeTools.EmptyData) for x in t]...)
+# function opttrees(γ, Trange, M, seq_lengths, t...)
+# 	opttrees!(γ, Trange, M, seq_lengths, [copy(x, TreeTools.EmptyData) for x in t]...)
+# end
+
+function opttrees(t...; kwargs...)
+	opttrees!([copy(x, TreeTools.EmptyData) for x in t]...; kwargs...)
 end
 """
 	opttrees!(t... ; kwargs...)
@@ -28,10 +31,10 @@ Output:
 1.
 """
 function opttrees!(t...;
-	γ=1.05,
+	γ=2,
 	seq_lengths=1000 * ones(Int64, length(t)),
-	Trange=reverse(0.01:0.05:1.1),
-	M = 1000,
+	Trange=reverse(0.001:0.01:1.),
+	M = 10,
 	likelihood_sort=true,
 	resolve=true,
 	sa_rep = 1
@@ -45,19 +48,20 @@ function opttrees!(
 	γ, Trange, M, seq_lengths, t::Vararg{Tree};
 	likelihood_sort=true, resolve=true, sa_rep=1,
 )
-	treelist = convert(Vector{Any}, collect(t))
-	mcc = naive_mccs(treelist)
+	# treelist = convert(Vector{Any}, collect(t))
+	treelist = t
+	mcc = naive_mccs(treelist...)
 	if length(mcc) == 1
 		return mcc, 0, 0., Int64[], Float64[], Union{Missing,Float64}[]
 	end
 	mcc_names = RecombTools.name_mcc_clades!(treelist, mcc)
 	for (i,t) in enumerate(treelist)
-		treelist[i] = RecombTools.reduce_to_mcc(t, mcc)
+		RecombTools.reduce_to_mcc!(t, mcc)
 	end
 	g = trees2graph(treelist)
 
 	# SA - Optimization
-	oconfs, E, F, nfound = sa_opt(g, γ=γ, Trange=Trange, M=M, rep=sa_rep, resolve=resolve)
+	oconfs, F, nfound = sa_opt(g, γ=γ, Trange=Trange, M=M, rep=sa_rep, resolve=resolve)
 	# Computing likelihoods
 	if length(oconfs) != 1
 		v() && println("Sorting $(length(oconfs)) topologically equivalent configurations.")
@@ -70,7 +74,7 @@ function opttrees!(
 	end
 	vv() && println("Final configuration for this iteration: $oconf.")
 	vv() && println("MCCs removed: $([mcc_names[x] for x in g.labels[.!oconf]])")
-	return [mcc_names[x] for x in g.labels[.!oconf]], compute_energy(oconf,g), compute_F(oconf, g, γ), E, F, L
+	return [mcc_names[x] for x in g.labels[.!oconf]], compute_energy(oconf,g), compute_F(oconf, g, γ), L
 end
 
 

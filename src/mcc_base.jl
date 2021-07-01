@@ -33,7 +33,7 @@ function naive_mccs(treelist)
 
             # We're going to go up in all trees at the same time
             flag = true
-            while flag && prod(!x.isroot for x in croot)
+            while flag &&  mapreduce(!isroot, *, croot; init=true) #prod(!x.isroot for x in croot)
                 # Ancestors of current maximal clade in all trees
                 nroot = [x.anc for x in croot]
                 # Each element of `nroot` defines a set of labels corresponding to a tree.
@@ -75,7 +75,7 @@ function naive_mccs(treelist)
     end
     return sort(mc_clades, lt = clt)
 end
-naive_mccs(t...) = naive_mccs(collect(t))
+naive_mccs(t...) = naive_mccs(t)
 
 #= Custom order for MCCs =#
 function clt(x,y)
@@ -167,8 +167,8 @@ function name_mcc_clades!(treelist, MCC)
     label_init = 1
     for t in treelist
         for n in values(t.lnodes)
-            if match(r"MCC", n.label)!=nothing && parse(Int64, n.label[5:end]) >= label_init
-                label_init = parse(Int64, n.label[5:end]) + 1
+            if match(r"MCC", n.label)!=nothing && parse(Int, n.label[5:end]) >= label_init
+                label_init = parse(Int, n.label[5:end]) + 1
             end
         end
     end
@@ -217,12 +217,15 @@ function reduce_to_mcc!(tree::Tree, MCC)
                     isleaf=true, isroot = true, label=r.label, r.tau
                 ))
         elseif !r.isleaf
-            rn = TreeNode(r.data, isleaf=true, isroot = true, label=r.label, tau = r.tau)
-            a = r.anc
-            prunenode!(r)
-            graftnode!(a, rn)
+        	for c in reverse(r.child)
+        		# prunenode!(c)
+        		prunesubtree!(tree, c; remove_singletons=false)
+        	end
+        	r.isleaf = true
+        	r.isroot = false
+        	tree.lleaves[r.label] = r
         end
     end
-    node2tree!(tree, tree.root)
+    # @time node2tree!(tree, tree.root)
 end
 

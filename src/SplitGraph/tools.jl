@@ -8,20 +8,23 @@ Create a `Graph` object `g` from a collection of trees. All trees should have th
 2. Add internal nodes of each tree `t` to `g` calling `tree2graph!(g,t,k)`, where `k` is the position of `t` in the list
 """
 function trees2graph(t::Vararg{TreeTools.Tree})
-	treelist = collect(t)
-	checklabels(treelist)
+	treelist = t
+	# checklabels(treelist)
 
 
+	# labels = collect(keys(first(treelist).lleaves))
+	# labels_to_int = Dict(k=>findfirst(==(k), labels) for k in labels)
 	K = length(treelist)
 	labels = collect(keys(first(treelist).lleaves))
-	labels_to_int = Dict(k=>findfirst(==(k), labels) for k in labels)
-	N = length(labels)
-	leaves = [LeafNode(; index=i,
+	labels_to_int = Dict(l=>k for (k,l) in enumerate(labels))
+	leaves = [
+		LeafNode(;
+			index=i,
 			conf=Int[i],
 			anc=Array{SplitNode,1}(undef,K)
 		) for i in 1:length(labels)
 	]
-	lleaves = Dict(labels[i]=>leaves[i] for i in 1:length(labels))
+	lleaves = Dict(label => leaf for (leaf, label) in zip(leaves, labels))
 	g = Graph(;
 		labels=labels,
 		labels_to_int=labels_to_int,
@@ -106,6 +109,7 @@ end
 
 
 """
+COULD BE MADE FASTER WITH A MESSAGE PASSING ALG
 """
 treenode2conf(g::Graph, n) = Int[g.labels_to_int[x.label] for x in POTleaves(n)]
 
