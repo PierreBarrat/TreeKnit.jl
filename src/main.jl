@@ -90,12 +90,11 @@ function computeMCCs_preresolve!(trees::Dict, oa::OptArgs)
 	# oac = @set oa.resolve = true
 	oac = @set oa.output = :mccs
 	oac = @set oac.verbose = false
-	t = @elapsed resolve_from_mccs!(ts -> runopt(oac,ts), trees; verbose=oa.verbose)
-	println("Spent $t resolving.")
+	resolve_from_mccs!(ts -> runopt(oac,ts), trees; verbose=oa.verbose)
+
 	# Second pass: compute MCCs with pre-resolved trees.
 	oac = @set oa.resolve = false
-	t = @elapsed(MCCs = _computeMCCs(ts -> runopt(oac,ts), trees))
-	println("Spent $t on the second pass")
+	MCCs = _computeMCCs(ts -> runopt(oac,ts), trees)
 	return MCCs
 end
 

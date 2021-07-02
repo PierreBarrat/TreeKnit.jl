@@ -195,8 +195,8 @@ function _resolve_from_mccs!(infer_mccs::Function, trees::Dict{<:Any, <:Tree}; v
 	end
 	# 3. `cmpt_splits[s]` is a `SplitList` object containing a selection of splits
 	# we can choose between several methods for this choice.
-	cmpt_splits = RecombTools.max_clique_splits(resolvable_splits; verbose)
-	# cmpt_splits = RecombTools.compatible_splits(resolvable_splits)
+	# cmpt_splits = RecombTools.max_clique_splits(resolvable_splits; verbose)
+	cmpt_splits = RecombTools.compatible_splits(resolvable_splits)
 	if verbose
 		for (s,t) in trees
 			println("Tree $s: $(length(cmpt_splits[s])) compatible resolvable splits.")
