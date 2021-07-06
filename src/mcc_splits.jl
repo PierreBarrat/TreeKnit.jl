@@ -15,7 +15,8 @@ function _splits_in_mcc(
     #
     r = lca(t.lleaves[x] for x in m)
     S = SplitList(r, leaves, mask, leafmap)
-    TreeTools.clean!(S, clean_root=false)
+    TreeTools.clean!(S, clean_root=false) # if true, do not resolve based on root of MCC
+    									  # not sure whether I should set it to true.
     return S
 end
 """
