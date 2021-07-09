@@ -28,3 +28,8 @@ Documenter.makedocs(;
 		],
 	]
 )
+
+deploydocs(
+    repo = "github.com/PierreBarrat/RecombTools.jl.git";
+    versions = nothing,
+)
