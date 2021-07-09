@@ -8,10 +8,12 @@
 The heuristic method used by *RecombTools* tries to prune consistent clades from a pair of trees in order to increase a compatibility score between other clades. 
   Pruning a clade is interpreted as fixing a reassortment right above it, while increasing the compatibility between remaining clades removes reassortments. 
   A purely parsimonious heuristic should thus give the same weight to fixing a reassortment through pruning a clade and fixing one incompatibility in the trees. 
+
 Here, we assign the score $\gamma$ to each pruned clade, and count as $1$ each incompatibility fixed for the remaining clades. 
   For $\gamma=1$, we obtain a parsimonious method that attempts to minimize the overall number of reassortments. 
   For higher values, pruning a clade must "fix" at least $\gamma$ incompatibilities to be considered a good move, making the obtained MCCs less parsimonious. 
   For infinite $\gamma$, pruning clades is impossible, and we fall back on the [naive estimation of MCCs](@ref naive_mccs). 
+  
 The example below illustrates the difference between different $\gamma$ values: 
 ```@example gamma1
 using RecombTools # hide
