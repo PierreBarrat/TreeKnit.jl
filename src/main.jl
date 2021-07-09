@@ -1,7 +1,7 @@
 """
 	computeMCCs(
 		trees::Dict, oa::OptArgs=OptArgs();
-		preresolve = true, naive = false, seqlengths = Dict(s=>1 for s in keys(trees)),
+		preresolve = false, naive = false, seqlengths = Dict(s=>1 for s in keys(trees)),
 	)
 
 Compute pairwise MCCs for `trees`. Return MCCs and resolved splits. The `computeMCCs!`
@@ -11,7 +11,7 @@ version resolved the input trees with newly found splits.
 ### `oa::OptArgs`
 Controls parameters of the MCC inference (unless `naive=true`). See `?OptArgs` for details.
 
-### `preresolve = true`
+### `preresolve = false`
 - If `true`, a first pass of MCC computation is made and trees are resolved using the
   results, keeping only compatible splits if more than two trees are given as input. A
   second pass of MCC computation is then made without resolving.
@@ -29,7 +29,7 @@ In general, this should be set to `true` if more than two trees are used, and to
 """
 function computeMCCs(
 	trees::Dict, oa::OptArgs=OptArgs();
-	preresolve = true, naive = false, seqlengths = Dict(s=>1 for s in keys(trees)),
+	preresolve = false, naive = false, seqlengths = Dict(s=>1 for s in keys(trees)),
 )
 	ct = Dict(k=>copy(t) for (k,t) in trees)
 	return computeMCCs!(ct, oa; preresolve, naive, seqlengths)
@@ -37,7 +37,7 @@ end
 """
 	computeMCCs!(
 		trees::Dict, oa::OptArgs=OptArgs();
-		preresolve = true, naive = false, seqlengths = Dict(s=>1 for s in keys(trees)),
+		preresolve = false, naive = false, seqlengths = Dict(s=>1 for s in keys(trees)),
 	)
 
 See `computeMCCs`.
