@@ -31,7 +31,7 @@ branch_likelihood(t1, t2, L1, L2) = 0.
 
 
 function conf_likelihood(conf::Array{Bool,1}, g::Graph, μ, trees; v=false, mode=:mutations)
-	conf_likelihood_(TreeTools.node_divtime, conf, g, μ, trees, v=v)
+	conf_likelihood_(TreeTools.divtime, conf, g, μ, trees, v=v)
 end
 
 """
@@ -116,8 +116,8 @@ function conf_likelihood_times(conf::Array{Bool,1}, g::Graph, μ, trees; v=false
 					end
 					# If a1.conf and a2.conf are equal, we just inferred that this branch is common to trees k1 and k2
 					if are_equal(a1.conf, a2.conf, conf)
-						τ1 = TreeTools.node_divtime(tn1, ta1)
-						τ2 = TreeTools.node_divtime(tn2, ta2)
+						τ1 = TreeTools.divtime(tn1, ta1)
+						τ2 = TreeTools.divtime(tn2, ta2)
 						dL = branch_likelihood(μ[k1]*τ1, μ[k2]*τ2, μ[k1], μ[k2])
 						# in dL, μ[k1]*τ1 should ultimately be replaced by n1 which is the observed number of mutations (same goes for 2)
 						# What is currently there only makes sense for artificial data, where t is known exactly. 
