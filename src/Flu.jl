@@ -20,6 +20,13 @@ const nt_seq_lengths = Dict(
 	),
 )
 
+const substitution_rates = Dict(
+	"h3n2" => Dict(
+		"ha" => 3.66e-3,
+		"na" => 2.87e-3,
+	)
+)
+
 #
 """
 	read_flu_trees(files::Dict, lineage = "h3n2")
