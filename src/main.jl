@@ -65,7 +65,6 @@ end
 function computeMCCs_naive_dynresolve!(trees::Dict, resolve)
 	function naive_inf!(trees::Dict, resolve)
 		resolve && resolve!(values(trees)...)
-		println("A: ", length(nodes(first(values(trees)))))
 		RecombTools.naive_mccs(values(trees)...)
 	end
 	return _computeMCCs(ts -> naive_inf!(ts, resolve), trees)
