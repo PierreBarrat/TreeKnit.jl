@@ -191,6 +191,28 @@ function fraction_of_common_pairs(MCC1, MCC2, leaves; linked_only=false)
 end
 
 
+function mcc_branch_length(t::Tree, mcc)
+	mcc_root = lca(t, mcc)
+	if mcc_root.isroot
+		return missing, missing
+	else
+		bl_low = 0.
+		visited = []
+		for leaf in mcc
+			n = t.lleaves[leaf]
+			while n != mcc_root && !in(n.label, visited)
+				n.isroot && error("Reached root.")
+				bl_low += n.tau
+				push!(visited, n.label)
+				n = n.anc
+			end
+		end
+	end
+
+	bl_high = bl_low + mcc_root.tau
+	return bl_low, bl_high
+end
+
 
 
 
