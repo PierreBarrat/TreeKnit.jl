@@ -4,7 +4,7 @@
   Options to this heuristic are provided through the `OptArgs` object, that is optionally passed as a second argument.
   Essential options are detailed here. 	
 
-## Parsimony parameter $\gamma$
+## [Parsimony parameter](@id gamma)
 The heuristic method used by *RecombTools* tries to prune consistent clades from a pair of trees in order to increase a compatibility score between other clades. 
   Pruning a clade is interpreted as fixing a reassortment right above it, while increasing the compatibility between remaining clades removes reassortments. 
   A purely parsimonious heuristic should thus give the same weight to fixing a reassortment through pruning a clade and fixing one incompatibility in the trees. 

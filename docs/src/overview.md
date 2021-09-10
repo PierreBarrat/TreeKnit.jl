@@ -2,7 +2,7 @@
 
 ## Handling trees
 
-Functions that direclty handle trees are found in the separate *TreeTools* package. 
+Functions that directly handle trees are found in the separate *TreeTools* package. 
   Here is a short list of useful ones: 
   - `read_tree(file)`: read tree from newick file. 
   - `parse_newick(string)`: parse newick `string` into a `TreeNode` object
@@ -32,6 +32,28 @@ Individual MCCs are simply arrays containing labels of leaves of the trees.
 Note that the output of `computeMCCs` is a `Dict`, indexed by pairs of keys of the input dictionary `trees`. 
 
 By convention, `mccs[i,i]` is always empty.
+
+## Interpretation of results
+
+The genealogy of two RNA segments subject to reassortment is described by an Ancestral Reassortment Graph (ARG). 
+An ARG is a directed graph that represents the lineage of a given pair of segments by coalescence of nodes, as in a genealogical tree, but also shows reassortment events and the exchange of segments by nodes that have two ancestors. 
+Since reassortments only occur between segments, the genealogy of given segment is described by a tree. 
+As a result, the ARG must embed both segment-trees, and every branch in the ARG has to belong to either one of the trees, or to both. 
+
+*RecombTools* infers the ARG by finding the branches that are common to both trees. 
+Given two trees with potentially different topologies, it tries to "glue" them together in a reasonable way, where the interpretation of reasonable can vary between *parsimonious* and *conservative* (see the [parsimony parameter](@ref gamma) $\gamma$). 
+
+The MCCs returned by `computeMCCs` represent regions of the ARG (and of the segment trees) where branches are common to both trees. 
+In other words, these are the regions where the two segment trees must be "glued together". 
+Given those regions and the knowledge of the trees, it is possible to unambiguously reconstruct the genealogy. 
+
+!!! info "Number of reassortments in the genealogy"
+    When going up the ARG (backwards in time), a reassortment consists of passing from a region where branches are common to the two trees to a region where they are not. It is a *split* of branches. 
+    As a consequence, the root of each MCC must be a reassortment, *with the exception* of an MCC containing the root of both trees. 
+    The number of reassortments events in the inferred ARG can thus simply be obtained by counting the number of MCCs, potentially removing the one that contains the roots of both trees if it exists. 
+
+
+
 
 ## More than two trees
 If more than two trees are given as input, `computeMCCs` infers MCCs for all pairs of trees.  
