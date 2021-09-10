@@ -1,16 +1,11 @@
 ### A Pluto.jl notebook ###
 # v0.12.21
 
-using Markdown
-using InteractiveUtils
-
 # ╔═╡ 2ea1ccbc-8e0d-11eb-29c3-05a91ea18a6f
-begin
-	using RecombTools
-	using RecombTools.SplitGraph
-	using Test
-	using TreeTools
-end
+using RecombTools
+using RecombTools.SplitGraph
+using Test
+using TreeTools
 
 
 println("##### Basic resolving #####")
