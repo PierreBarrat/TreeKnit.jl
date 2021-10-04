@@ -1,11 +1,22 @@
+function computeMCCs(
+	t1::Tree, t2::Tree, oa::OptArgs = OptArgs();
+	preresolve = false, naive = false, seqlengths = [1,1],
+)
+	computeMCCs(Dict(1=>t1, 2=>t2), oa; preresolve, naive, seqlengths)[1,2]
+end
+
 """
 	computeMCCs(
 		trees::Dict, oa::OptArgs=OptArgs();
 		preresolve = false, naive = false, seqlengths = Dict(s=>1 for s in keys(trees)),
 	)
+	computeMCCs(
+		t1::Tree, t2::Tree, oa::OptArgs = OptArgs();
+		preresolve = false, naive = false, seqlengths = [1,1],
+	)
 
-Compute pairwise MCCs for `trees`. Return MCCs and resolved splits. The `computeMCCs!`
-version resolved the input trees with newly found splits.
+Compute pairwise MCCs for trees. Return MCCs and resolved splits. The `computeMCCs!`
+version resolves the input trees with newly found splits.
 
 # Inputs
 ### `oa::OptArgs`
@@ -28,7 +39,7 @@ In general, this should be set to `true` if more than two trees are used, and to
   `runopt(oa,t1,t2)` is called on every pair of trees.
 """
 function computeMCCs(
-	trees::Dict, oa::OptArgs=OptArgs();
+	trees::Dict{<:Any, <:Tree}, oa::OptArgs=OptArgs();
 	preresolve = false, naive = false, seqlengths = Dict(s=>1 for s in keys(trees)),
 )
 	ct = Dict(k=>copy(t) for (k,t) in trees)
