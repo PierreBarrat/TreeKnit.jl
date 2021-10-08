@@ -82,6 +82,23 @@ function conf_likelihood_(divfunction, conf::Array{Bool,1}, g::Graph, seq_length
 					end
 				end
 			end
+		else # branch above `i` is not shared, since we removes `i` from the trees
+			for k1 in 1:g.K
+				# Tree node of k1 corresponding to graph leaf i
+				tn1 = trees[k1].lleaves[g.labels[i]]
+				ta1 = tn1.anc
+				for k2 in 1:g.K
+					# Tree node of k2 corresponding to graph leaf i
+					tn2 = trees[k2].lleaves[g.labels[i]]
+					ta2 = tn2.anc
+					# Removing log-likelihood ratio, since it's L(shared) / L(non shared)
+					tau1 = divfunction(tn1, ta1)
+					tau2 = divfunction(tn2, ta2)
+					dL = -branch_likelihood(tau1, tau2, seq_lengths[k1], seq_lengths[k2])
+					L += dL
+					Z += 1.
+				end
+			end
 		end
 	end
 	# v && println("--> Final likelihood $(L/max(Z,1))")
