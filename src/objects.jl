@@ -25,7 +25,7 @@ Storing parameters for `SplitGraph.runopt` function.
 - `vv::Bool = false`: second level of verbosity
 ### Output
 - `output = :mccs`: possible values `[:mccs, :mccs_df, :all]`. If calling `computeMCCs`,
-  this should always be set to `:mccs`. Other values are only relevant when calling
+  this should always be set to `:mccs`. Other values are only relevant when directly calling
   `runopt`.
 """
 @with_kw struct OptArgs
@@ -58,7 +58,7 @@ function get_cooling_schedule(;
 	elseif type == :linear
 		return get_linear_cooling_schedule(Tmin, Tmax, dT)
 	else
-		error("Unknown cooling schedule type.")
+		error("Unknown `cooling_schedule` field: $(type). See `?OptArgs` for allowed values.")
 	end
 end
 

@@ -35,7 +35,7 @@ function resolve!(
 				graftnode!(R, nr, tau=tau)
 				push!(tsplits.splits, s)
 			elseif conflict != :ignore
-				error("Conflicting splits")
+				error("Tried to resolve tree with an incompatible split.")
 			end
 		end
 	end
@@ -142,15 +142,35 @@ end
 
 
 
+
 ###############################################################################################################
 ############################## Resolve trees using inferred compatible clades #################################
 ###############################################################################################################
 
 """
+	resolve!(t1::Tree, t2::Tree, MCCs; tau = 0.)
+
+Resolve `t1` using `t2` and inversely using the list of MCCs.
+New branches have a length `tau`.
+Return the list of resolved splits in each tree.
+"""
+function resolve!(t1::Tree, t2::Tree, MCCs; tau = 0.)
+	resolvable_splits = RecombTools.new_splits(MCCs, t1, t2)
+	resolve!(t1, resolvable_splits[1]; conflict=:fail, tau)
+	resolve!(t2, resolvable_splits[2]; conflict=:fail, tau)
+
+	return resolvable_splits
+end
+
+
+"""
 	resolve_from_mccs!(infer_mccs::Function, trees::Vararg{Tree}; verbose=false, kwargs...)
 	resolve_from_mccs!(infer_mccs::Function, trees::Dict; verbose=false, kwargs...)
 
-Resolve `trees` using pairwise MCC inference. The `infer_mccs` function must take a `Dict{<:Any, Tree}` as input. `kwargs...` are fed to `infer_mccs`. Return the set of compatible splits introduced.
+Resolve `trees` using pairwise MCC **inference**.
+The `infer_mccs` function must take a `Dict{<:Any, Tree}` as input.
+`kwargs...` are fed to `infer_mccs`.
+Return the set of compatible splits introduced.
 
 This is done in four steps:
 1. Compute MCCs for pairs of trees while resolving them

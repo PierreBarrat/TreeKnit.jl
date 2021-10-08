@@ -7,12 +7,12 @@ end
 
 """
 	computeMCCs(
-		trees::Dict, oa::OptArgs=OptArgs();
-		preresolve = false, naive = false, seqlengths = Dict(s=>1 for s in keys(trees)),
-	)
-	computeMCCs(
 		t1::Tree, t2::Tree, oa::OptArgs = OptArgs();
 		preresolve = false, naive = false, seqlengths = [1,1],
+	)
+	computeMCCs(
+		trees::Dict, oa::OptArgs=OptArgs();
+		preresolve = false, naive = false, seqlengths = Dict(s=>1 for s in keys(trees)),
 	)
 
 Compute pairwise MCCs for trees. Return MCCs and resolved splits. The `computeMCCs!`
@@ -230,7 +230,7 @@ function runopt(oa::OptArgs, trees::Dict)
 	elseif oa.output == :mccs_df
 		return RecombTools.sort_mccs(MCCs), dflog
 	else
-		error("Unknown `oa.output` $(oa.output)")
+		error("Unknown `output` field: $(oa.output). See `?OptArgs` for allowed values.")
 	end
 end
 

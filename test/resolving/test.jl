@@ -45,8 +45,17 @@ t3 = node2tree(TreeTools.parse_newick("(A,B,(C,D))"))
 	@test !haskey(t1.lnodes, "RESOLVED_3")
 end
 
+println("##### Resolve using pre-inferred MCCs #####")
+t3 = read_tree("resolving/tree3.nwk")
+t4 = read_tree("resolving/tree4.nwk")
+mccs = read_mccs("resolving/mccs34.dat")
+@testset "Resolve with pre-inferred MCCs" begin
+	rS = resolve!(t3, t4, mccs)
+	@test rS[1] == [["F", "G"]]
+	@test rS[2] == [["E", "F", "G"]]
+end
 
-println("##### Resolve using MCCs #####")
+println("##### Resolve using MCC inference #####")
 
 # ╔═╡ 93ccb338-8e0d-11eb-0f36-49bebaf5570b
 function infer_mccs(trees;kwargs...)

@@ -4,34 +4,25 @@
 
 Functions that directly handle trees are found in the separate *TreeTools* package. 
   Here is a short list of useful ones: 
-  - `read_tree(file)`: read tree from newick file. 
-  - `parse_newick(string)`: parse newick `string` into a `TreeNode` object
+  - `read_tree(file)`: read tree from newick file, return `Tree` object. 
+  - `parse_newick(string)`: parse newick `string` into a `TreeNode` object.
   - `node2tree(n::TreeNode)`: create a `Tree` object from node `n`, using it as a root. 
   - `write_newick(file::String, t::Tree)`/`write_newick([file::String], n::TreeNode)`: write tree to `file` using newick format. Return a newick string if `file` is not provided. 
 
 ## Simple case 
 
-Let's see how to infer MCCs for a very simple case: two trees with five leaves. 
+Let's see how to infer Maximally Compatible Clades (MCC) for a very simple case: two trees with five leaves. 
 ```@example basic; continued = true 
 using RecombTools
 t1 = node2tree(parse_newick("((A,B),(C,(D,X)))"))
 t2 = node2tree(parse_newick("((A,(B,X)),(C,D))"))
 ```
 
-The `computeMCCs` function takes a dictionary of trees as input. 
-It would normally be indexed by *e.g.* flu segments, but here we will simply index it with integers.
-
+The `computeMCCs` function takes two trees as input. 
 ```@example basic
-trees = Dict(1=>t1, 2=>t2)
-mccs = computeMCCs(trees)
-mccs[1,2]
+mccs = computeMCCs(t1, t2)
 ```
-
 Individual MCCs are simply arrays containing labels of leaves of the trees.  
-
-Note that the output of `computeMCCs` is a `Dict`, indexed by pairs of keys of the input dictionary `trees`. 
-
-By convention, `mccs[i,i]` is always empty.
 
 ## Interpretation of results
 
@@ -57,6 +48,7 @@ Given those regions and the knowledge of the trees, it is possible to unambiguou
 
 ## More than two trees
 If more than two trees are given as input, `computeMCCs` infers MCCs for all pairs of trees.  
+Use a `Dict` to pass the trees as input. 
 ```@example more_trees
 using RecombTools # hide
 t1 = node2tree(parse_newick("((A,B),((C,Y),(D,X)))"))
@@ -64,11 +56,15 @@ t2 = node2tree(parse_newick("((A,(B,X)),((C,Y),D))"))
 t3 = node2tree(parse_newick("((A,(B,Y)),(C,(D,X)))"))
 trees = Dict(1=>t1, 2=>t2, 3=>t3)
 mccs = computeMCCs(trees)
-mccs[1,2]
+mccs[1,2] # MCCs for t1 and t2
 ```
 ```@example more_trees
-mccs[1,3]
+mccs[1,3] # MCCs for t1 and t3
 ```
+
+The output `mccs` is also a `Dict`, indexed by pairs of keys of the input dictionary `trees`. 
+Indexing is symmetric: `mccs[i,j] == mccs[j,i]`. 
+By convention, `mccs[i,i]` exists and is empty. 
 
 ## [Naive estimation](@id naive_mccs)
 It is also possible to compute a "naive" estimation of MCCs using the `naive` keyword. 

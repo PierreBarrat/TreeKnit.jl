@@ -54,17 +54,22 @@ Return an array `S` of `SplitList` objects, with `S[i][m]` corresponding to new 
 *Note*: Resulting splits are not always unique once constrained to leaves of MCCs!
 """
 function new_splits(MCCs, t1::Tree, t2::Tree)
-    splits1 = SplitList(t1)
-    splits2 = SplitList(t2)
-    # Splits corresponding to each mcc in both trees
-    MCC_splits = splits_in_mccs(MCCs, t1, t2)
-    MCC_splits[1] = TreeTools.map_splits_to_tree(MCC_splits[1], t2)
-    MCC_splits[2] = TreeTools.map_splits_to_tree(MCC_splits[2], t1)
-    # Are those new or not?
-    _new_splits!(MCC_splits[2], splits1)
-    _new_splits!(MCC_splits[1], splits2)
-    #
-    return MCC_splits[end:-1:1]
+    # splits1 = SplitList(t1)
+    # splits2 = SplitList(t2)
+    # # Splits corresponding to each mcc in both trees
+    # MCC_splits = splits_in_mccs(MCCs, t1, t2)
+    # MCC_splits[1] = TreeTools.map_splits_to_tree(MCC_splits[1], t2)
+    # MCC_splits[2] = TreeTools.map_splits_to_tree(MCC_splits[2], t1)
+    # # Are those new or not?
+    # _new_splits!(MCC_splits[2], splits1)
+    # _new_splits!(MCC_splits[1], splits2)
+    # #
+    # return MCC_splits[end:-1:1]
+    nS = [
+    	new_splits(t1, MCCs, t2), # Using each tree as a reference in turn
+    	new_splits(t2, MCCs, t1),
+    ]
+    return nS
 end
 
 """

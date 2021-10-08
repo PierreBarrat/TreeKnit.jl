@@ -83,11 +83,23 @@ In order to achieve progress in this kind of situation, we have to perform two o
 
 This is done automatically during MCC inference if the `resolve` option of `OptArgs` is given (default):  
 ```@example 3
-computeMCCs(Dict(1 => t1, 2 => t2), OptArgs(;resolve=true))[1,2]
+MCCs = computeMCCs(Dict(1 => t1, 2 => t2), OptArgs(;resolve=true))[1,2]
 ```
-
-## Pre-resolving for more than two trees
 
 ## Resolving with inferred MCCs
 
-Would it be useful to have a function that takes in MCCs and un-resolved trees, and outputs resolved trees?  
+Once the MCCs are inferred, it is possible to use them to resolve trees: in the regions of shared branches of the ARG, the two trees `t1` and `t2` must have the same splits. 
+  The `resolve!` function also has a method for this. 
+  Using the example above, we have
+```@repl 3
+resolved_splits = resolve!(t1, t2, MCCs)
+t2
+```
+
+The split `(D,E)` is now present in `t2`. 
+Note that it was not present in `t1`: only the splits `(D,E,X)` and `(E,X)` existed there. 
+However, since `resolve!` now knows `(A,B,C,D,E)` is an MCC, the `resolve!` function can "ignore" leaf `X` when resolving. 
+
+## Pre-resolving for more than two trees
+
+Implemented, but not used.  

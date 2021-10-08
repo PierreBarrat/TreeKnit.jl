@@ -24,7 +24,7 @@ include("mcc_IO.jl")
 export read_mccs, write_mccs
 
 include("resolving.jl")
-export resolve!, resolve_from_mccs!
+export resolve!
 
 include("SplitGraph/SplitGraph.jl")
 using RecombTools.SplitGraph
