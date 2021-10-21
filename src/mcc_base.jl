@@ -33,7 +33,7 @@ function naive_mccs(treelist)
 
             # We're going to go up in all trees at the same time
             flag = true
-            while flag &&  mapreduce(!isroot, *, croot; init=true) #prod(!x.isroot for x in croot)
+            while flag &&  mapreduce(x->!x.isroot, *, croot; init=true) #prod(!x.isroot for x in croot)
                 # Ancestors of current maximal clade in all trees
                 nroot = [x.anc for x in croot]
                 # Each element of `nroot` defines a set of labels corresponding to a tree.

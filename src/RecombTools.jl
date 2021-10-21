@@ -2,10 +2,10 @@ module RecombTools
 
 
 # To remove eventually
-using DataFrames
+# using DataFrames
 # External modules
 using Comonicon
-using LightGraphs
+# using LightGraphs
 using Parameters
 using Random
 using Setfield
