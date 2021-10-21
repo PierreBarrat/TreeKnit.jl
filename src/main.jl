@@ -170,24 +170,24 @@ function runopt(oa::OptArgs, trees::Dict)
 
 	# Writing details to a dataframe object
 	use_df_log = (oa.output != :mccs)
-	if use_df_log
-		iMCCs = naive_mccs(values(ot)...)
-		Einit = SplitGraph.count_mismatches(values(ot)...)
-		n0 = length(first(values(ot)).lleaves)
-		dflog = DataFrame(nleaves=Int64[n0],
-			nMCCs=length(iMCCs),
-			method=Any[:init],
-			γ=Any[missing],
-			M=Any[missing],
-			newMCCs=Any[[]],
-			AllFinalMCCs=Any[[]],
-			RemainingConsistentClades=Any[iMCCs],
-			Ffinal=Any[Einit],
-			Efinal=Any[Einit]
-		)
-	else
-		dflog = nothing
-	end
+	# if use_df_log
+	# 	iMCCs = naive_mccs(values(ot)...)
+	# 	Einit = SplitGraph.count_mismatches(values(ot)...)
+	# 	n0 = length(first(values(ot)).lleaves)
+	# 	dflog = DataFrame(nleaves=Int64[n0],
+	# 		nMCCs=length(iMCCs),
+	# 		method=Any[:init],
+	# 		γ=Any[missing],
+	# 		M=Any[missing],
+	# 		newMCCs=Any[[]],
+	# 		AllFinalMCCs=Any[[]],
+	# 		RemainingConsistentClades=Any[iMCCs],
+	# 		Ffinal=Any[Einit],
+	# 		Efinal=Any[Einit]
+	# 	)
+	# else
+	# 	dflog = nothing
+	# end
 	MCCs = [] # All final MCCs found up to now
 
 	# Misc.
@@ -221,23 +221,25 @@ function runopt(oa::OptArgs, trees::Dict)
 		!prod([check_tree(t) for t in values(ot)]) && @error "Problem in a tree"
 
 		# Log results
-		if use_df_log
-			update_df!(
-				dflog, length(first(values(ot)).lleaves), length(rMCCs), oa.γ, M, Efinal, Ffinal,
-				mccs, MCCs, rMCCs, :topology_optimization
-			)
-		end
+		# if use_df_log
+		# 	update_df!(
+		# 		dflog, length(first(values(ot)).lleaves), length(rMCCs), oa.γ, M, Efinal, Ffinal,
+		# 		mccs, MCCs, rMCCs, :topology_optimization
+		# 	)
+		# end
 		(flag == :stop) && break
 		it += 1
 	end
 
 	# Output
 	if oa.output == :all
-		return RecombTools.sort_mccs(MCCs), dflog, values(ot)
+		# return RecombTools.sort_mccs(MCCs), dflog, values(ot)
+		return RecombTools.sort_mccs(MCCs), values(ot)
 	elseif oa.output == :mccs
 		return RecombTools.sort_mccs(MCCs)
 	elseif oa.output == :mccs_df
-		return RecombTools.sort_mccs(MCCs), dflog
+		# return RecombTools.sort_mccs(MCCs), dflog
+		return RecombTools.sort_mccs(MCCs)
 	else
 		error("Unknown `output` field: $(oa.output). See `?OptArgs` for allowed values.")
 	end
@@ -321,7 +323,7 @@ pruneconf!(trees, mcc_names, mcc_conf) = pruneconf!([mcc_names[x] for x in mcc_c
 
 
 
-function update_df!(df::DataFrame, nleaves::Int64, nMCCs::Int64, γ, M, Efinal, Ffinal, rMCCs, arMCCs, remainingMCCs, method)
+function update_df!(df, nleaves::Int64, nMCCs::Int64, γ, M, Efinal, Ffinal, rMCCs, arMCCs, remainingMCCs, method)
 	push!(df,
 		Dict(:nleaves=>nleaves,
 		:nMCCs=>nMCCs,

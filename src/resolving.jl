@@ -273,38 +273,38 @@ function compatible_splits(rS::Dict{<:Any, Array{SplitList,1}})
     return cs
 end
 
-function max_clique_splits(nS::Dict; verbose=false)
-	cS = Dict{Any, SplitList}()
-	for (seg, S) in nS
-		verbose && println(seg)
-		cS[seg] = max_clique_splits(S; verbose)
-	end
-	return cS
-end
-function max_clique_splits(nS; verbose=false)
-	S = union(nS...)
-	verbose && println("Finding max clique among $(length(S)) splits.")
-	g = build_compat_graph(S)
-	all_cliques = LightGraphs.maximal_cliques(g)
-	verbose && println("Found $(length(all_cliques)) cliques.")
-	if isempty(all_cliques)
-		return S
-	else
-		max_clique = sort(all_cliques, by=x->length(x), rev=true)[1]
-		# Delete splits not in the max clique
-		todel = findall(!in(max_clique), 1:length(S))
-		deleteat!(S.splits, todel)
-		return S
-	end
-end
+# function max_clique_splits(nS::Dict; verbose=false)
+# 	cS = Dict{Any, SplitList}()
+# 	for (seg, S) in nS
+# 		verbose && println(seg)
+# 		cS[seg] = max_clique_splits(S; verbose)
+# 	end
+# 	return cS
+# end
+# function max_clique_splits(nS; verbose=false)
+# 	S = union(nS...)
+# 	verbose && println("Finding max clique among $(length(S)) splits.")
+# 	g = build_compat_graph(S)
+# 	all_cliques = LightGraphs.maximal_cliques(g)
+# 	verbose && println("Found $(length(all_cliques)) cliques.")
+# 	if isempty(all_cliques)
+# 		return S
+# 	else
+# 		max_clique = sort(all_cliques, by=x->length(x), rev=true)[1]
+# 		# Delete splits not in the max clique
+# 		todel = findall(!in(max_clique), 1:length(S))
+# 		deleteat!(S.splits, todel)
+# 		return S
+# 	end
+# end
 
-function build_compat_graph(S::SplitList)
-	L = length(S)
-	g = Graph(L)
-	for i in 1:L, j in (i+1):L
-		if arecompatible(S[i], S[j])
-			add_edge!(g, i, j)
-		end
-	end
-	return g
-end
+# function build_compat_graph(S::SplitList)
+# 	L = length(S)
+# 	g = Graph(L)
+# 	for i in 1:L, j in (i+1):L
+# 		if arecompatible(S[i], S[j])
+# 			add_edge!(g, i, j)
+# 		end
+# 	end
+# 	return g
+# end
