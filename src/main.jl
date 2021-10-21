@@ -1,3 +1,12 @@
+function inferARG(
+	t1::Tree, t2::Tree, oa::OptArgs = OptArgs();
+	preresolve = false, naive = false, seqlengths = [1,1]
+)
+	MCCs = computeMCCs(t1, t2, oa)
+	arg = SRG.arg_from_trees(t1, t2, MCCs)[1]
+	return arg
+end
+
 function computeMCCs(
 	t1::Tree, t2::Tree, oa::OptArgs = OptArgs();
 	preresolve = false, naive = false, seqlengths = [1,1],

@@ -4,8 +4,10 @@ module RecombTools
 # To remove eventually
 using DataFrames
 # External modules
+using Comonicon
 using LightGraphs
 using Parameters
+using Random
 using Setfield
 # Personal modules
 using TreeTools
@@ -33,10 +35,16 @@ include("objects.jl")
 export OptArgs
 
 include("main.jl")
-export computeMCCs, computeMCCs!
+export computeMCCs, inferARG
+
+include("SimpleReassortmentGraph/SimpleReassortmentGraph.jl")
+import RecombTools.SimpleReassortmentGraph: SRG
+export SRG
 
 include("Flu.jl")
 export Flu
+
+include("cli.jl")
 
 # TreeTools re-exports for docs
 import TreeTools: node2tree, parse_newick
