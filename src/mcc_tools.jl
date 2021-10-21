@@ -1,36 +1,42 @@
-"""
-    write_mccs!(trees::Dict, MCCs::Dict, key=:mcc_id)
 
-Write MCCs id to field `data.dat[key]` of tree nodes. Expect `trees` indexed by single segments, and `MCCs` indexed by pairs of segments.
-"""
-function write_mccs!(trees::Dict, MCCs::Dict, key=:mcc_id; overwrite=false)
-    for ((i,j), mccs) in MCCs
-        k = Symbol(key,"_$(i)_$(j)")
-        write_mccs!(trees[i], mccs, k, overwrite=overwrite)
-        write_mccs!(trees[j], mccs, k, overwrite=overwrite)
-    end
-end
-"""
-    write_mccs!(t::Tree, MCCs, key=:mcc_id)
 
-Write MCCs id to field `data.dat[key]` of tree nodes.
-"""
-function write_mccs!(t::Tree{TreeTools.MiscData}, MCCs, key=:mcc_id; overwrite=false)
-    for (i,mcc) in enumerate(MCCs)
-        for label in mcc
-            t.lleaves[label].data.dat[key] = i
-        end
-        for n in Iterators.filter(n->!n.isleaf, values(t.lnodes))
-            if is_branch_in_mcc(n, mcc)
-                if !overwrite && haskey(n.data.dat, key)
-                    error("Node $(n.label) already has an MCC attributed")
-                end
-                n.data.dat[key] = i
-            end
-        end
-    end
-    nothing
-end
+
+
+## BEFORE REMOVING `write_mccs!`:
+## Check whether it's used in annotating auspice json files
+# """
+#     write_mccs!(trees::Dict, MCCs::Dict, key=:mcc_id)
+
+# Write MCCs id to field `data.dat[key]` of tree nodes. Expect `trees` indexed by single segments, and `MCCs` indexed by pairs of segments.
+# """
+# function write_mccs!(trees::Dict, MCCs::Dict, key=:mcc_id; overwrite=false)
+#     for ((i,j), mccs) in MCCs
+#         k = Symbol(key,"_$(i)_$(j)")
+#         write_mccs!(trees[i], mccs, k, overwrite=overwrite)
+#         write_mccs!(trees[j], mccs, k, overwrite=overwrite)
+#     end
+# end
+# """
+#     write_mccs!(t::Tree, MCCs, key=:mcc_id)
+
+# Write MCCs id to field `data.dat[key]` of tree nodes.
+# """
+# function write_mccs!(t::Tree{TreeTools.MiscData}, MCCs, key=:mcc_id; overwrite=false)
+#     for (i,mcc) in enumerate(MCCs)
+#         for label in mcc
+#             t.lleaves[label].data.dat[key] = i
+#         end
+#         for n in Iterators.filter(n->!n.isleaf, values(t.lnodes))
+#             if is_branch_in_mcc(n, mcc)
+#                 if !overwrite && haskey(n.data.dat, key)
+#                     error("Node $(n.label) already has an MCC attributed")
+#                 end
+#                 n.data.dat[key] = i
+#             end
+#         end
+#     end
+#     nothing
+# end
 
 """
     is_branch_in_mccs(n::TreeNode, mccs::Array)
