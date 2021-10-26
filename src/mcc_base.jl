@@ -221,6 +221,5 @@ function reduce_to_mcc!(tree::Tree, MCC)
         	tree.lleaves[r.label] = r
         end
     end
-    # @time node2tree!(tree, tree.root)
 end
 

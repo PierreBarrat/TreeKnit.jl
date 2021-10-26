@@ -4,7 +4,7 @@ function inferARG(
 )
 	MCCs = computeMCCs(t1, t2, oa)
 	arg = SRG.arg_from_trees(t1, t2, MCCs)[1]
-	return arg
+	return arg[1]
 end
 
 function computeMCCs(
