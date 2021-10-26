@@ -296,7 +296,7 @@ function set_branch_length!(arg::ARG, t1, t2, lm)
 						end
 					elseif ismissing(t2.lnodes[n2].tau)
 						if t2.lnodes[n2].isroot
-							(missing, t1.lnodes[n1].tau)
+							(t1.lnodes[n1].tau, missing)
 						else
 							(t1.lnodes[n1].tau, t1.lnodes[n1].tau)
 						end
@@ -306,16 +306,6 @@ function set_branch_length!(arg::ARG, t1, t2, lm)
 					end
 					set_branch_length!(a, τ1, 1)
 					set_branch_length!(a, τ2, 2)
-					# if ismissing(t1.lnodes[n1].tau)
-					# 	τ = t2.lnodes[n2].tau
-					# 	set_branch_length!(a, τ, 2)
-					# elseif ismissing(t2.lnodes[n2].tau)
-					# 	τ = t1.lnodes[n1].tau
-					# 	set_branch_length!(a, τ, 1)
-					# else
-					# 	τ = (t1.lnodes[n1].tau + t2.lnodes[n2].tau)/2
-					# 	set_branch_length!(a, τ, 1, 2)
-					# end
 				end
 			end
 		end
