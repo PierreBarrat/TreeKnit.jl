@@ -6,8 +6,8 @@
 ```@example flu
 using RecombTools
 tree_files = Dict(
-	"ha" => dirname(pathof(RecombTools)) * "/../examples/tree_h3n2_ha.nwk",
-	"na" => dirname(pathof(RecombTools)) * "/../examples/tree_h3n2_na.nwk"
+	"ha" => dirname(pathof(RecombTools)) * "/../examples/tree_h3n2_ha_2013-09.nwk",
+	"na" => dirname(pathof(RecombTools)) * "/../examples/tree_h3n2_na_2013-09.nwk"
 )
 flutrees = Flu.read_flu_trees(tree_files)
 ```

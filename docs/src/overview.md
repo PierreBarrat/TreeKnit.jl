@@ -1,78 +1,37 @@
 # Overview
 
-## Handling trees
+`RecombTools` offers a simple CLI script: `treeknit`. 
+In short, it takes two trees as input, passed as [Newick](https://en.wikipedia.org/wiki/Newick_format) files, and returns an Ancestral Reassortment Graph. 
 
-Functions that directly handle trees are found in the separate *TreeTools* package. 
-  Here is a short list of useful ones: 
-  - `read_tree(file)`: read tree from newick file, return `Tree` object. 
-  - `parse_newick(string)`: parse newick `string` into a `TreeNode` object.
-  - `node2tree(n::TreeNode)`: create a `Tree` object from node `n`, using it as a root. 
-  - `write_newick(file::String, t::Tree)`/`write_newick([file::String], n::TreeNode)`: write tree to `file` using newick format. Return a newick string if `file` is not provided. 
+## Input
 
-## Simple case 
-
-Let's see how to infer Maximally Compatible Clades (MCC) for a very simple case: two trees with five leaves. 
-```@example basic; continued = true 
-using RecombTools
-t1 = node2tree(parse_newick("((A,B),(C,(D,X)))"))
-t2 = node2tree(parse_newick("((A,(B,X)),(C,D))"))
+Inputs to `treeknit` are two files containing trees in Newick format. 
+The only strict condition on the trees is that they share their leaf nodes. 
+Example: 
+```
+recombtools treeknit tree1.nwk tree2.nwk
 ```
 
-The `computeMCCs` function takes two trees as input. 
-```@example basic
-mccs = computeMCCs(t1, t2)
-```
-Individual MCCs are simply arrays containing labels of leaves of the trees.  
+!!! warning "Insignificant branches"
+    Tree builders sometimes introduce branches of insignificant length in order to resolve polytomies and obtain binary trees. Since `RecombTools` relies on topological differences between trees, it is important to remove these branches prior to passing the trees to `treeknit`. This can be done by using only branches with high bootstrap value (typically, $>75$), or by removing branches shorter than, *e.g.*, $(L/2)^{-1}$, where $L$ is the length of the sequences. 
 
-## Interpretation of results
+!!! warning "Rooting the trees"
+    The result `RecombTools` depend how the trees are rooted. It is important that the two trees are rooted in a consistent way. We recommend using the same outgroup for rooting both trees.
 
-The genealogy of two RNA segments subject to reassortment is described by an Ancestral Reassortment Graph (ARG). 
-An ARG is a directed graph that represents the lineage of a given pair of segments by coalescence of nodes, as in a genealogical tree, but also shows reassortment events and the exchange of segments by nodes that have two ancestors. 
-Since reassortments only occur between segments, the genealogy of given segment is described by a tree. 
-As a result, the ARG must embed both segment-trees, and every branch in the ARG has to belong to either one of the trees, or to both. 
+## Output
 
-*RecombTools* infers the ARG by finding the branches that are common to both trees. 
-Given two trees with potentially different topologies, it tries to "glue" them together in a reasonable way, where the interpretation of reasonable can vary between *parsimonious* and *conservative* (see the [parsimony parameter](@ref gamma) $\gamma$). 
+Output of the inference is written a directory called `treeknit_results`. This can be changed using the `--outdir` option.   
+The directory will contain:   
+- the ARG, written as an extended [Newick string](https://doi.org/10.1186/1471-2105-9-532).   
+- the MCCs, *i.e.* shared regions of the trees, indicated by the leaves they contain.  
+- resolved trees, where polytomies have been reduced as much as possible using the knowledge of the MCCs.   
+- a table with the correspondence between internal nodes of the ARG and the trees. Note that this refers to node labels of the resolved trees, which may not be the same as the ones given as input.   
 
-The MCCs returned by `computeMCCs` represent regions of the ARG (and of the segment trees) where branches are common to both trees. 
-In other words, these are the regions where the two segment trees must be "glued together". 
-Given those regions and the knowledge of the trees, it is possible to unambiguously reconstruct the genealogy. 
+## Options
 
-!!! info "Number of reassortments in the genealogy"
-    When going up the ARG (backwards in time), a reassortment consists of passing from a region where branches are common to the two trees to a region where they are not. It is a *split* of branches. 
-    As a consequence, the root of each MCC must be a reassortment, *with the exception* of an MCC containing the root of both trees. 
-    The number of reassortments events in the inferred ARG can thus simply be obtained by counting the number of MCCs, potentially removing the one that contains the roots of both trees if it exists. 
+The main options that you can play with are:  
+- the parsimony parameter $\gamma$, `--gamma` or `-g`.   
+- naive inference `--naive`. Using this flag is equivalent to setting $\gamma \rightarrow \infty$.  
+- Length of sequences used to infer trees: `--seq-lengths`. These are used for likelihood test to break degeneracy between topologically equivalent MCCs.  
 
-
-
-
-## More than two trees
-If more than two trees are given as input, `computeMCCs` infers MCCs for all pairs of trees.  
-Use a `Dict` to pass the trees as input. 
-```@example more_trees
-using RecombTools # hide
-t1 = node2tree(parse_newick("((A,B),((C,Y),(D,X)))"))
-t2 = node2tree(parse_newick("((A,(B,X)),((C,Y),D))"))
-t3 = node2tree(parse_newick("((A,(B,Y)),(C,(D,X)))"))
-trees = Dict(1=>t1, 2=>t2, 3=>t3)
-mccs = computeMCCs(trees)
-mccs[1,2] # MCCs for t1 and t2
-```
-```@example more_trees
-mccs[1,3] # MCCs for t1 and t3
-```
-
-The output `mccs` is also a `Dict`, indexed by pairs of keys of the input dictionary `trees`. 
-Indexing is symmetric: `mccs[i,j] == mccs[j,i]`. 
-By convention, `mccs[i,i]` exists and is empty. 
-
-## [Naive estimation](@id naive_mccs)
-It is also possible to compute a "naive" estimation of MCCs using the `naive` keyword. 
-  When `naive` is set to `true`, `computeMCCs` returns maximum clades that are exactly compatible between pairs of trees: 
-```@example naive
-using RecombTools # hide
-t1 = node2tree(parse_newick("(((A1,A2),(B1,B2)),(C1,C2))"))
-t2 = node2tree(parse_newick("(((A1,A2),(C1,C2)),(B1,B2))"))
-trees = Dict(1=>t1, 2=>t2)
-computeMCCs(trees; naive=true)
-```
+More details in the [options section](@ref options).

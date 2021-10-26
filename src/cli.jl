@@ -22,7 +22,7 @@ treeknit
   different MCCs.
 - `--no-resolve`: Do not attempt to resolve trees before inferring MCCs.
 """
-@main function treeknit(
+@cast function treeknit(
 	nwk1::AbstractString, nwk2::AbstractString;
 	# options
 	outdir::AbstractString = "treeknit_results",
@@ -39,10 +39,14 @@ treeknit
 	println("Results directory: $outdir")
 	println("γ: $gamma")
 
-	# Setting up inputs
+	# Reading trees
 	t1 = read_tree(nwk1)
 	t2 = read_tree(nwk2)
+	if !TreeTools.share_labels(t1, t2)
+		error("Trees must share leaves")
+	end
 
+	# Setting up OptArgs
 	sl = map(i->parse(Int, i), split(seq_lengths, " "))
 	oa = OptArgs(;
 		γ = gamma,
@@ -89,34 +93,4 @@ function write_rlm(filename, rlm)
 	end
 end
 
-# @cast function tmp(;x = "1 1")
-# 	xn = map(i->parse(Int, i), split(x, " "))
-# 	println(xn[1])
-# 	println(xn[2])
-# end
-
-# """
-# ArgParse example implemented in Comonicon.
-
-# # Arguments
-
-# - `x`: an argument
-
-# # Options
-
-# - `--opt1 <arg>`: an option
-# - `-o, --opt2 <arg>`: another option
-
-# # Flags
-
-# - `-f, --flag`: a flag
-# """
-# @cast function example1(x; opt1=1, opt2::Int=2, flag=false)
-#     println("Parsed args:")
-#     println("flag=>", flag)
-#     println("arg=>", x)
-#     println("opt1=>", opt1)
-#     println("opt2=>", opt2)
-# end
-
-# @main
+@main

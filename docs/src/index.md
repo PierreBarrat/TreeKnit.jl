@@ -10,10 +10,13 @@ Pkg.add(url="https://github.com/PierreBarrat/TreeTools#master")
 Pkg.add(url="https://github.com/PierreBarrat/RecombTools#master")
 ```
 
-You should now be able to use `using RecombTools`. 
+You should now be able to use `using RecombTools`.  
 
-Should you want to simulate ARGs (*i.e.* multiple trees with reassortment events), you might find it useful to get the *ARGTools* package: 
+To use the CLI (Linux/Mac users), build the package by calling 
 ```julia
-using Pkg
-Pkg.add(url="https://github.com/PierreBarrat/ARGTools#master")
+Pkg.build("RecombTools")
 ```
+
+This will add executable scripts to your `~/.julia/bin` folder. 
+Simply add this folder to your path to call the script, *e.g.* `export PATH="$HOME/.julia/bin:$PATH"`. 
+You should now be able to call, *e.g.*, `recombtools treeknit --help`

@@ -1,4 +1,4 @@
-# `OptArgs` options
+# [Options](@id options)
 
 `computeMCCs` uses a topogy based heuristic optimization to find maximally compatible clades. 
   Options to this heuristic are provided through the `OptArgs` object, that is optionally passed as a second argument.
