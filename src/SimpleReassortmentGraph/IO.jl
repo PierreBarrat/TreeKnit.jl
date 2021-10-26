@@ -17,13 +17,13 @@ function extended_newick(arg::ARG)
 
 	if arg.roots[1] == arg.roots[2]
 		# (i)
-		str = extended_newick!(arg.roots[1], hybrids)
+		str = extended_newick!(arg.roots[1], nothing, hybrids)
 		return str * ";"
 	else
 		if !isshared(arg.roots[1]) && !isshared(arg.roots[2])
 			#(ii)
 			str1 = extended_newick!(arg.roots[1], nothing, hybrids)
-			str2 = extended_newick!(arg.roots[1], nothing, hybrids)
+			str2 = extended_newick!(arg.roots[2], nothing, hybrids)
 			return "($(str1),$(str2))GlobalRoot:0.;"
 		elseif isshared(arg.roots[1])
 			#(iii)
