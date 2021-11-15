@@ -70,8 +70,6 @@ treeknit
 		name, ext = splitext(fn)
 		write_newick(outdir * "/" * name * ".resolved" * ext, t)
 	end
-	# write_newick(outdir * "/" * nwk1 * "_resolved", t1)
-	# write_newick(outdir * "/" * nwk2 * "_resolved", t2)
 	write(outdir * "/" * "arg.nwk", arg)
 	write_rlm(outdir * "/" * "nodes.dat", rlm)
 end

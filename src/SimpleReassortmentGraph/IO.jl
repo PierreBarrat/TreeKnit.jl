@@ -66,26 +66,31 @@ function extended_newick!(a_r::ARGNode, anc, hybrids::Dict)
 	return nwk
 end
 
-#=
-(i) Node is shared, not a hybrid, not the root of only one tree
-its two times should be the same
-[&segments={0,1}]
-(ii) Node is not shared
-It should only have one color
-[&segments={c}]
-(iii) Node is shared and a hybrid
-We need to know what the color of the branch we arrived from is
-[&segments={c}]
-(iv) Node is the root of one tree and not of the other
-If `c` is the non-root color
-[&segments={c}]
-=#
+"""
+	nwk_node_data(n::ARGNode, a)
+
+Return a string of the form "[&segments=0,1]:$(time)".
+
+Different cases to choose from:
+	(i) Node is shared, not a hybrid, not the root of only one tree
+  its two times should be the same
+  [&segments={0,1}]
+	(ii) Node is not shared
+  It should only have one color
+  [&segments={c}]
+	(iii) Node is shared and a hybrid
+  We need to know what the color of the branch we arrived from is
+  [&segments={c}]
+	(iv) Node is the root of one tree and not of the other
+  If `c` is the non-root color
+  [&segments={c}]
+"""
 function nwk_node_data(n::ARGNode, a)
-	if isshared(n) && !ishybrid(n) && !isroot(n)
+	if isshared(n) && !ishybrid(n) && !is_partial_root(n)
 		# (i)
 		τ1 = branch_length(n)[1]
 		τ2 = branch_length(n)[2]
-		@assert τ1 == τ2 || (ismissing(τ1) && ismissing(τ2))
+		@assert (ismissing(τ1) && ismissing(τ2)) || τ1 == τ2
 		return nwk_node_data(τ1, 1, 2)
 
 	elseif isshared(n) && ishybrid(n)

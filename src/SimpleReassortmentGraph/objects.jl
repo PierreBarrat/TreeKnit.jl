@@ -79,9 +79,38 @@ function branch_length(n::RootNode, clr)
 end
 
 
-# isroot / isleaf
+## isroot / isleaf
+"""
+	isroot(n)
+
+Is `n` the root for one color?
+"""
 isroot(n::ARGNode) = in(RootNode(), n.anc)
+"""
+	isroot(n, c)
+
+Is `n` the root for color `c`?
+"""
 isroot(n::ARGNode, c::Int) = (n.anc[c] == RootNode())
+function is_global_root(n::ARGNode)
+	if isroot(n)
+		for c in 1:length(n.anc)
+			if !isroot(n, c)
+				return false
+			end
+		end
+		return true
+	end
+	return false
+end
+function is_partial_root(n::ARGNode)
+	if !isroot(n)
+		return false
+	else
+		return !is_global_root(n)
+	end
+end
+
 
 isleaf(n::ARGNode) = isempty(children(n))
 
