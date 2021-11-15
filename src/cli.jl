@@ -8,18 +8,15 @@ treeknit
 
 # Options
 
-- `-o, --outdir <arg>`: directory for results
-- `-g, --gamma <arg>`: value of γ
-- `--seq-lengths <arg>`: length of the sequences used to build trees
-  Used for likelihood calculations.
-  *e.g.* `--seq-length "1500 2000"`.
+- `-o, --outdir <arg>`: directory for results; Example `-o=treeknit_results`
+- `-g, --gamma <arg>`: value of γ; Example `-g=2`
+- `--seq-lengths <arg>`: length of the sequences; Example: `--seq-length "1500 2000"`.
 - `--n-sa-it <arg>`: number of SA iterations per temperature and per leaf.
 
 # Flags
 
 - `--naive`: Naive inference (overrides `-g`).
-- `--no-likelihood`: Do not use likelihood test based on branch length to sort between
-  different MCCs.
+- `--no-likelihood`: Do not use branch length likelihood test to sort between different MCCs.
 - `--no-resolve`: Do not attempt to resolve trees before inferring MCCs.
 """
 @cast function treeknit(
