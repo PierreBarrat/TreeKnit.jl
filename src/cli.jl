@@ -65,8 +65,13 @@ treeknit
 
 	# Write output
 	write_mccs(outdir * "/" * "MCCs.dat", MCCs)
-	write_newick(outdir * "/" * nwk1 * "_resolved", t1)
-	write_newick(outdir * "/" * nwk2 * "_resolved", t2)
+	for (nwk, t) in zip((nwk1,nwk2),(t1,t2))
+		fn = basename(nwk)
+		name, ext = splitext(fn)
+		write_newick(outdir * "/" * name * ".resolved" * ext, t)
+	end
+	# write_newick(outdir * "/" * nwk1 * "_resolved", t1)
+	# write_newick(outdir * "/" * nwk2 * "_resolved", t2)
 	write(outdir * "/" * "arg.nwk", arg)
 	write_rlm(outdir * "/" * "nodes.dat", rlm)
 end
