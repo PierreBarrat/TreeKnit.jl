@@ -10,13 +10,13 @@ treeknit
 
 - `-o, --outdir <arg>`: directory for results; Example `-o=treeknit_results`
 - `-g, --gamma <arg>`: value of γ; Example `-g=2`
-- `--seq-lengths <arg>`: length of the sequences; Example: `--seq-length "1500 2000"`.
+- `--seq-lengths <arg>`: length of the sequences. Example: `--seq-length "1500 2000"`
 - `--n-sa-it <arg>`: number of SA iterations per temperature and per leaf.
 
 # Flags
 
 - `--naive`: Naive inference (overrides `-g`).
-- `--no-likelihood`: Do not use branch length likelihood test to sort between different MCCs.
+- `--no-likelihood`: Do not use branch length likelihood test to sort between different MCCs
 - `--no-resolve`: Do not attempt to resolve trees before inferring MCCs.
 """
 @cast function treeknit(
@@ -25,7 +25,7 @@ treeknit
 	outdir::AbstractString = "treeknit_results",
 	gamma::Float64 = 2.,
 	seq_lengths::AbstractString = "1 1",
-	n_sa_it::Float64 = 0.1,
+	n_sa_it::Float64 = 1.,
 	# flags
 	naive::Bool = false,
 	no_likelihood::Bool = false,
