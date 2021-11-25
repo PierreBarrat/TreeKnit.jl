@@ -181,7 +181,7 @@ end
 function set_branch_length!(n, τ::Real, c, clrs...)
 	@assert hascolor(n, c)
 	@assert hasancestor(n, c)
-	n.tau[c] = τ
+	n.tau[c] = τ + eps()
 	for clr in clrs
 		set_branch_length!(n, τ, clr)
 	end

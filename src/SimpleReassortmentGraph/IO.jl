@@ -90,7 +90,7 @@ function nwk_node_data(n::ARGNode, a)
 		# (i)
 		τ1 = branch_length(n)[1]
 		τ2 = branch_length(n)[2]
-		@assert (ismissing(τ1) && ismissing(τ2)) || τ1 == τ2
+		@assert (ismissing(τ1) && ismissing(τ2)) || isapprox(τ1, τ2)
 		return nwk_node_data(τ1, 1, 2)
 
 	elseif isshared(n) && ishybrid(n)
@@ -101,7 +101,7 @@ function nwk_node_data(n::ARGNode, a)
 		elseif !ec[1] && ec[2]
 			return nwk_node_data(branch_length(n)[2], 2)
 		elseif ec[1] && ec[2]
-			@assert branch_length(n)[1] == branch_length(n)[2]
+			@assert isapprox(branch_length(n)[1], branch_length(n)[2])
 			return nwk_node_data(branch_length(n)[1], 1, 2)
 		end
 
