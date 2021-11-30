@@ -1,5 +1,5 @@
-[ Info: generating /home/pierrebc/.julia/bin/RecombTools.jl
-[ Info: generating /home/pierrebc/.julia/bin/RecombTools
+[ Info: generating /home/pierrebc/.julia/bin/treeknit.jl
+[ Info: generating /home/pierrebc/.julia/bin/treeknit
 [ Info: generating auto-completion script for bash
 ┌ Error: Exception while generating log record in module ComoniconBuilder at /home/pierrebc/.julia/packages/ComoniconBuilder/bJXHb/src/build.jl:257
 │   exception =
@@ -29,12 +29,12 @@
 │        @ ComoniconBuilder ~/.julia/packages/ComoniconBuilder/bJXHb/src/install.jl:3
 │     [12] install
 │        @ ~/.julia/packages/ComoniconBuilder/bJXHb/src/install.jl:2 [inlined]
-│     [13] #comonicon_install#108
+│     [13] #comonicon_install#105
 │        @ ~/.julia/packages/Comonicon/9x3SY/src/cast.jl:213 [inlined]
 │     [14] comonicon_install()
-│        @ RecombTools ~/.julia/packages/Comonicon/9x3SY/src/cast.jl:213
+│        @ TreeKnit ~/.julia/packages/Comonicon/9x3SY/src/cast.jl:213
 │     [15] top-level scope
-│        @ ~/Documents/julia/dev/RecombTools/deps/build.jl:2
+│        @ ~/Documents/julia/dev/TreeKnit/deps/build.jl:2
 │     [16] include(fname::String)
 │        @ Base.MainInclude ./client.jl:444
 │     [17] top-level scope

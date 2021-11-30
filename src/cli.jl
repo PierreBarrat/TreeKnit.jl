@@ -19,7 +19,7 @@ treeknit
 - `--no-likelihood`: Do not use branch length likelihood test to sort between different MCCs
 - `--no-resolve`: Do not attempt to resolve trees before inferring MCCs.
 """
-@cast function treeknit(
+@main function treeknit(
 	nwk1::AbstractString, nwk2::AbstractString;
 	# options
 	outdir::AbstractString = "treeknit_results",
@@ -93,4 +93,4 @@ function write_rlm(filename, rlm)
 	end
 end
 
-@main
+

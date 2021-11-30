@@ -1,4 +1,4 @@
-name = "RecombTools"
+name = "treeknit"
 
 [install]
 completion = true
