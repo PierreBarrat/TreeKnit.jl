@@ -1,6 +1,6 @@
 module SplitGraph
 
-using RecombTools
+using TreeKnit
 using TreeTools
 
 include("objects.jl")
@@ -54,9 +54,9 @@ function opttrees!(
 	if length(mcc) == 1
 		return mcc, 0, 0., Int64[], Float64[], Union{Missing,Float64}[]
 	end
-	mcc_names = RecombTools.name_mcc_clades!(treelist, mcc)
+	mcc_names = TreeKnit.name_mcc_clades!(treelist, mcc)
 	for (i,t) in enumerate(treelist)
-		RecombTools.reduce_to_mcc!(t, mcc)
+		TreeKnit.reduce_to_mcc!(t, mcc)
 	end
 	g = trees2graph(treelist)
 

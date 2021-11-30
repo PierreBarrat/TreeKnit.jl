@@ -75,7 +75,7 @@ function new_splits(trees::Dict, MCCs::Dict)
         i = 1
         for (s,t) in trees
             if s != sref
-                ns[sref][i] = RecombTools.new_splits(tref, MCCs[sref,s], t)
+                ns[sref][i] = TreeKnit.new_splits(tref, MCCs[sref,s], t)
                 i += 1
             end
         end

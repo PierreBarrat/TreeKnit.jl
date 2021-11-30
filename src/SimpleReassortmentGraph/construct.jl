@@ -353,7 +353,7 @@ Shared nodes `X` of tree `t`, using `t2` as a second tree, for a given mcc.
 =#
 function shared_nodes!(X1::Dict, X2::Dict, t1::Tree, t2::Tree, mcc, id_mcc)
 	# To identify singletons, we'll need the splits restricted to the mcc
-	Sm = RecombTools.splits_in_mcc(mcc, t1, t2)
+	Sm = TreeKnit.splits_in_mcc(mcc, t1, t2)
 
 	# Deal with the root first
 	A1 = lca(t1, mcc)

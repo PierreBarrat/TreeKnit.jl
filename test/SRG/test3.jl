@@ -1,5 +1,5 @@
-using RecombTools
-using RecombTools.SRG
+using TreeKnit
+using TreeKnit.SRG
 using Test
 using TreeTools
 

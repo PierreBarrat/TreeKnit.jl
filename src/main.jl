@@ -85,7 +85,7 @@ end
 function computeMCCs_naive_dynresolve!(trees::Dict, resolve)
 	function naive_inf!(trees::Dict, resolve)
 		resolve && resolve!(values(trees)...)
-		RecombTools.naive_mccs(values(trees)...)
+		TreeKnit.naive_mccs(values(trees)...)
 	end
 	return _computeMCCs(ts -> naive_inf!(ts, resolve), trees)
 end
@@ -93,7 +93,7 @@ end
 function computeMCCs_naive_preresolve!(trees::Dict, resolve)
 	function naive_inf!(trees::Dict, resolve)
 		resolve && resolve!(values(trees)...)
-		RecombTools.naive_mccs(values(trees)...)
+		TreeKnit.naive_mccs(values(trees)...)
 	end
 	resolve_from_mccs!(ts -> naive_inf!(ts, resolve), trees)
 	MCCs = _computeMCCs(ts -> naive_inf!(ts, false), trees)
@@ -233,13 +233,13 @@ function runopt(oa::OptArgs, trees::Dict)
 
 	# Output
 	if oa.output == :all
-		# return RecombTools.sort_mccs(MCCs), dflog, values(ot)
-		return RecombTools.sort_mccs(MCCs), values(ot)
+		# return TreeKnit.sort_mccs(MCCs), dflog, values(ot)
+		return TreeKnit.sort_mccs(MCCs), values(ot)
 	elseif oa.output == :mccs
-		return RecombTools.sort_mccs(MCCs)
+		return TreeKnit.sort_mccs(MCCs)
 	elseif oa.output == :mccs_df
-		# return RecombTools.sort_mccs(MCCs), dflog
-		return RecombTools.sort_mccs(MCCs)
+		# return TreeKnit.sort_mccs(MCCs), dflog
+		return TreeKnit.sort_mccs(MCCs)
 	else
 		error("Unknown `output` field: $(oa.output). See `?OptArgs` for allowed values.")
 	end

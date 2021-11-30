@@ -4,9 +4,9 @@ t2 = read_tree("splitgraph/3solutions/t2.nwk")
 treelist = deepcopy(Any[t1, t2])
 
 mcc = naive_mccs(treelist)
-mcc_names = RecombTools.name_mcc_clades!(treelist, mcc)
+mcc_names = TreeKnit.name_mcc_clades!(treelist, mcc)
 for (i,t) in enumerate(treelist)
-	treelist[i] = RecombTools.reduce_to_mcc(t, mcc)
+	treelist[i] = TreeKnit.reduce_to_mcc(t, mcc)
 end
 
 g = trees2graph(treelist)

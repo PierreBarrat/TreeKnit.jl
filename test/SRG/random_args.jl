@@ -1,5 +1,5 @@
 using ARGTools
-using RecombTools
+using TreeKnit
 using TreeTools
 using Test
 
@@ -13,8 +13,8 @@ function f(n, ρ, N)
 	t1, t2 = ARGTools.trees_from_ARG(arg_ref)
 	MCCs = ARGTools.MCCs_from_arg(arg_ref)
 
-	arg = RecombTools.SRG.arg_from_trees(t1, t2, MCCs)[1]
-	tt1, tt2 = RecombTools.SRG.trees_from_arg(arg)
+	arg = TreeKnit.SRG.arg_from_trees(t1, t2, MCCs)[1]
+	tt1, tt2 = TreeKnit.SRG.trees_from_arg(arg)
 	TreeTools.remove_internal_singletons!(tt1)
 	TreeTools.remove_internal_singletons!(tt2)
 

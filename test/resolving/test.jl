@@ -2,8 +2,8 @@
 # v0.12.21
 
 # ╔═╡ 2ea1ccbc-8e0d-11eb-29c3-05a91ea18a6f
-using RecombTools
-using RecombTools.SplitGraph
+using TreeKnit
+using TreeKnit.SplitGraph
 using Test
 using TreeTools
 
@@ -59,7 +59,7 @@ println("##### Resolve using MCC inference #####")
 
 # ╔═╡ 93ccb338-8e0d-11eb-0f36-49bebaf5570b
 function infer_mccs(trees;kwargs...)
-	RecombTools.runopt(
+	TreeKnit.runopt(
 		OptArgs(;seq_lengths = Dict(s=>1 for s in keys(trees)), kwargs...),
 		trees
 	)
@@ -83,7 +83,7 @@ trees = Dict(1=>deepcopy(t1), 2=>deepcopy(t2))
 # ╔═╡ fa1be92c-8e0d-11eb-0f5a-21209d7ffc68
 @testset "Inner function _resolve_from_mccs!" begin
 	ct = deepcopy(trees)
-	nS = RecombTools._resolve_from_mccs!(infer_mccs, ct)
+	nS = TreeKnit._resolve_from_mccs!(infer_mccs, ct)
 	@test isempty(nS[2])
 	@test nS[1] == [["A", "B"]]
 end
@@ -106,7 +106,7 @@ trees2 = Dict(1=>deepcopy(t3), 2=>deepcopy(t4))
 # ╔═╡ 8d4d48b4-8e11-11eb-2445-f5196c3666b3
 @testset "Outer function resolve_from_mccs!" begin
 	ct2 = deepcopy(trees2)
-	nS2 = RecombTools.resolve_from_mccs!(infer_mccs, ct2)
+	nS2 = TreeKnit.resolve_from_mccs!(infer_mccs, ct2)
 	@test nS2[2] == [["A1", "A2"]]
 	@test nS2[1] == [["A1", "A2", "A3"], ["B1", "B2"], ["A1", "A2", "A3", "A4", "B1", "B2"]]
 end
@@ -118,12 +118,12 @@ nwk1 = "((A,B,C),(D,E,F,G))"
 nwk2 = "(((A,B),C),(D,(E,(F,G))))"
 nwk3 = "(((A,B),C),(D,(E,F),G))"
 trees = Dict(i=>node2tree(parse_newick(nwk)) for (i,nwk) in enumerate([nwk1, nwk2, nwk3]))
-MCCs = RecombTools._computeMCCs(infer_mccs, trees)
-resolvable_splits = RecombTools.new_splits(trees, MCCs)
+MCCs = TreeKnit._computeMCCs(infer_mccs, trees)
+resolvable_splits = TreeKnit.new_splits(trees, MCCs)
 @testset "max-clique splits" begin
-	S1 = RecombTools.max_clique_splits(resolvable_splits[1])
-	S2 = RecombTools.max_clique_splits(resolvable_splits[2])
-	S3 = RecombTools.max_clique_splits(resolvable_splits[3])
+	S1 = TreeKnit.max_clique_splits(resolvable_splits[1])
+	S2 = TreeKnit.max_clique_splits(resolvable_splits[2])
+	S3 = TreeKnit.max_clique_splits(resolvable_splits[3])
 	@test length(S1) == 3 # would be 0 with compat
 	@test length(S2) == 0 # is already resolved
 	@test length(S3) == 1 # one split from tree 2 (depending if E or G is an MCC)

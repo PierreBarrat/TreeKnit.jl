@@ -1,4 +1,4 @@
-module RecombTools
+module TreeKnit
 
 
 # To remove eventually
@@ -29,7 +29,7 @@ include("resolving.jl")
 export resolve!
 
 include("SplitGraph/SplitGraph.jl")
-using RecombTools.SplitGraph
+using TreeKnit.SplitGraph
 
 include("objects.jl")
 export OptArgs
@@ -38,7 +38,7 @@ include("main.jl")
 export computeMCCs, inferARG
 
 include("SimpleReassortmentGraph/SimpleReassortmentGraph.jl")
-import RecombTools.SimpleReassortmentGraph: SRG
+import TreeKnit.SimpleReassortmentGraph: SRG
 export SRG
 
 include("Flu.jl")

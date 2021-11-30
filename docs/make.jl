@@ -1,14 +1,14 @@
-using RecombTools
+using TreeKnit
 using Documenter
 
 Documenter.makedocs(;
 	source = "src",
 	clean = true,
 	doctest = true,
-	modules = Module[RecombTools],
+	modules = Module[TreeKnit],
 	repo = "",
 	highlightsig = true,
-	sitename = "RecombTools documentation",
+	sitename = "TreeKnit documentation",
 	expandfirst = [],
 	pages = [
 		"Index" => "index.md",
@@ -31,6 +31,6 @@ Documenter.makedocs(;
 )
 
 deploydocs(
-    repo = "github.com/PierreBarrat/RecombTools.jl.git";
+    repo = "github.com/PierreBarrat/TreeKnit.jl.git";
     versions = nothing,
 )

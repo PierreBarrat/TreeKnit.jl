@@ -1,5 +1,5 @@
 using Test
-using RecombTools.SRG
+using TreeKnit.SRG
 using TreeTools
 
 ## Simple case

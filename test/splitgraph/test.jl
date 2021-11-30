@@ -1,5 +1,5 @@
-using RecombTools
-using RecombTools.SplitGraph
+using TreeKnit
+using TreeKnit.SplitGraph
 using Test
 using TreeTools
 

@@ -1,6 +1,6 @@
 module Flu
 
-using RecombTools
+using TreeKnit
 using TreeTools
 
 #

@@ -174,15 +174,15 @@ function fraction_of_common_pairs(MCC1, MCC2, leaves; linked_only=false)
     Z = 0
     for i in 1:length(leaves), j in (i+1):length(leaves)
         if !linked_only
-            RecombTools.is_linked_pair(leaves[i], leaves[j], MCC1) == RecombTools.is_linked_pair(leaves[i], leaves[j], MCC2) && (n+=1)
+            TreeKnit.is_linked_pair(leaves[i], leaves[j], MCC1) == TreeKnit.is_linked_pair(leaves[i], leaves[j], MCC2) && (n+=1)
             Z += 1
         else
-            if RecombTools.is_linked_pair(leaves[i], leaves[j], MCC1)
+            if TreeKnit.is_linked_pair(leaves[i], leaves[j], MCC1)
                 Z += 1
-                RecombTools.is_linked_pair(leaves[i], leaves[j], MCC2) && (n+=1)
-            elseif RecombTools.is_linked_pair(leaves[i], leaves[j], MCC2)
+                TreeKnit.is_linked_pair(leaves[i], leaves[j], MCC2) && (n+=1)
+            elseif TreeKnit.is_linked_pair(leaves[i], leaves[j], MCC2)
                 Z += 1
-                RecombTools.is_linked_pair(leaves[i], leaves[j], MCC1) && (n+=1)
+                TreeKnit.is_linked_pair(leaves[i], leaves[j], MCC1) && (n+=1)
             end
         end
     end

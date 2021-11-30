@@ -1,4 +1,4 @@
-using RecombTools.SRG
+using TreeKnit.SRG
 using TreeTools
 using Test
 

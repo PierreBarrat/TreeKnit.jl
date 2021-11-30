@@ -1,2 +1,2 @@
-using RecombTools
-RecombTools.comonicon_install()
+using TreeKnit
+TreeKnit.comonicon_install()

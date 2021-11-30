@@ -209,8 +209,8 @@ function _eval_mcc_inf(rMCC, iMCC, t1::Tree)
     τc_p = 0.; τnc_p = 0.; τc_n = 0.; τnc_n = 0.
     νc_p = 0.; νnc_p = 0.; νc_n = 0.; νnc_n = 0.
     for n in Iterators.filter(x->!x.isroot, values(t1.lnodes))
-        if RecombTools.is_branch_in_mccs(n,iMCC) # Branch predicted to be shared with the other tree
-            if RecombTools.is_branch_in_mccs(n, rMCC) # Correct prediction
+        if TreeKnit.is_branch_in_mccs(n,iMCC) # Branch predicted to be shared with the other tree
+            if TreeKnit.is_branch_in_mccs(n, rMCC) # Correct prediction
                 τc_p += n.tau
                 νc_p += 1.
             else
@@ -218,7 +218,7 @@ function _eval_mcc_inf(rMCC, iMCC, t1::Tree)
                 νc_n += 1.
             end
         else # Branch predicted to not be shared with the other tree
-            if !RecombTools.is_branch_in_mccs(n, rMCC) # Correct prediction
+            if !TreeKnit.is_branch_in_mccs(n, rMCC) # Correct prediction
                 τnc_p += n.tau
                 νnc_p += 1.
             else

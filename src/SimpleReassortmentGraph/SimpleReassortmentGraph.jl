@@ -2,7 +2,7 @@ module SimpleReassortmentGraph
 
 using Parameters
 using Random
-using RecombTools
+using TreeKnit
 using TreeTools
 
 import Base: ==
