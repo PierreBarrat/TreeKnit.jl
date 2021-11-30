@@ -5,7 +5,7 @@
   Essential options are detailed here. 	
 
 ## [Parsimony parameter](@id gamma)
-The heuristic method used by *RecombTools* tries to prune consistent clades from a pair of trees in order to increase a compatibility score between other clades. 
+The heuristic method used by *TreeKnit* tries to prune consistent clades from a pair of trees in order to increase a compatibility score between other clades. 
   Pruning a clade is interpreted as fixing a reassortment right above it, while increasing the compatibility between remaining clades removes reassortments. 
   A purely parsimonious heuristic should thus give the same weight to fixing a reassortment through pruning a clade and fixing one incompatibility in the trees. 
 
@@ -16,7 +16,7 @@ Here, we assign the score $\gamma$ to each pruned clade, and count as $1$ each i
   
 The example below illustrates the difference between different $\gamma$ values: 
 ```@example gamma1
-using RecombTools # hide
+using TreeKnit # hide
 t1 = node2tree(parse_newick("((((A,B),C),D),E)"))
 t2 = node2tree(parse_newick("((((D,B),E),A),C)")) # Same topology, but shuffled leaves
 trees = Dict(1=>t1, 2=>t2)
@@ -39,7 +39,7 @@ See [Resolving](@ref)
 When several MCC decompositions are possible, degeneracy is removed by using the `likelihood_sort` option (activated by default). 
 In the example below, there are three equivalent decompositions if only topology is considered: 
 ```@example degeneracy
-using RecombTools # hide
+using TreeKnit # hide
 t1 = node2tree(parse_newick("((A:2,B:2):2,C:4)"))
 t2 = node2tree(parse_newick("(A:2,(B:1,C:1):1)"))
 trees = Dict(1=>t1, 2=>t2)

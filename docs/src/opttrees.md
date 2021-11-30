@@ -1,10 +1,10 @@
 # [The `opttrees` function](@id opttrees)
 
-The core of the heuristic *RecombTools* is based on happens in the `opttrees` function, found in the `SplitGraph` submodule. 
+The core of the heuristic *TreeKnit* is based on happens in the `opttrees` function, found in the `SplitGraph` submodule. 
   Given two trees, `opttrees` attempts to reconcile them by pruning certain clades. 
   A quick description of different steps in this function is given here, with the two simple trees below as an example case: 
 ```@example opttrees
-using RecombTools# hide
+using TreeKnit# hide
 nwk1 = "(((A1:1,A2:2):2,(B1:2,(B2:1,B3:1):1):2):2,(C1:1,C2:2):4)";
 nwk2 = "((A1:1,A2:2):2,((B1:2,(B2:1,B3:1):1):1,(C1:1,C2:2):1):1)";
 t1 = node2tree(parse_newick(nwk1))
@@ -25,9 +25,9 @@ mcc = naive_mccs(treelist)
 Trees are then "reduced" to those MCCs: new trees are built where each leaf corresponds to one of the naive MCCs. 
   The reduced trees have incompatibilities at the leaf level: it is no longer possible to group some of their leaves together in a consistent clade.  
 ```@example opttrees
-mcc_names = RecombTools.name_mcc_clades!(treelist, mcc)
+mcc_names = TreeKnit.name_mcc_clades!(treelist, mcc)
 for (i,t) in enumerate(treelist)
-	treelist[i] = RecombTools.reduce_to_mcc(t, mcc)
+	treelist[i] = TreeKnit.reduce_to_mcc(t, mcc)
 end
 nothing # hide
 ```
@@ -45,7 +45,7 @@ mcc_names
 Once the trees reduced to their naive MCCs, we construct a `SplitGraph` object from them. 
 
 !!! info "*SplitGraph* submodule"
-    The `SplitGraph` type and some of the functions used below are in the *SplitGraph* submodule of *RecombTools*. Access them by calling `using RecombTools.SplitGraph` and preceding the calls by `SplitGraph.`
+    The `SplitGraph` type and some of the functions used below are in the *SplitGraph* submodule of *TreeKnit*. Access them by calling `using TreeKnit.SplitGraph` and preceding the calls by `SplitGraph.`
 
 The `SplitGraph` is a directed graph that is based on both trees, and has two kind of nodes: 
 - leaf nodes correspond to leaves of the trees, and are identifier by integers. 
@@ -58,7 +58,7 @@ The `SplitGraph` is a directed graph that is based on both trees, and has two ki
 
 Let us know build the `SplitGraph` object: 
 ```@example opttrees
-using RecombTools.SplitGraph
+using TreeKnit.SplitGraph
 g = SplitGraph.trees2graph(treelist); 
 g.labels_to_int
 ```

@@ -1,8 +1,8 @@
 # The `runopt` function
 
 ```@setup runopt
-using RecombTools
-using RecombTools.SplitGraph
+using TreeKnit
+using TreeKnit.SplitGraph
 using TreeTools
 ```
 
@@ -36,9 +36,9 @@ Let's do a first pass with `opttrees`, with $\gamma=3$.
 ```@example runopt
 treelist = Any[t1, t2]
 mccs_naive = naive_mccs(treelist) # these are just the leaves in this example
-mcc_names = RecombTools.name_mcc_clades!(treelist, mccs_naive)
+mcc_names = TreeKnit.name_mcc_clades!(treelist, mccs_naive)
 for (i,t) in enumerate(treelist)
-  treelist[i] = RecombTools.reduce_to_mcc(t, mccs_naive)
+  treelist[i] = TreeKnit.reduce_to_mcc(t, mccs_naive)
 end
 g = SplitGraph.trees2graph(treelist);
 nothing # hide
@@ -62,7 +62,7 @@ As expected, `X` `Y` are found as reassortants.
   To make this explicit, we remove the leaves `X` and `Y` and compute naive mccs again. 
 
 ```@example runopt
-RecombTools.pruneconf!(mccs_found, treelist...) # prune clades in a list of trees. Wrapper around TreeTools.prunesutree!
+TreeKnit.pruneconf!(mccs_found, treelist...) # prune clades in a list of trees. Wrapper around TreeTools.prunesutree!
 mccs_naive = naive_mccs(treelist...)
 ```
 
@@ -70,9 +70,9 @@ Now that `X` and `Y` are removed, we see that clades `ABC` and `DEF` are common 
   If we reduce the pruned trees to their new naive MCCs again, we now see that `Z` is an obvious choice for a reassorted strain: 
 
 ```@repl runopt
-mcc_names = RecombTools.name_mcc_clades!(treelist, mccs_naive)
+mcc_names = TreeKnit.name_mcc_clades!(treelist, mccs_naive)
 for (i,t) in enumerate(treelist)
-  treelist[i] = RecombTools.reduce_to_mcc(t, mccs_naive)
+  treelist[i] = TreeKnit.reduce_to_mcc(t, mccs_naive)
 end
 treelist[1]
 treelist[2]

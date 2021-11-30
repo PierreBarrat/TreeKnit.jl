@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = RecombTools
+CurrentModule = TreeKnit
 ```
  
 # The `OptArgs` object

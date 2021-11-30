@@ -1,6 +1,6 @@
 # Maximally Compatible Clades
 
-*RecombTools* reconstructs the ARG from trees by first inferring Maximally Compatible Clades (MCC). 
+*TreeKnit* reconstructs the ARG from trees by first inferring Maximally Compatible Clades (MCC). 
 
 ## Handling trees
 
@@ -15,7 +15,7 @@ Functions that directly handle trees are found in the separate *TreeTools* packa
 
 Let's see how to infer Maximally Compatible Clades (MCC) for a very simple case: two trees with five leaves. 
 ```@example basic; continued = true 
-using RecombTools
+using TreeKnit
 t1 = node2tree(parse_newick("((A,B),(C,(D,X)))"))
 t2 = node2tree(parse_newick("((A,(B,X)),(C,D))"))
 ```
@@ -33,7 +33,7 @@ An ARG is a directed graph that represents the lineage of a given pair of segmen
 Since reassortments only occur between segments, the genealogy of given segment is described by a tree. 
 As a result, the ARG must embed both segment-trees, and every branch in the ARG has to belong to either one of the trees, or to both. 
 
-*RecombTools* infers the ARG by finding the branches that are common to both trees. 
+*TreeKnit* infers the ARG by finding the branches that are common to both trees. 
 Given two trees with potentially different topologies, it tries to "glue" them together in a reasonable way, where the interpretation of reasonable can vary between *parsimonious* and *conservative* (see the [parsimony parameter](@ref gamma) $\gamma$). 
 
 The MCCs returned by `computeMCCs` represent regions of the ARG (and of the segment trees) where branches are common to both trees. 
@@ -52,7 +52,7 @@ Given those regions and the knowledge of the trees, it is possible to unambiguou
 If more than two trees are given as input, `computeMCCs` infers MCCs for all pairs of trees.  
 Use a `Dict` to pass the trees as input. 
 ```@example more_trees
-using RecombTools # hide
+using TreeKnit # hide
 t1 = node2tree(parse_newick("((A,B),((C,Y),(D,X)))"))
 t2 = node2tree(parse_newick("((A,(B,X)),((C,Y),D))"))
 t3 = node2tree(parse_newick("((A,(B,Y)),(C,(D,X)))"))
@@ -72,7 +72,7 @@ By convention, `mccs[i,i]` exists and is empty.
 It is also possible to compute a "naive" estimation of MCCs using the `naive` keyword. 
   When `naive` is set to `true`, `computeMCCs` returns maximum clades that are exactly compatible between pairs of trees: 
 ```@example naive
-using RecombTools # hide
+using TreeKnit # hide
 t1 = node2tree(parse_newick("(((A1,A2),(B1,B2)),(C1,C2))"))
 t2 = node2tree(parse_newick("(((A1,A2),(C1,C2)),(B1,B2))"))
 trees = Dict(1=>t1, 2=>t2)

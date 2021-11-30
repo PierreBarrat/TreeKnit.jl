@@ -2,7 +2,7 @@
 
 ## Using the CLI
 
-`RecombTools` offers a simple CLI script: `treeknit`. 
+`TreeKnit` offers a simple CLI script: `treeknit`. 
 In short, it takes two trees as input, passed as [Newick](https://en.wikipedia.org/wiki/Newick_format) files, and returns an Ancestral Reassortment Graph. 
 
 !!! info "Compile time" 
@@ -18,10 +18,10 @@ recombtools treeknit tree1.nwk tree2.nwk
 ```
 
 !!! warning "Insignificant branches"
-    Tree builders sometimes introduce branches of insignificant length in order to resolve polytomies and obtain binary trees. Since `RecombTools` relies on topological differences between trees, it is important to remove these branches prior to passing the trees to `treeknit`. This can be done by using only branches with high bootstrap value (typically, $>75$), or by removing branches shorter than, *e.g.*, $(L/2)^{-1}$, where $L$ is the length of the sequences. 
+    Tree builders sometimes introduce branches of insignificant length in order to resolve polytomies and obtain binary trees. Since `TreeKnit` relies on topological differences between trees, it is important to remove these branches prior to passing the trees to `treeknit`. This can be done by using only branches with high bootstrap value (typically, $>75$), or by removing branches shorter than, *e.g.*, $(L/2)^{-1}$, where $L$ is the length of the sequences. 
 
 !!! warning "Rooting the trees"
-    The result `RecombTools` depend how the trees are rooted. It is important that the two trees are rooted in a consistent way. We recommend using the same outgroup for rooting both trees.
+    The result `TreeKnit` depend how the trees are rooted. It is important that the two trees are rooted in a consistent way. We recommend using the same outgroup for rooting both trees.
 
 ### Output
 

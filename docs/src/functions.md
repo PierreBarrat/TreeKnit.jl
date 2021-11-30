@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = RecombTools
+CurrentModule = TreeKnit
 DocTestSetup  = quote
     using TreeTools
 end	
@@ -21,7 +21,7 @@ computeMCCs!
 ### For pairs of trees only
 ```@docs
 naive_mccs
-RecombTools.runopt
+TreeKnit.runopt
 ```
 
 ## Resolving trees
