@@ -5,6 +5,6 @@ using TreeTools
 
 println("##### splitgraph #####")
 
-include("basic/test.jl")
-include("3solutions/test.jl")
-include("w_resolution/test.jl")
+include("$(dirname(pathof(TreeKnit)))/..//test/splitgraph/basic/test.jl")
+include("$(dirname(pathof(TreeKnit)))/..//test/splitgraph/3solutions/test.jl")
+include("$(dirname(pathof(TreeKnit)))/..//test/splitgraph/w_resolution/test.jl")

@@ -1,5 +1,5 @@
-t1 = read_tree("splitgraph/3solutions/t1.nwk")
-t2 = read_tree("splitgraph/3solutions/t2.nwk")
+t1 = read_tree("$(dirname(pathof(TreeKnit)))/..//test/splitgraph/3solutions/t1.nwk")
+t2 = read_tree("$(dirname(pathof(TreeKnit)))/..//test/splitgraph/3solutions/t2.nwk")
 
 treelist = deepcopy(Any[t1, t2])
 

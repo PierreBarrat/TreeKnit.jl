@@ -4,8 +4,8 @@
 	@test true
 end
 
-t1 = read_tree("splitgraph/basic/tree1.nwk")
-t2 = read_tree("splitgraph/basic/tree2.nwk")
+t1 = read_tree("$(dirname(pathof(TreeKnit)))/..//test/splitgraph/basic/tree1.nwk")
+t2 = read_tree("$(dirname(pathof(TreeKnit)))/..//test/splitgraph/basic/tree2.nwk")
 g = trees2graph(t1,t2)
 
 @testset "Basic SplitGraph construction" begin
