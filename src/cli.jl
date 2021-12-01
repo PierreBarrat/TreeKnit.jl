@@ -31,10 +31,23 @@ treeknit
 	no_likelihood::Bool = false,
 	no_resolve::Bool = false,
 )
+
 	println("Treeknit: ")
 	println("Input trees: $nwk1 \t $nwk2")
 	println("Results directory: $outdir")
 	println("γ: $gamma")
+
+	# Setting up directories
+	mkpath(outdir)
+
+	# Setting logger
+	io = open(outdir*"/log.txt", "w+")
+	logger = FormatLogger(io) do io, args
+		println(io, args.file, ":", args.line, " [", args.level, "] ", args.message)
+	end;
+	global_logger(logger)
+
+	@info "Input Newick files: $nwk1 \t $nwk2. Reading trees..."
 
 	# Reading trees
 	t1 = read_tree(nwk1)
@@ -52,12 +65,15 @@ treeknit
 		Md = 1 / n_sa_it,
 	)
 
-	# Setting up directories
-	mkpath(outdir)
-
 	#
+	@info "Parameters: $oa"
+
+	@info "Inferring MCCs..."
 	MCCs = computeMCCs(t1, t2, oa; naive, seqlengths = sl)
+	@info "Found $(length(MCCs)) MCCs"
+
 	resolve!(t1, t2, MCCs)
+
 	arg, rlm, lm1, lm2 = SRG.arg_from_trees(t1, t2, MCCs)
 
 	# Write output
@@ -69,6 +85,7 @@ treeknit
 	end
 	write(outdir * "/" * "arg.nwk", arg)
 	write_rlm(outdir * "/" * "nodes.dat", rlm)
+	close(io)
 end
 
 function write_rlm(filename, rlm)
