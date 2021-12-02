@@ -1,4 +1,6 @@
+function get_leave_order(tree, MCCs)
 
+end
 
 
 
