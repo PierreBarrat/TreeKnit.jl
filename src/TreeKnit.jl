@@ -41,9 +41,6 @@ include("SimpleReassortmentGraph/SimpleReassortmentGraph.jl")
 import TreeKnit.SimpleReassortmentGraph: SRG
 export SRG
 
-include("Flu.jl")
-export Flu
-
 include("cli.jl")
 
 # TreeTools re-exports for docs
