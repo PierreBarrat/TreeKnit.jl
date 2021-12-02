@@ -64,7 +64,8 @@ function opttrees!(
 	oconfs, F, nfound = sa_opt(g, γ=γ, Trange=Trange, M=M, rep=sa_rep, resolve=resolve)
 	# Computing likelihoods
 	if length(oconfs) != 1
-		v() && println("Sorting $(length(oconfs)) topologically equivalent configurations.")
+		# v() && println("Sorting $(length(oconfs)) topologically equivalent configurations.")
+		@info "Sorting $(length(oconfs)) topologically equivalent configurations."
 		vv() && println("Configurations\n", oconfs)
 		vv() && println(g.labels)
 		oconf, L = sortconf(oconfs, treelist, g, seq_lengths, mcc_names, likelihood_sort, false)
@@ -83,7 +84,8 @@ function sortconf(oconfs, trees, g::Graph, seq_lengths, mcc_names, likelihood_so
 		E = [compute_energy(conf,g) for conf in oconfs]
 		Emin = minimum(E)
 		oconfs_ = oconfs[findall(x->x==Emin, E)]
-		v() && println("Removing ", length(oconfs) - length(oconfs_), " configurations using energy.")
+		# v() && println("Removing ", length(oconfs) - length(oconfs_), " configurations using energy.")
+		@info "Removing ", length(oconfs) - length(oconfs_), " configurations using energy."
 	else # Removing configurations where nothing is removed
 		oconfs_ = oconfs[findall(c->sum(c)<length(c), oconfs)]
 	end
@@ -92,10 +94,12 @@ function sortconf(oconfs, trees, g::Graph, seq_lengths, mcc_names, likelihood_so
 	if length(oconfs_) == 1
 		return oconfs_[1], Union{Missing,Float64}[]
 	elseif !likelihood_sort
-		v() && println("Picking a random configuration among remaining ones")
+		# v() && println("Picking a random configuration among remaining ones")
+		@info "No likelihood sort: picking a random configuration among remaining ones"
 		return rand(oconfs_), Union{Missing,Float64}[]
 	else
-		v() && println("Comparing $(length(oconfs_)) configurations using likelihood")
+		# v() && println("Comparing $(length(oconfs_)) configurations using likelihood")
+		@info "Comparing $(length(oconfs_)) configurations using likelihood"
 		L = Union{Missing,Float64}[]
 		for conf in oconfs_
 			# vv() && println("## Looking at configuration $conf with energy $(compute_energy(conf,g))")
@@ -103,7 +107,8 @@ function sortconf(oconfs, trees, g::Graph, seq_lengths, mcc_names, likelihood_so
 			# vv() && println()
 		end
 		vv() && println("Confs: ", [[mcc_names[x] for x in g.labels[.!conf]] for conf in oconfs_])
-		v() && println("Likelihoods: ", L)
+		# v() && println("Likelihoods: ", L)
+		@info "Likelihoods: $L"
 		Lmax = maximum(L)
 		ismissing(Lmax) && @warn "Maximum likelihood is `missing`"
 		oconfs_ = oconfs_[findall(isequal(Lmax), L)]

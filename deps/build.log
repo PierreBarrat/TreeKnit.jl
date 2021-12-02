@@ -6,7 +6,7 @@
 │    UndefVarError: COMONICON_URL not defined
 │    Stacktrace:
 │      [1] macro expansion
-│        @ ./logging.jl:340 [inlined]
+│        @ ./logging.jl:360 [inlined]
 │      [2] completion_script(sh::String, m::Module)
 │        @ ComoniconBuilder ~/.julia/packages/ComoniconBuilder/bJXHb/src/build.jl:257
 │      [3] install_completion(m::Module, options::ComoniconOptions.Comonicon, shell::String)
@@ -20,29 +20,29 @@
 │      [7] (::ComoniconBuilder.var"#2#3"{Module, ComoniconOptions.Comonicon})()
 │        @ ComoniconBuilder ~/.julia/packages/ComoniconBuilder/bJXHb/src/install.jl:53
 │      [8] with_logstate(f::Function, logstate::Any)
-│        @ Base.CoreLogging ./logging.jl:491
+│        @ Base.CoreLogging ./logging.jl:511
 │      [9] with_logger
-│        @ ./logging.jl:603 [inlined]
+│        @ ./logging.jl:623 [inlined]
 │     [10] install(m::Module, options::ComoniconOptions.Comonicon)
 │        @ ComoniconBuilder ~/.julia/packages/ComoniconBuilder/bJXHb/src/install.jl:52
-│     [11] install(m::Module; kw::Base.Iterators.Pairs{Union{}, Union{}, Tuple{}, NamedTuple{(), Tuple{}}})
+│     [11] install(m::Module; kw::Base.Pairs{Symbol, Union{}, Tuple{}, NamedTuple{(), Tuple{}}})
 │        @ ComoniconBuilder ~/.julia/packages/ComoniconBuilder/bJXHb/src/install.jl:3
 │     [12] install
 │        @ ~/.julia/packages/ComoniconBuilder/bJXHb/src/install.jl:2 [inlined]
-│     [13] #comonicon_install#105
+│     [13] #comonicon_install#116
 │        @ ~/.julia/packages/Comonicon/9x3SY/src/cast.jl:213 [inlined]
 │     [14] comonicon_install()
 │        @ TreeKnit ~/.julia/packages/Comonicon/9x3SY/src/cast.jl:213
 │     [15] top-level scope
 │        @ ~/Documents/julia/dev/TreeKnit/deps/build.jl:2
 │     [16] include(fname::String)
-│        @ Base.MainInclude ./client.jl:444
+│        @ Base.MainInclude ./client.jl:451
 │     [17] top-level scope
 │        @ none:5
 │     [18] eval
-│        @ ./boot.jl:360 [inlined]
+│        @ ./boot.jl:373 [inlined]
 │     [19] exec_options(opts::Base.JLOptions)
-│        @ Base ./client.jl:261
+│        @ Base ./client.jl:268
 │     [20] _start()
-│        @ Base ./client.jl:485
+│        @ Base ./client.jl:495
 └ @ ComoniconBuilder ~/.julia/packages/ComoniconBuilder/bJXHb/src/build.jl:257

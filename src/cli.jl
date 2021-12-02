@@ -18,6 +18,7 @@ treeknit
 - `--naive`: Naive inference (overrides `-g`).
 - `--no-likelihood`: Do not use branch length likelihood test to sort between different MCCs
 - `--no-resolve`: Do not attempt to resolve trees before inferring MCCs.
+- `-v, --verbose`: verbosity
 """
 @main function treeknit(
 	nwk1::AbstractString, nwk2::AbstractString;
@@ -30,13 +31,37 @@ treeknit
 	naive::Bool = false,
 	no_likelihood::Bool = false,
 	no_resolve::Bool = false,
+	verbose::Bool = false,
 )
+
 	println("Treeknit: ")
 	println("Input trees: $nwk1 \t $nwk2")
 	println("Results directory: $outdir")
 	println("γ: $gamma")
 
+	# Setting up directories
+	mkpath(outdir)
+
+	# Setting loggers
+	loggers = []
+	## File log.txt
+	io = open(outdir*"/log.txt", "w+")
+	file_logger = FormatLogger(io) do io, args
+		println(io, args.file, ":", args.line, " [", args.level, "] ", args.message)
+	end;
+	push!(loggers, file_logger)
+	## If verbose, stderr
+	if verbose
+		push!(loggers, ConsoleLogger())
+	else
+		push!(loggers, MinLevelLogger(ConsoleLogger(), Logging.Warn))
+	end
+
+	global_logger(TeeLogger(loggers...))
+
+
 	# Reading trees
+	@info "Input Newick files: $nwk1 \t $nwk2. Reading trees..."
 	t1 = read_tree(nwk1)
 	t2 = read_tree(nwk2)
 	if !TreeTools.share_labels(t1, t2)
@@ -52,15 +77,23 @@ treeknit
 		Md = 1 / n_sa_it,
 	)
 
-	# Setting up directories
-	mkpath(outdir)
-
 	#
+	@info "Parameters: $oa"
+
+	@info "Inferring MCCs...\n"
 	MCCs = computeMCCs(t1, t2, oa; naive, seqlengths = sl)
-	resolve!(t1, t2, MCCs)
+	@info "Found $(length(MCCs)) MCCs\n"
+
+	@info "Resolving trees based on found MCCs..."
+	rS = resolve!(t1, t2, MCCs)
+	@info "Resolved $(length(rS[1])) splits in $(nwk1) and $(length(rS[1])) splits in $(nwk2)\n"
+
+	@info "Building ARG from trees and MCCs..."
 	arg, rlm, lm1, lm2 = SRG.arg_from_trees(t1, t2, MCCs)
+	@info "Found $(length(arg.hybrids)) reassortments in the ARG.\n"
 
 	# Write output
+	@info "Writing results in $(outdir)"
 	write_mccs(outdir * "/" * "MCCs.dat", MCCs)
 	for (nwk, t) in zip((nwk1,nwk2),(t1,t2))
 		fn = basename(nwk)
@@ -69,6 +102,8 @@ treeknit
 	end
 	write(outdir * "/" * "arg.nwk", arg)
 	write_rlm(outdir * "/" * "nodes.dat", rlm)
+
+	close(io)
 end
 
 function write_rlm(filename, rlm)
