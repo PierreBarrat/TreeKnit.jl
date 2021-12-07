@@ -62,28 +62,6 @@ function new_splits(MCCs, t1::Tree, t2::Tree)
 end
 
 """
-    new_splits(trees::Dict, MCCs::Dict)
-
-Find new splits in each tree of `trees` according to other trees and to `MCCs`. `MCCs` should be a dictionary indexed by pairs of keys of `trees`.
-Return a dictionary of the form `ns[s]` with `s` a key of `trees`.
-`ns[s]` is an array of `SplitList` objects, mapped onto `trees[s]`, with length `length(trees)-1`.
-"""
-function new_splits(trees::Dict, MCCs::Dict)
-    ns = Dict{Any, Array{SplitList,1}}()
-    for (sref,tref) in trees
-        ns[sref] = Array{SplitList,1}(undef, length(trees)-1)
-        i = 1
-        for (s,t) in trees
-            if s != sref
-                ns[sref][i] = TreeKnit.new_splits(tref, MCCs[sref,s], t)
-                i += 1
-            end
-        end
-    end
-    return ns
-end
-
-"""
     new_splits(tref::Tree, MCCs, t::Tree)
 
 What are the splits introduced in `tref` from `t` using consistent clades `MCCs`?

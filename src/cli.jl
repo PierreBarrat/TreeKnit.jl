@@ -105,6 +105,8 @@ treeknit
 	write_rlm(outdir * "/" * "nodes.dat", rlm)
 
 	close(io)
+
+	println()
 end
 
 function write_rlm(filename, rlm)
