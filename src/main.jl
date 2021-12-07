@@ -1,3 +1,8 @@
+let verbose::Bool = false, vverbose::Bool = false
+	global v() = verbose
+	global set_verbose(v) = (verbose = v)
+end
+
 function inferARG(
 	t1::Tree, t2::Tree, oa::OptArgs = OptArgs();
 	preresolve = false, naive = false, seqlengths = [1,1]
@@ -174,7 +179,8 @@ function runopt(oa::OptArgs, trees::Dict)
 	# 	iMCCs = naive_mccs(values(ot)...)
 	# 	Einit = SplitGraph.count_mismatches(values(ot)...)
 	# 	n0 = length(first(values(ot)).lleaves)
-	# 	dflog = DataFrame(nleaves=Int64[n0],
+	# 	dflog = DataFrame(
+	#		nleaves=Int64[n0],
 	# 		nMCCs=length(iMCCs),
 	# 		method=Any[:init],
 	# 		γ=Any[missing],
@@ -188,6 +194,10 @@ function runopt(oa::OptArgs, trees::Dict)
 	# else
 	# 	dflog = nothing
 	# end
+	iMCCs = naive_mccs(values(ot)...)
+	# Einit = SplitGraph.count_mismatches(values(ot)...)
+	oa.verbose && @info "Initial state: $(length(iMCCs)) naive MCCs"
+
 	MCCs = [] # All final MCCs found up to now
 
 	# Misc.
@@ -198,23 +208,27 @@ function runopt(oa::OptArgs, trees::Dict)
 	it = 1
 	while true
 		flag = :init
-		oa.verbose && println("\n --- \nIteration $it/$(oa.itmax) - $(length(leaves(first(values(ot))))) leaves remaining")
+		# oa.verbose && println("\n --- \nIteration $it/$(oa.itmax) - $(length(leaves(first(values(ot))))) leaves remaining")
+		oa.verbose && @info "--- Iteration $it/$(oa.itmax) - $(length(leaves(first(values(ot))))) leaves remaining ---\n"
 
 		# Topology based inference
-		oa.verbose && println("\n## Running optimization to find MCCs...")
+		# oa.verbose && println("\n## Running optimization to find MCCs...")
+		oa.verbose && @info "Running optimization to find MCCs..."
 		!share_labels(values(ot)...) && error("Trees do not share leaves")
 		M = getM(length(first(values(ot)).lleaves), oa.Md)
 		mccs, Efinal, Ffinal, lk = SplitGraph.opttrees(
 			values(ot)...;
 			γ=oa.γ, seq_lengths = [oa.seq_lengths[x] for x in keys(ot)], M=M, Trange=oa.Trange,
-			likelihood_sort=oa.likelihood_sort, resolve=oa.resolve, sa_rep = oa.sa_rep
+			likelihood_sort=oa.likelihood_sort, resolve=oa.resolve, sa_rep = oa.sa_rep, oa.verbose
 		)
 		!isempty(mccs) && append!(MCCs, mccs)
-		oa.verbose && println("Found $(length(mccs)) new mccs.")
+		# oa.verbose && println("Found $(length(mccs)) new mccs.")
+		oa.verbose && @info "Found $(length(mccs)) new mccs."
 
 
 		# Stopping condition
-		oa.verbose && println("\n## Proceeding based on newly found MCCs...")
+		# oa.verbose && println("\n## Proceeding based on newly found MCCs...")
+		oa.verbose && @info "Proceeding based on newly found MCCs..."
 		flag, rMCCs = stop_conditions!(MCCs, mccs, oa, it, values(ot)...; hardstop=true)
 
 		# Checks
@@ -248,16 +262,19 @@ end
 function stop_conditions!(previous_mccs, new_mccs, oa, it, trees... ; hardstop=true)
 	# If no solution was found
 	if length(new_mccs) == 0
-		oa.verbose && print("No solution found... ")
+		# oa.verbose && print("No solution found... ")
+		oa.verbose && @info "No solution found... "
 		remaining_mccs = naive_mccs(trees)
 		## If hardstop or maxit,  stop
 		if hardstop || it > oa.itmax
 			append!(previous_mccs, remaining_mccs)
-			oa.verbose && println("Stopping.")
+			# oa.verbose && println("Stopping.")
+			oa.verbose && @info "Stopping\n"
 			return :stop, []
 		else
 		## Otherwise, continue
-			oa.verbose && println("Continuing.")
+			# oa.verbose && println("Continuing.")
+			oa.verbose && @info "Continuing\n"
 			return :next, remaining_mccs # (can't call this after because of `pruneconf!` below)
 		end
 	end
@@ -265,11 +282,13 @@ function stop_conditions!(previous_mccs, new_mccs, oa, it, trees... ; hardstop=t
 	# If some new MCCs were found
 	## If they cover all leaves of the tree: a final decomposition has been found.
 	if sum(length(m) for m in new_mccs) == length(first(trees).lleaves)
-		oa.verbose && println("Found mccs cover all leaves: final decomposition found. Stopping.")
+		# oa.verbose && println("Found mccs cover all leaves: final decomposition found. Stopping.")
+		oa.verbose && @info "Found mccs cover all leaves: final decomposition found. Stopping.\n"
 		return :stop, []
 	end
 	## If they do not cover all leaves of the trees, remove them from the trees
-	oa.verbose && println("Found mccs do not cover all leaves. Pruning them from trees. ")
+	# oa.verbose && println("Found mccs do not cover all leaves. Pruning them from trees. ")
+	oa.verbose && @info "Found mccs do not cover all leaves. Pruning them from trees."
 	pruneconf!(new_mccs, trees...)
 	oa.resolve && resolve!(trees...)
 	remaining_mccs = naive_mccs(trees)
@@ -277,16 +296,19 @@ function stop_conditions!(previous_mccs, new_mccs, oa, it, trees... ; hardstop=t
 	if length(remaining_mccs) == 1
 		append!(new_mccs, remaining_mccs)
 		append!(previous_mccs, remaining_mccs)
-		oa.verbose && println("Resulting trees are compatible: final decomposition found. Stopping.")
+		# oa.verbose && println("Resulting trees are compatible: final decomposition found. Stopping.")
+		oa.verbose && @info "Resulting trees are compatible: final decomposition found. Stopping.\n"
 		return :stop, []
 	### If we reached the maximum number of iterations, stop
 	elseif it > oa.itmax
 		append!(previous_mccs, remaining_mccs)
-		oa.verbose && println("Maximum number of iterations reached. Stopping.")
+		# oa.verbose && println("Maximum number of iterations reached. Stopping.")
+		oa.verbose && @info "Maximum number of iterations reached. Stopping.\n"
 		return :stop, []
 	### Otherwise, continue
 	else
-		oa.verbose && println("Resulting trees have incompatibilities. Continuing.")
+		# oa.verbose && println("Resulting trees have incompatibilities. Continuing.")
+		oa.verbose && @info "Resulting trees have incompatibilities ($(length(remaining_mccs)) naive mccs left). Continuing.\n"
 		return :next, remaining_mccs
 	end
 end

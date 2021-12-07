@@ -1,11 +1,9 @@
 module TreeKnit
 
-
-# To remove eventually
-# using DataFrames
 # External modules
 using Comonicon
-# using LightGraphs
+using Logging
+using LoggingExtras
 using Parameters
 using Random
 using Setfield
