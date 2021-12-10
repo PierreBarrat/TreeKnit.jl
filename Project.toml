@@ -13,7 +13,7 @@ Setfield = "efcf1570-3423-57d1-acb7-fd33fddbac46"
 TreeTools = "62f0eae3-8c0e-4032-a621-7756092209e5"
 
 [compat]
-Comonicon = "0.11.0"
+Comonicon = "0.12"
 LoggingExtras = "0.4"
 Parameters = "0.12"
 Setfield = "0.8"
