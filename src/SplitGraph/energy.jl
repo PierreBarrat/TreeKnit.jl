@@ -164,7 +164,6 @@ function doMCMC(g::Graph, conf::Array{Bool,1}, M::Int64; T=1, γ=1)
 		# If new minimum is found
 		if F < Fmin
 			Fmin = F
-			# oconf = [copy(_conf)]
 			oconf[1] .= _conf
 			deleteat!(oconf, 2:length(oconf))
 		end
