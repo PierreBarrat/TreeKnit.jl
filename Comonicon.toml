@@ -4,5 +4,3 @@ name = "treeknit"
 completion = true
 quiet = false
 optimize = 2
-
-[sysimg]
