@@ -75,7 +75,7 @@ treeknit
 		likelihood_sort = !no_likelihood,
 		resolve = !no_resolve,
 		Md = 1 / n_sa_it,
-		verbose=true,
+		verbose = true,
 	)
 
 	#

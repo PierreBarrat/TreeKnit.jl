@@ -98,8 +98,4 @@ t2
 
 The split `(D,E)` is now present in `t2`. 
 Note that it was not present in `t1`: only the splits `(D,E,X)` and `(E,X)` existed there. 
-However, since `resolve!` now knows `(A,B,C,D,E)` is an MCC, the `resolve!` function can "ignore" leaf `X` when resolving. 
-
-## Pre-resolving for more than two trees
-
-Implemented, but not used.  
+However, since `resolve!` now knows `(A,B,C,D,E)` is an MCC, the `resolve!` function can "ignore" leaf `X` when resolving.   
