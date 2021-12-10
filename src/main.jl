@@ -6,7 +6,7 @@
 """
 function inferARG(
 	t1::Tree, t2::Tree, oa::OptArgs = OptArgs();
-	naive = false, seqlengths = [1,1],
+	naive = false,
 )
 	MCCs = computeMCCs(t1, t2, oa)
 	arg = SRG.arg_from_trees(t1, t2, MCCs)[1]
@@ -37,13 +37,13 @@ In general, this should be set to `true` if more than two trees are used, and to
 """
 function computeMCCs(
 	t1::Tree, t2::Tree, oa::OptArgs=OptArgs();
-	naive=false, seqlengths = [1, 1],
+	naive=false
 )
 	if naive
 		return naive_mccs(t1, t2)
 	else
-		oac = @set oa.seq_lengths = seqlengths
-		return runopt(oac, t1, t2; output = :mccs)
+		# oac = @set oa.seq_lengths = seqlengths
+		return runopt(oa, t1, t2; output = :mccs)
 	end
 end
 

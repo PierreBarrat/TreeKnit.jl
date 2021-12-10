@@ -75,6 +75,7 @@ treeknit
 		likelihood_sort = !no_likelihood,
 		resolve = !no_resolve,
 		Md = 1 / n_sa_it,
+		seq_lengths = sl,
 		verbose=true,
 	)
 
@@ -82,7 +83,7 @@ treeknit
 	@info "Parameters: $oa"
 
 	@info "Inferring MCCs...\n"
-	MCCs = computeMCCs(t1, t2, oa; naive, seqlengths = sl)
+	MCCs = computeMCCs(t1, t2, oa; naive)
 	@info "Found $(length(MCCs)) MCCs\n"
 
 	@info "Resolving trees based on found MCCs..."
