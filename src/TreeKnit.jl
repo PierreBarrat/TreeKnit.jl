@@ -14,7 +14,7 @@ using TreeTools
 
 
 include("mcc_base.jl")
-export naive_mccs, reduce_to_mcc, reduce_to_mcc!
+export naive_mccs
 
 include("mcc_splits.jl")
 
@@ -38,9 +38,6 @@ export computeMCCs, inferARG
 include("SimpleReassortmentGraph/SimpleReassortmentGraph.jl")
 import TreeKnit.SimpleReassortmentGraph: SRG
 export SRG
-
-include("Flu.jl")
-export Flu
 
 include("cli.jl")
 

@@ -23,17 +23,13 @@ Storing parameters for `SplitGraph.runopt` function.
 ### Verbosity
 - `verbose::Bool=false`: first level of verbosity
 - `vv::Bool = false`: second level of verbosity
-### Output
-- `output = :mccs`: possible values `[:mccs, :mccs_df, :all]`. If calling `computeMCCs`,
-  this should always be set to `:mccs`. Other values are only relevant when directly calling
-  `runopt`.
 """
 @with_kw struct OptArgs
 	γ::Real = 2
 	itmax::Int64 = 15
 	likelihood_sort::Bool = true
 	resolve::Bool = true
-	seq_lengths = Dict(1=>1, 2=>1)
+	seq_lengths::Vector{Int} = [1, 1]
 	# For the annealing
 	Md::Real = 1
 	Tmin::Float64 = 1e-3
@@ -46,8 +42,6 @@ Storing parameters for `SplitGraph.runopt` function.
 	# Verbosity
 	verbose::Bool = false
 	vv::Bool = false
-	# Output
-	output = :mccs
 end
 
 function get_cooling_schedule(;

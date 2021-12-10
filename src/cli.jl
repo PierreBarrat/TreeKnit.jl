@@ -75,14 +75,15 @@ treeknit
 		likelihood_sort = !no_likelihood,
 		resolve = !no_resolve,
 		Md = 1 / n_sa_it,
-		verbose = true,
+		seq_lengths = sl,
+		verbose=true,
 	)
 
 	#
 	@info "Parameters: $oa"
 
 	@info "Inferring MCCs...\n"
-	MCCs = computeMCCs(t1, t2, oa; naive, seqlengths = sl)
+	MCCs = computeMCCs(t1, t2, oa; naive)
 	@info "Found $(length(MCCs)) MCCs\n"
 
 	@info "Resolving trees based on found MCCs..."
@@ -105,6 +106,8 @@ treeknit
 	write_rlm(outdir * "/" * "nodes.dat", rlm)
 
 	close(io)
+
+	println()
 end
 
 function write_rlm(filename, rlm)
