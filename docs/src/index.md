@@ -2,10 +2,10 @@
 
 ## Installation
 
-You can simply install *TreeKnit* from the url of the github repo using the julia package manager. 
+You can simply install *TreeKnit* using the julia package manager: 
 ```julia
 using Pkg
-Pkg.add(url="https://github.com/PierreBarrat/TreeKnit#master")
+Pkg.add("TreeKnit")
 ```
 
 You should now be able to use `using TreeKnit` from inside julia. 
