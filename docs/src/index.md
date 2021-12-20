@@ -20,5 +20,8 @@ Pkg.build("TreeKnit")
 
 This will add executable scripts to your `~/.julia/bin` folder. 
 Simply add this folder to your path to call the script, *e.g.* `export PATH="$HOME/.julia/bin:$PATH"`. 
-You should now be able to call, *e.g.*, `treeknit --help`.
+You should now be able to call, *e.g.*, `bash treeknit --help`.
+
+!!! warn
+    For now, the `treeknit` script should be called specifically with `bash`. I hope to remove this limitation in the future. 
 
