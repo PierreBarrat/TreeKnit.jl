@@ -29,7 +29,7 @@
 │        @ ComoniconBuilder ~/.julia/packages/ComoniconBuilder/bJXHb/src/install.jl:3
 │     [12] install
 │        @ ~/.julia/packages/ComoniconBuilder/bJXHb/src/install.jl:2 [inlined]
-│     [13] #comonicon_install#82
+│     [13] #comonicon_install#77
 │        @ ~/.julia/packages/Comonicon/9x3SY/src/cast.jl:213 [inlined]
 │     [14] comonicon_install()
 │        @ TreeKnit ~/.julia/packages/Comonicon/9x3SY/src/cast.jl:213
