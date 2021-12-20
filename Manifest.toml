@@ -14,9 +14,9 @@ uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
 [[deps.Comonicon]]
 deps = ["Configurations", "ExproniconLite", "Libdl", "Logging", "Markdown", "PackageCompiler", "Pkg", "Scratch", "TOML", "UUIDs"]
-git-tree-sha1 = "c9f050be33ae132ff2b66a260010892dc54cfa9c"
+git-tree-sha1 = "c0a8d2369e6f1591d73aa418d6d58319913214ea"
 uuid = "863f3e99-da2a-4334-8734-de3dacbe5542"
-version = "0.12.1"
+version = "0.12.2"
 
 [[deps.CompilerSupportLibraries_jll]]
 deps = ["Artifacts", "Libdl"]
@@ -122,9 +122,9 @@ version = "1.4.1"
 
 [[deps.PackageCompiler]]
 deps = ["Artifacts", "LazyArtifacts", "Libdl", "Pkg", "Printf", "RelocatableFolders", "UUIDs"]
-git-tree-sha1 = "60792471fdfc90dfd047bb77a38a382aa23f9749"
+git-tree-sha1 = "9d979ef195d8a2dc0e3ba409d6f624439edc4d26"
 uuid = "9b87118b-4619-50d2-8e1e-99f35a4d4d9d"
-version = "2.0.3"
+version = "2.0.4"
 
 [[deps.Parameters]]
 deps = ["OrderedCollections", "UnPack"]
@@ -156,9 +156,9 @@ version = "0.1.3"
 
 [[deps.Requires]]
 deps = ["UUIDs"]
-git-tree-sha1 = "4036a3bd08ac7e968e27c203d45f5fff15020621"
+git-tree-sha1 = "8f82019e525f4d5c669692772a6f4b0a58b06a6a"
 uuid = "ae029012-a4dd-5104-9daa-d747884805df"
-version = "1.1.3"
+version = "1.2.0"
 
 [[deps.SHA]]
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
