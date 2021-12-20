@@ -55,6 +55,5 @@ It is also possible to compute a "naive" estimation of MCCs using the `naive` ke
 using TreeKnit # hide
 t1 = node2tree(parse_newick("(((A1,A2),(B1,B2)),(C1,C2))"))
 t2 = node2tree(parse_newick("(((A1,A2),(C1,C2)),(B1,B2))"))
-trees = Dict(1=>t1, 2=>t2)
-computeMCCs(trees; naive=true)
+computeMCCs(t1, t2; naive=true)
 ```
