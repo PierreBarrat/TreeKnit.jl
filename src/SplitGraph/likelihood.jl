@@ -70,7 +70,7 @@ function conf_likelihood_(divfunction, conf::Array{Bool,1}, g::Graph, seq_length
 					end
 					# If a1.conf and a2.conf are equal, we just inferred that this branch is common to trees k1 and k2
 					if (!get_resolve() && are_equal(a1.conf, a2.conf, conf)) ||
-						(get_resolve() && are_equal_with_resolution(g, a1.conf, a2.conf, conf, k1, k2))
+						(get_resolve() && are_equal_with_resolution(g, a1, a2, conf))
 						tau1 = divfunction(tn1, ta1)
 						tau2 = divfunction(tn2, ta2)
 						# v && println("No inconsistency for leaf $i ($(g.labels[i]))")
