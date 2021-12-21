@@ -18,6 +18,9 @@ function compute_energy(conf::Array{Bool,1}, g::Graph)
 	if length(g.leaves) + length(g.internals) == 1
 		return E
 	end
+
+	# dconf = Dict(s=>true for s in conf)
+
 	@inbounds for (i,s) in enumerate(conf)
 		if s
 			for k1 in 1:g.K
@@ -152,6 +155,22 @@ function is_contained(nsplit1, nsplit2, conf)
 	return true
 end
 
+# function fast_is_contained(S1, S2, conf)
+# 	dS2 = Dict()
+# 	for s in S2
+# 		if conf[s]
+# 			dS2[s] = true
+# 		end
+# 	end
+
+# 	for s in S1
+# 		if !haskey(dS2, s) && conf[s]
+# 			return false
+# 		end
+# 	end
+# 	return true
+# end
+
 """
 	are_disjoint(S1, S2, conf)
 
@@ -173,6 +192,29 @@ function are_disjoint(S1, S2, conf)
 	return true
 end
 
+# function fast_are_disjoint(S1, S2, conf)
+# 	Ssmall, Slarge = if length(S1) > length(S2)
+# 		S2, S1
+# 	else
+# 		S1, S2
+# 	end
+
+# 	dSsmall = Dict()
+# 	for s in Ssmall
+# 		if conf[s]
+# 			dSsmall[s] = true
+# 		end
+# 	end
+
+# 	for s in Slarge
+# 		if haskey(dSsmall, s) && conf[s]
+# 			return false
+# 		end
+# 	end
+# 	return true
+# end
+
+
 """
 """
 function compute_F(conf::Array{Bool,1}, g::Graph, γ::Real)
@@ -186,15 +228,10 @@ function doMCMC(g::Graph, conf::Array{Bool,1}, M::Int64; T=1, γ=1)
 	_conf = copy(conf)
 	E = compute_energy(_conf, g)
 	F = E + γ*(length(conf) - sum(conf))
-	##
-	# ee = zeros(Int,M+1)
-	# ff = zeros(Float64,M+1)
-	# ee[1] = E
-	# ff[1] = F
-	##
 	Fmin = F
+
 	oconf = [copy(_conf)]
-	for m in 1:M
+	t = @elapsed for m in 1:M
 		E, F = mcmcstep!(_conf, g, F, T, γ)
 		# ee[m+1] = E
 		# ff[m+1] = F
@@ -209,6 +246,7 @@ function doMCMC(g::Graph, conf::Array{Bool,1}, M::Int64; T=1, γ=1)
 			push!(oconf, copy(_conf))
 		end
 	end
+	@info "MCMC time $t"
 	return oconf, _conf, Fmin
 end
 
@@ -263,6 +301,7 @@ function _sa_opt(g::Graph, γ, Trange, M)
 	F = Float64[Inf]
 	Fmin = F[1]
 	for T in Trange
+		# @info "$(Trange[1]) / $T / $(Trange[end])"
 		if rand() < reset_chance
 			tmp_oconf, conf, fmin = doMCMC(g, oconf[rand(1:length(oconf))], M, T=T,γ=γ)
 		else
