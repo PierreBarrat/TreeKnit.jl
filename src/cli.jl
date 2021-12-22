@@ -11,7 +11,7 @@ treeknit
 - `-o, --outdir <arg>`: directory for results; Example `-o=treeknit_results`
 - `-g, --gamma <arg>`: value of γ; Example `-g=2`
 - `--seq-lengths <arg>`: length of the sequences. Example: `--seq-length "1500 2000"`
-- `--n-sa-it <arg>`: number of SA iterations per temperature and per leaf.
+- `--n-sa-it <arg>`: number of SA iterations per temperature and per leaf; default 0.2
 
 # Flags
 
@@ -26,7 +26,7 @@ treeknit
 	outdir::AbstractString = "treeknit_results",
 	gamma::Float64 = 2.,
 	seq_lengths::AbstractString = "1 1",
-	n_sa_it::Float64 = 1.,
+	n_sa_it::Float64 = 0.2,
 	# flags
 	naive::Bool = false,
 	no_likelihood::Bool = false,
@@ -83,16 +83,23 @@ treeknit
 	@info "Parameters: $oa"
 
 	@info "Inferring MCCs...\n"
-	MCCs = computeMCCs(t1, t2, oa; naive)
-	@info "Found $(length(MCCs)) MCCs\n"
+	out = @timed computeMCCs(t1, t2, oa; naive)
+	MCCs = out[1]
+	@info "Found $(length(MCCs)) MCCs (runtime $(out[2]))\n"
+
+	verbose && println()
 
 	@info "Resolving trees based on found MCCs..."
 	rS = resolve!(t1, t2, MCCs)
 	@info "Resolved $(length(rS[1])) splits in $(nwk1) and $(length(rS[1])) splits in $(nwk2)\n"
 
+	verbose && println()
+
 	@info "Building ARG from trees and MCCs..."
 	arg, rlm, lm1, lm2 = SRG.arg_from_trees(t1, t2, MCCs)
 	@info "Found $(length(arg.hybrids)) reassortments in the ARG.\n"
+
+	verbose && println()
 
 	# Write output
 	@info "Writing results in $(outdir)"

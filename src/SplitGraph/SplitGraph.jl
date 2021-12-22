@@ -103,7 +103,7 @@ function sortconf(oconfs, trees, g::Graph, seq_lengths, mcc_names, likelihood_so
 			push!(L, conf_likelihood(conf, g, seq_lengths, trees, mode=:time, v=vv()))
 		end
 		vv() && println("Confs: ", [[mcc_names[x] for x in g.labels[.!conf]] for conf in oconfs_])
-		v() && @info "Likelihoods: $L"
+		vv() && @info "Likelihoods: $L"
 		Lmax = maximum(L)
 		ismissing(Lmax) && @warn "Maximum likelihood is `missing`"
 		oconfs_ = oconfs_[findall(isequal(Lmax), L)]
