@@ -83,8 +83,9 @@ treeknit
 	@info "Parameters: $oa"
 
 	@info "Inferring MCCs...\n"
-	MCCs = computeMCCs(t1, t2, oa; naive)
-	@info "Found $(length(MCCs)) MCCs\n"
+	out = @timed computeMCCs(t1, t2, oa; naive)
+	MCCs = out[1]
+	@info "Found $(length(MCCs)) MCCs (runtime $(out[2]))\n"
 
 	@info "Resolving trees based on found MCCs..."
 	rS = resolve!(t1, t2, MCCs)
