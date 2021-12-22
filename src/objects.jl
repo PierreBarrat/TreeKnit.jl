@@ -31,7 +31,7 @@ Storing parameters for `SplitGraph.runopt` function.
 	resolve::Bool = true
 	seq_lengths::Vector{Int} = [1, 1]
 	# For the annealing
-	Md::Real = 1
+	Md::Real = 2
 	Tmin::Float64 = 1e-3
 	Tmax::Float64 = 1.; @assert Tmax > Tmin
 	αT::Float64 = 0.95

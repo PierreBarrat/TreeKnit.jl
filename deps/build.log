@@ -1,48 +1,20 @@
-[ Info: generating /home/pierrebc/.julia/bin/treeknit.jl
-[ Info: generating /home/pierrebc/.julia/bin/treeknit
-[ Info: generating auto-completion script for bash
-┌ Error: Exception while generating log record in module ComoniconBuilder at /home/pierrebc/.julia/packages/ComoniconBuilder/bJXHb/src/build.jl:257
-│   exception =
-│    UndefVarError: COMONICON_URL not defined
-│    Stacktrace:
-│      [1] macro expansion
-│        @ ./logging.jl:360 [inlined]
-│      [2] completion_script(sh::String, m::Module)
-│        @ ComoniconBuilder ~/.julia/packages/ComoniconBuilder/bJXHb/src/build.jl:257
-│      [3] install_completion(m::Module, options::ComoniconOptions.Comonicon, shell::String)
-│        @ ComoniconBuilder ~/.julia/packages/ComoniconBuilder/bJXHb/src/install.jl:132
-│      [4] install_completion
-│        @ ~/.julia/packages/ComoniconBuilder/bJXHb/src/install.jl:128 [inlined]
-│      [5] install_script(m::Module, options::ComoniconOptions.Comonicon; project::String)
-│        @ ComoniconBuilder ~/.julia/packages/ComoniconBuilder/bJXHb/src/install.jl:120
-│      [6] install_script
-│        @ ~/.julia/packages/ComoniconBuilder/bJXHb/src/install.jl:79 [inlined]
-│      [7] (::ComoniconBuilder.var"#2#3"{Module, ComoniconOptions.Comonicon})()
-│        @ ComoniconBuilder ~/.julia/packages/ComoniconBuilder/bJXHb/src/install.jl:53
-│      [8] with_logstate(f::Function, logstate::Any)
-│        @ Base.CoreLogging ./logging.jl:511
-│      [9] with_logger
-│        @ ./logging.jl:623 [inlined]
-│     [10] install(m::Module, options::ComoniconOptions.Comonicon)
-│        @ ComoniconBuilder ~/.julia/packages/ComoniconBuilder/bJXHb/src/install.jl:52
-│     [11] install(m::Module; kw::Base.Pairs{Symbol, Union{}, Tuple{}, NamedTuple{(), Tuple{}}})
-│        @ ComoniconBuilder ~/.julia/packages/ComoniconBuilder/bJXHb/src/install.jl:3
-│     [12] install
-│        @ ~/.julia/packages/ComoniconBuilder/bJXHb/src/install.jl:2 [inlined]
-│     [13] #comonicon_install#77
-│        @ ~/.julia/packages/Comonicon/9x3SY/src/cast.jl:213 [inlined]
-│     [14] comonicon_install()
-│        @ TreeKnit ~/.julia/packages/Comonicon/9x3SY/src/cast.jl:213
-│     [15] top-level scope
-│        @ ~/Documents/julia/dev/TreeKnit/deps/build.jl:2
-│     [16] include(fname::String)
-│        @ Base.MainInclude ./client.jl:451
-│     [17] top-level scope
-│        @ none:5
-│     [18] eval
-│        @ ./boot.jl:373 [inlined]
-│     [19] exec_options(opts::Base.JLOptions)
-│        @ Base ./client.jl:268
-│     [20] _start()
-│        @ Base ./client.jl:495
-└ @ ComoniconBuilder ~/.julia/packages/ComoniconBuilder/bJXHb/src/build.jl:257
+  Activating project at `~/.julia/scratchspaces/03f602be-98a1-4bb2-9504-fbd3406624a7/env`
+   Resolving package versions...
+    Updating `~/.julia/scratchspaces/03f602be-98a1-4bb2-9504-fbd3406624a7/env/Project.toml`
+  [863f3e99] ↑ Comonicon v0.11.7 ⇒ v0.12.2
+  [03f602be] + TreeKnit v0.1.1 `~/Documents/julia/dev/TreeKnit`
+    Updating `~/.julia/scratchspaces/03f602be-98a1-4bb2-9504-fbd3406624a7/env/Manifest.toml`
+  [863f3e99] ↑ Comonicon v0.11.7 ⇒ v0.12.2
+  [0acea522] - ComoniconBuilder v0.1.4
+  [a25bc8ac] - ComoniconOptions v0.1.2
+  [d6dfd36b] - ComoniconTargetExpr v0.2.4
+  [d0eb39ce] - ComoniconTypes v0.2.0
+  [dcf03e4a] - ComoniconZSHCompletion v0.2.0
+  [5218b696] ↑ Configurations v0.16.6 ⇒ v0.17.0
+  [9b87118b] ↑ PackageCompiler v1.7.7 ⇒ v2.0.4
+  [03f602be] + TreeKnit v0.1.1 `~/Documents/julia/dev/TreeKnit`
+    Updating registry at `~/.julia/registries/General`
+    Updating git-repo `https://github.com/JuliaRegistries/General`
+  No Changes to `~/.julia/scratchspaces/03f602be-98a1-4bb2-9504-fbd3406624a7/env/Project.toml`
+  No Changes to `~/.julia/scratchspaces/03f602be-98a1-4bb2-9504-fbd3406624a7/env/Manifest.toml`
+  Activating project at `~/Documents/julia/dev/TreeKnit`
