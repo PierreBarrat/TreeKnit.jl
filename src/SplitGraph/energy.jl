@@ -258,8 +258,8 @@ function _sa_opt(g::Graph, γ, Trange, M)
 	F = Float64[Inf]
 	Fmin = F[1]
 	for T in Trange
-		# print("$(Trange[1]) / $(round(T, digits=3)) / $(round(Trange[end], digits=3))                                                            \r")
-		# print("\r")
+		v() && print("SA temperature: Tstart / T / Tend = $(Trange[1]) / $(round(T, digits=4)) / $(round(Trange[end], digits=4))					")
+		v() && print("\r")
 		if rand() < reset_chance
 			tmp_oconf, conf, fmin = doMCMC(g, oconf[rand(1:length(oconf))], M, T=T,γ=γ)
 		else
