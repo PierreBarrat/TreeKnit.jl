@@ -14,7 +14,7 @@ Inputs to `treeknit` are two files containing trees in Newick format.
 The only strict condition on the trees is that they share their leaf nodes. 
 Example: 
 ```
-bash treeknit tree1.nwk tree2.nwk
+treeknit tree1.nwk tree2.nwk
 ```
 
 !!! warning "Insignificant branches"
