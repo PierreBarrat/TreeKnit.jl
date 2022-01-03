@@ -1,4 +1,4 @@
 docs/build*
 *.mem
 examples/treeknit_results/
-deps/build.log
+deps/*log
