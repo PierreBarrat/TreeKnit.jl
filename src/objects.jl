@@ -41,7 +41,7 @@ Storing parameters for `SplitGraph.runopt` function.
 	vv::Bool = false
 end
 
-function get_cooling_schedule(Tmax, Tmin, nT; type=:geometric)
+function get_cooling_schedule(Tmin, Tmax, nT; type=:geometric)
 	if type == :geometric
 		return get_geometric_cooling_schedule(Tmin, Tmax, nT)
 	elseif type == :linear
