@@ -11,7 +11,7 @@ treeknit
 - `-o, --outdir <arg>`: directory for results; Example `-o=treeknit_results`
 - `-g, --gamma <arg>`: value of γ; Example `-g=2`
 - `--seq-lengths <arg>`: length of the sequences. Example: `--seq-length "1500 2000"`
-- `--n-sa-it <arg>`: number of SA iterations per temperature and per leaf; default 0.2
+- `--n-mcmc-it <arg>`: number of MCMC iterations per leaf; default 25
 
 # Flags
 
@@ -26,7 +26,7 @@ treeknit
 	outdir::AbstractString = "treeknit_results",
 	gamma::Float64 = 2.,
 	seq_lengths::AbstractString = "1 1",
-	n_sa_it::Float64 = 0.2,
+	n_mcmc_it::Int = 25,
 	# flags
 	naive::Bool = false,
 	no_likelihood::Bool = false,
@@ -74,7 +74,7 @@ treeknit
 		γ = gamma,
 		likelihood_sort = !no_likelihood,
 		resolve = !no_resolve,
-		Md = 1 / n_sa_it,
+		nMCMC = n_mcmc_it,
 		seq_lengths = sl,
 		verbose=true,
 	)
