@@ -89,7 +89,7 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree; output = :mccs)
 		# Topology based inference
 		oa.verbose && @info "Running optimization to find MCCs..."
 		@assert share_labels(ot1, ot2) "Trees do not share leaves"
-		M = getM(length(ot1.lleaves), oa.Md)
+		M = Int(ceil(length(ot1.lleaves) * oa.nMCMC / length(oa.Trange)))
 		mccs, Efinal, Ffinal, lk = SplitGraph.opttrees(
 			ot1, ot2;
 			γ=oa.γ, seq_lengths = oa.seq_lengths, M=M, Trange=oa.Trange,
