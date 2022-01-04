@@ -2,6 +2,7 @@ module SplitGraph
 
 using TreeKnit
 using TreeTools
+using ProgressMeter
 
 include("objects.jl")
 include("tools.jl")

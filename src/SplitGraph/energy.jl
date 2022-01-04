@@ -252,16 +252,22 @@ function sa_opt(g::Graph; Trange=reverse(1e-3:1e-2:0.6), γ=2., M=10, rep=1, res
 end
 
 function _sa_opt(g::Graph, γ, Trange, M)
-	reset_chance = 0.0
+	reset_chance = 0.
 	conf = ones(Bool, length(g.leaves))
 	oconf = [copy(conf)]
 	F = Float64[Inf]
 	Fmin = F[1]
+	p = Progress(
+		length(Trange);
+		dt=1.,
+		desc="Simulated annealing: ",
+		enabled=v(),
+		barglyphs=BarGlyphs("[=> ]"),
+		showspeed=true,
+	)
 	for T in Trange
-		v() && print("SA temperature: Tstart / T / Tend = $(Trange[1]) / $(round(T, digits=4)) / $(round(Trange[end], digits=4))					")
-		v() && print("\r")
 		if rand() < reset_chance
-			tmp_oconf, conf, fmin = doMCMC(g, oconf[rand(1:length(oconf))], M, T=T,γ=γ)
+			tmp_oconf, conf, fmin = doMCMC(g, oconf[rand(1:length(oconf))], M, T=T, γ=γ)
 		else
 			tmp_oconf, conf, fmin = doMCMC(g, conf, M, T=T,γ=γ)
 		end
@@ -276,6 +282,12 @@ function _sa_opt(g::Graph, γ, Trange, M)
 			append!(oconf, tmp_oconf)
 			oconf = unique(oconf)
 		end
+		ProgressMeter.next!(p; showvalues = [
+			(:Tstart, Trange[1]),
+			(:T, round(T, digits=4)),
+			(:Tend, round(Trange[end], digits=4)),
+			(:Fmin, Fmin)
+		])
 	end
 	return oconf,F
 end

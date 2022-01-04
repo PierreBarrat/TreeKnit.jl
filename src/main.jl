@@ -84,7 +84,7 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree; output = :mccs)
 	it = 1
 	while true
 		flag = :init
-		oa.verbose && @info "--- Iteration $it/$(oa.itmax) - $(length(leaves(ot1))) leaves remaining ---\n"
+		oa.verbose && @info "--- Iteration $it (max. $(oa.itmax)) - $(length(leaves(ot1))) leaves remaining ---\n"
 
 		# Topology based inference
 		oa.verbose && @info "Running optimization to find MCCs..."
@@ -173,7 +173,7 @@ function stop_conditions!(previous_mccs, new_mccs, oa, it, trees... ; hardstop=t
 	### Otherwise, continue
 	else
 		# oa.verbose && println("Resulting trees have incompatibilities. Continuing.")
-		oa.verbose && @info "Resulting trees have incompatibilities ($(length(remaining_mccs)) naive mccs left). Continuing.\n"
+		oa.verbose && @info "Resulting trees have incompatibilities ($(length(remaining_mccs)) naive mccs left). Continuing.\n\n"
 		return :next, remaining_mccs
 	end
 end
