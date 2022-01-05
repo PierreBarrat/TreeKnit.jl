@@ -13,60 +13,64 @@ Storing parameters for `SplitGraph.runopt` function.
   Used in likelihood calculations.
   This is initialized from other input arguments, and defaults to sequences of length one.
 ### Simulated annealing
-- `Md::Real = 10`:  number of SA iterations (per temperature) for a tree of `n` leaves is
-  `ceil(Int, n/Md)`.
-- `cooling_schedule = :geometric`: type of cooling schedule `(:geometric, :linear)`
-- `Tmin::Float64 = 1e-3`: minimal temperature of SA.
-- `Tmax::Float64 = 1`: maximal temperature of SA.
-- `αT::Float64 = 0.95`: ratio between terms in the geometric cooling.
-- `dT::Float64 = 1e-2`: temperature step in the linear cooling.
+- `nMCMC::Int = 25`: The number of MCMC iterations for a tree of `n` leaves is `nMCMC*n`.
+- `cooling_schedule = :geometric`: type of cooling schedule `(:geometric, :linear, :acos)`
+- `Tmin::Float64 = 0.05`: minimal temperature of SA.
+- `Tmax::Float64 = 0.8`: maximal temperature of SA.
+- `nT::Int = 3000`: number of steps in the cooling schedule
 ### Verbosity
 - `verbose::Bool=false`: first level of verbosity
 - `vv::Bool = false`: second level of verbosity
-### Output
-- `output = :mccs`: possible values `[:mccs, :mccs_df, :all]`. If calling `computeMCCs`,
-  this should always be set to `:mccs`. Other values are only relevant when directly calling
-  `runopt`.
 """
 @with_kw struct OptArgs
 	γ::Real = 2
 	itmax::Int64 = 15
 	likelihood_sort::Bool = true
 	resolve::Bool = true
-	seq_lengths = Dict(1=>1, 2=>1)
+	seq_lengths::Vector{Int} = [1, 1]
 	# For the annealing
-	Md::Real = 1
-	Tmin::Float64 = 1e-3
-	Tmax::Float64 = 1.; @assert Tmax > Tmin
-	αT::Float64 = 0.95
-	dT::Float64 = 1e-2
-	cooling_schedule = :geometric
-	Trange = get_cooling_schedule(; Tmin, Tmax, dT, αT, type=cooling_schedule)
+	nMCMC::Int = 25
+	Tmin::Float64 = 0.05; @assert Tmin > 0
+	Tmax::Float64 = 0.8; @assert Tmax > Tmin
+	nT::Int = 3000
+	cooling_schedule = :linear
+	Trange = get_cooling_schedule(Tmin, Tmax, nT, type=cooling_schedule)
 	sa_rep::Int64 = 1
 	# Verbosity
 	verbose::Bool = false
 	vv::Bool = false
-	# Output
-	output = :mccs
 end
 
-function get_cooling_schedule(;
-	Tmax=1., Tmin = 1e-3, dT = 1e-2, αT = 0.95, type=:geometric,
-)
+function get_cooling_schedule(Tmin, Tmax, nT; type=:geometric)
 	if type == :geometric
-		return get_geometric_cooling_schedule(Tmin, Tmax, αT)
+		return get_geometric_cooling_schedule(Tmin, Tmax, nT)
 	elseif type == :linear
-		return get_linear_cooling_schedule(Tmin, Tmax, dT)
+		return get_linear_cooling_schedule(Tmin, Tmax, nT)
+	elseif type == :acos
+		return get_acos_cooling_schedule(Tmin, Tmax, nT)
 	else
 		error("Unknown `cooling_schedule` field: $(type). See `?OptArgs` for allowed values.")
 	end
 end
 
-function get_geometric_cooling_schedule(Tmin, Tmax, αT)
-	n = ceil(Int, (log(Tmin) - log(Tmax)) / log(αT))
-	return [αT^i * Tmax for i in 0:n]
+function get_geometric_cooling_schedule(Tmin, Tmax, nT)
+	α = (log(Tmin) - log(Tmax)) / nT
+	n = ceil(Int, (log(Tmin) - log(Tmax)) / log(α))
+	return [α^i * Tmax for i in 0:n]
 end
 
-get_linear_cooling_schedule(Tmin, Tmax, dT) = return reverse(Tmin:dT:Tmax)
+function get_acos_cooling_schedule(Tmin, Tmax, nT)
+	f(x, K=1.5) = if x < 0.5
+		0.5 + 2^(K-1)*abs(acos(2*x-1)/3.14-0.5)^K
+	elseif x == 0.5
+		0.5
+	else
+		0.5 - 2^(K-1)*abs(acos(2*x-1)/3.14-0.5)^K
+	end
+	# f(0) = 1.0 and f(1) = 0.
+	return [(Tmax - Tmin)*f(t) + Tmin for t in range(0,1,nT)]
+end
+
+get_linear_cooling_schedule(Tmin, Tmax, nT) = return collect(reverse(range(Tmin, Tmax, nT)))
 
 

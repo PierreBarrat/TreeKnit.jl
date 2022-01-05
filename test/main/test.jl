@@ -10,21 +10,6 @@ nwk2 = "((6:1,2:1):1,((3:1,4:1):1,5:1,1:1):1)"
 t1 = node2tree(TreeTools.parse_newick(nwk1))
 t2 = node2tree(TreeTools.parse_newick(nwk2))
 
-## Testing runopt
-ct1 = deepcopy(t1)
-ct2 = deepcopy(t2)
-out = TreeKnit.runopt(t1, t2; likelihood_sort=false, verbose=true)
-##
-trees = Dict(1=>deepcopy(t1), 2=>deepcopy(t2));
-@testset "Pre-resolve" begin
-	MCCs = TreeKnit.computeMCCs!(
-		trees, OptArgs(likelihood_sort=false, γ=3);
-		preresolve = true,
-	)
-	@test MCCs[1,2] == [["1"], ["2"], ["6"], ["3", "4", "5"]]
-end
-
-trees2 = Dict(1=>deepcopy(t1), 2=>deepcopy(t2));
 solutions = [
 	[["1"], ["2"], ["3", "4", "5", "6"]],
 	[["2"], ["6"], ["1", "3", "4", "5"]],
@@ -33,9 +18,8 @@ solutions = [
 	[["6"], ["1", "2"], ["3", "4", "5"]],
 ]
 @testset "Dyn-resolve" begin
-	MCCs = TreeKnit.computeMCCs!(
-		trees2, OptArgs(likelihood_sort=false, γ=3);
-		preresolve=false,
+	MCCs = TreeKnit.computeMCCs(
+		t1, t2, OptArgs(likelihood_sort=false, γ=3);
 	)
-	@test in(MCCs[1,2], solutions)
+	@test in(MCCs, solutions)
 end

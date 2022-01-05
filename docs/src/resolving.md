@@ -74,7 +74,7 @@ However, the topology-based heuristic used by *TreeKnit* is not able to detect t
   For instance, the split above `E` will be `(D,E)` in the first tree and `(C,D,E)` in the second. 
   Without resolving, the heuristic will predict a reassortment above almost every leaf: 
 ```@example 3
-computeMCCs(Dict(1 => t1, 2 => t2), OptArgs(;resolve=false))[1,2]
+computeMCCs(t1, t2, OptArgs(;resolve=false))
 ```
 
 In order to achieve progress in this kind of situation, we have to perform two operations at the same time: 
@@ -83,7 +83,7 @@ In order to achieve progress in this kind of situation, we have to perform two o
 
 This is done automatically during MCC inference if the `resolve` option of `OptArgs` is given (default):  
 ```@example 3
-MCCs = computeMCCs(Dict(1 => t1, 2 => t2), OptArgs(;resolve=true))[1,2]
+MCCs = computeMCCs(t1, t2, OptArgs(;resolve=true))
 ```
 
 ## Resolving with inferred MCCs
@@ -98,8 +98,4 @@ t2
 
 The split `(D,E)` is now present in `t2`. 
 Note that it was not present in `t1`: only the splits `(D,E,X)` and `(E,X)` existed there. 
-However, since `resolve!` now knows `(A,B,C,D,E)` is an MCC, the `resolve!` function can "ignore" leaf `X` when resolving. 
-
-## Pre-resolving for more than two trees
-
-Implemented, but not used.  
+However, since `resolve!` now knows `(A,B,C,D,E)` is an MCC, the `resolve!` function can "ignore" leaf `X` when resolving.   

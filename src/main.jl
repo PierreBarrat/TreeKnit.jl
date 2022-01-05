@@ -1,32 +1,22 @@
-let verbose::Bool = false, vverbose::Bool = false
-	global v() = verbose
-	global set_verbose(v) = (verbose = v)
-end
-
+"""
+	inferARG(
+		t1::Tree, t2::Tree, oa::OptArgs = OptArgs();
+		naive = false, seqlengths = [1,1],
+	)
+"""
 function inferARG(
 	t1::Tree, t2::Tree, oa::OptArgs = OptArgs();
-	preresolve = false, naive = false, seqlengths = [1,1]
+	naive = false,
 )
 	MCCs = computeMCCs(t1, t2, oa)
 	arg = SRG.arg_from_trees(t1, t2, MCCs)[1]
 	return arg[1]
 end
 
-function computeMCCs(
-	t1::Tree, t2::Tree, oa::OptArgs = OptArgs();
-	preresolve = false, naive = false, seqlengths = [1,1],
-)
-	computeMCCs(Dict(1=>t1, 2=>t2), oa; preresolve, naive, seqlengths)[1,2]
-end
-
 """
 	computeMCCs(
 		t1::Tree, t2::Tree, oa::OptArgs = OptArgs();
-		preresolve = false, naive = false, seqlengths = [1,1],
-	)
-	computeMCCs(
-		trees::Dict, oa::OptArgs=OptArgs();
-		preresolve = false, naive = false, seqlengths = Dict(s=>1 for s in keys(trees)),
+		naive = false, seqlengths = [1,1],
 	)
 
 Compute pairwise MCCs for trees. Return MCCs and resolved splits. The `computeMCCs!`
@@ -35,13 +25,6 @@ version resolves the input trees with newly found splits.
 # Inputs
 ### `oa::OptArgs`
 Controls parameters of the MCC inference (unless `naive=true`). See `?OptArgs` for details.
-
-### `preresolve = false`
-- If `true`, a first pass of MCC computation is made and trees are resolved using the
-  results, keeping only compatible splits if more than two trees are given as input. A
-  second pass of MCC computation is then made without resolving.
-- Else, only the first pass is performed. For more than two trees, this may find MCCs that
-  introduce incompatible splits in case of poorly resolved input trees.
 
 In general, this should be set to `true` if more than two trees are used, and to `false`
   for only two trees (for speed).
@@ -53,98 +36,17 @@ In general, this should be set to `true` if more than two trees are used, and to
   `runopt(oa,t1,t2)` is called on every pair of trees.
 """
 function computeMCCs(
-	trees::Dict{<:Any, <:Tree}, oa::OptArgs=OptArgs();
-	preresolve = false, naive = false, seqlengths = Dict(s=>1 for s in keys(trees)),
-)
-	ct = Dict(k=>copy(t) for (k,t) in trees)
-	return computeMCCs!(ct, oa; preresolve, naive, seqlengths)
-end
-"""
-	computeMCCs!(
-		trees::Dict, oa::OptArgs=OptArgs();
-		preresolve = false, naive = false, seqlengths = Dict(s=>1 for s in keys(trees)),
-	)
-
-See `computeMCCs`.
-"""
-function computeMCCs!(
-	trees::Dict, oa::OptArgs=OptArgs();
-	preresolve=false, naive=false, seqlengths = Dict(s=>1 for s in keys(trees)),
+	t1::Tree, t2::Tree, oa::OptArgs=OptArgs();
+	naive=false
 )
 	if naive
-		if preresolve
-			return computeMCCs_naive_preresolve!(trees, oa.resolve)
-		else
-			return computeMCCs_naive_dynresolve!(trees, oa.resolve)
-		end
+		return naive_mccs(t1, t2)
 	else
-		oac = @set oa.seq_lengths = seqlengths
-		if preresolve
-			return computeMCCs_preresolve!(trees, oac)
-		else
-			return computeMCCs_dynresolve(trees, oac)
-		end
+		# oac = @set oa.seq_lengths = seqlengths
+		return runopt(oa, t1, t2; output = :mccs)
 	end
 end
 
-function computeMCCs_naive_dynresolve!(trees::Dict, resolve)
-	function naive_inf!(trees::Dict, resolve)
-		resolve && resolve!(values(trees)...)
-		TreeKnit.naive_mccs(values(trees)...)
-	end
-	return _computeMCCs(ts -> naive_inf!(ts, resolve), trees)
-end
-
-function computeMCCs_naive_preresolve!(trees::Dict, resolve)
-	function naive_inf!(trees::Dict, resolve)
-		resolve && resolve!(values(trees)...)
-		TreeKnit.naive_mccs(values(trees)...)
-	end
-	resolve_from_mccs!(ts -> naive_inf!(ts, resolve), trees)
-	MCCs = _computeMCCs(ts -> naive_inf!(ts, false), trees)
-	return MCCs
-end
-
-function computeMCCs_preresolve!(trees::Dict, oa::OptArgs)
-	# First pass: compute MCCs while resolving, and keep only introduced splits that
-	# are compatible with all trees
-	# oac = @set oa.resolve = true
-	oac = @set oa.output = :mccs
-	oac = @set oac.verbose = false
-	resolve_from_mccs!(ts -> runopt(oac,ts), trees; verbose=oa.verbose)
-
-	# Second pass: compute MCCs with pre-resolved trees.
-	oac = @set oa.resolve = false
-	MCCs = _computeMCCs(ts -> runopt(oac,ts), trees)
-	return MCCs
-end
-
-function computeMCCs_dynresolve(trees::Dict, oa::OptArgs)
-	return _computeMCCs(ts -> runopt(oa,ts), trees)
-end
-
-"""
-	_computeMCCs(f::Function, trees::Dict)
-
-Compute MCCs for each pair of trees in `trees` by calling `f(t1,t2)`.
-Return a dictionary indexed with pairs of keys of `trees`.
-For simplicity, output for a pair of the same key is `[String[]]`
-  (instead of not being indexed at all)
-"""
-function _computeMCCs(f::Function, trees::Dict)
-	MCCs = Dict()
-	segments = collect(keys(trees))
-	for i in 1:length(trees), j in (i+1):length(trees)
-		s1 = segments[i]
-		s2 = segments[j]
-		MCCs[s1,s2] = f(Dict(s1=>trees[s1], s2=>trees[s2]))
-		MCCs[s2,s1] = MCCs[s1,s2]
-	end
-	for s in segments
-		MCCs[s,s] = [String[]]
-	end
-	return MCCs
-end
 
 
 ###############################################################################################################
@@ -161,101 +63,64 @@ Run optimization at constant γ. See `?Optargs` for arguments. In the first form
 """
 runopt(t1::Tree, t2::Tree; kwargs...) = runopt(OptArgs(;kwargs...), t1, t2)
 
-function runopt(oa::OptArgs, t1::Tree, t2::Tree)
-	runopt(oa, Dict(1=>t1, 2=>t2))
-end
-function runopt(oa::OptArgs, trees::Dict)
-
-	#
+function runopt(oa::OptArgs, t1::Tree, t2::Tree; output = :mccs)
 	datatype = TreeTools.EmptyData
 
 	# Copying input trees for optimization
-	ot = Dict(k=>copy(t, datatype) for (k,t) in trees)
-	oa.resolve && resolve!(values(ot)...)
+	# ot = Dict(k=>copy(t, datatype) for (k,t) in trees)
+	ot1 = copy(t1)
+	ot2 = copy(t2)
 
-	# Writing details to a dataframe object
-	use_df_log = (oa.output != :mccs)
-	# if use_df_log
-	# 	iMCCs = naive_mccs(values(ot)...)
-	# 	Einit = SplitGraph.count_mismatches(values(ot)...)
-	# 	n0 = length(first(values(ot)).lleaves)
-	# 	dflog = DataFrame(
-	#		nleaves=Int64[n0],
-	# 		nMCCs=length(iMCCs),
-	# 		method=Any[:init],
-	# 		γ=Any[missing],
-	# 		M=Any[missing],
-	# 		newMCCs=Any[[]],
-	# 		AllFinalMCCs=Any[[]],
-	# 		RemainingConsistentClades=Any[iMCCs],
-	# 		Ffinal=Any[Einit],
-	# 		Efinal=Any[Einit]
-	# 	)
-	# else
-	# 	dflog = nothing
-	# end
-	iMCCs = naive_mccs(values(ot)...)
-	# Einit = SplitGraph.count_mismatches(values(ot)...)
+	# Resolve
+	# oa.resolve && resolve!(values(ot)...)
+	oa.resolve && resolve!(ot1, ot2)
+
+	# iMCCs = naive_mccs(values(ot)...)
+	iMCCs = naive_mccs(ot1, ot2)
 	oa.verbose && @info "Initial state: $(length(iMCCs)) naive MCCs"
 
 	MCCs = [] # All final MCCs found up to now
 
-	# Misc.
-	SplitGraph.set_verbose(oa.verbose)
-	SplitGraph.set_vverbose(oa.vv)
-	SplitGraph.set_resolve(oa.resolve)
-
 	it = 1
 	while true
 		flag = :init
-		# oa.verbose && println("\n --- \nIteration $it/$(oa.itmax) - $(length(leaves(first(values(ot))))) leaves remaining")
-		oa.verbose && @info "--- Iteration $it/$(oa.itmax) - $(length(leaves(first(values(ot))))) leaves remaining ---\n"
+		oa.verbose && @info "--- Iteration $it (max. $(oa.itmax)) - $(length(leaves(ot1))) leaves remaining ---\n"
 
 		# Topology based inference
-		# oa.verbose && println("\n## Running optimization to find MCCs...")
 		oa.verbose && @info "Running optimization to find MCCs..."
-		!share_labels(values(ot)...) && error("Trees do not share leaves")
-		M = getM(length(first(values(ot)).lleaves), oa.Md)
+		@assert share_labels(ot1, ot2) "Trees do not share leaves"
+		M = Int(ceil(length(ot1.lleaves) * oa.nMCMC / length(oa.Trange)))
 		mccs, Efinal, Ffinal, lk = SplitGraph.opttrees(
-			values(ot)...;
-			γ=oa.γ, seq_lengths = [oa.seq_lengths[x] for x in keys(ot)], M=M, Trange=oa.Trange,
+			ot1, ot2;
+			γ=oa.γ, seq_lengths = oa.seq_lengths, M=M, Trange=oa.Trange,
 			likelihood_sort=oa.likelihood_sort, resolve=oa.resolve, sa_rep = oa.sa_rep, oa.verbose
 		)
 		!isempty(mccs) && append!(MCCs, mccs)
-		# oa.verbose && println("Found $(length(mccs)) new mccs.")
 		oa.verbose && @info "Found $(length(mccs)) new mccs."
 
 
 		# Stopping condition
-		# oa.verbose && println("\n## Proceeding based on newly found MCCs...")
 		oa.verbose && @info "Proceeding based on newly found MCCs..."
-		flag, rMCCs = stop_conditions!(MCCs, mccs, oa, it, values(ot)...; hardstop=true)
+		flag, rMCCs = stop_conditions!(MCCs, mccs, oa, it, ot1, ot2; hardstop=true)
+
+		#=
+			Note on variables at this point
+		- mccs: MCCs removed after simulated annealing (`opttrees` step)
+		- rMCCs: remaining naive MCCs after removing the ones found in the `opttrees` step.
+		- MCCs: all the MCCs found up to now (mccs + all the ones in the previous iters)
+		=#
 
 		# Checks
-		!prod([check_tree(t) for t in values(ot)]) && @error "Problem in a tree"
+		@assert prod([check_tree(t) for t in (ot1, ot2)]) "Problem in a tree during opt."
 
-		# Log results
-		# if use_df_log
-		# 	update_df!(
-		# 		dflog, length(first(values(ot)).lleaves), length(rMCCs), oa.γ, M, Efinal, Ffinal,
-		# 		mccs, MCCs, rMCCs, :topology_optimization
-		# 	)
-		# end
 		(flag == :stop) && break
 		it += 1
 	end
 
-	# Output
-	if oa.output == :all
-		# return TreeKnit.sort_mccs(MCCs), dflog, values(ot)
-		return TreeKnit.sort_mccs(MCCs), values(ot)
-	elseif oa.output == :mccs
-		return TreeKnit.sort_mccs(MCCs)
-	elseif oa.output == :mccs_df
-		# return TreeKnit.sort_mccs(MCCs), dflog
-		return TreeKnit.sort_mccs(MCCs)
+	if output == :all
+		return TreeKnit.sort_mccs(MCCs), ot1, ot2
 	else
-		error("Unknown `output` field: $(oa.output). See `?OptArgs` for allowed values.")
+		return sort_mccs(MCCs)
 	end
 end
 
@@ -308,7 +173,7 @@ function stop_conditions!(previous_mccs, new_mccs, oa, it, trees... ; hardstop=t
 	### Otherwise, continue
 	else
 		# oa.verbose && println("Resulting trees have incompatibilities. Continuing.")
-		oa.verbose && @info "Resulting trees have incompatibilities ($(length(remaining_mccs)) naive mccs left). Continuing.\n"
+		oa.verbose && @info "Resulting trees have incompatibilities ($(length(remaining_mccs)) naive mccs left). Continuing.\n\n"
 		return :next, remaining_mccs
 	end
 end
@@ -345,17 +210,17 @@ pruneconf!(trees, mcc_names, mcc_conf) = pruneconf!([mcc_names[x] for x in mcc_c
 
 
 
-function update_df!(df, nleaves::Int64, nMCCs::Int64, γ, M, Efinal, Ffinal, rMCCs, arMCCs, remainingMCCs, method)
-	push!(df,
-		Dict(:nleaves=>nleaves,
-		:nMCCs=>nMCCs,
-		:γ=>γ,
-		:M=>M,
-		:Efinal=>Efinal,
-		:Ffinal=>Ffinal,
-		:newMCCs=>copy(rMCCs),
-		:AllFinalMCCs=>copy(arMCCs),
-		:RemainingConsistentClades=>copy(remainingMCCs),
-		:method=>method)
-		)
-end
+# function update_df!(df, nleaves::Int64, nMCCs::Int64, γ, M, Efinal, Ffinal, rMCCs, arMCCs, remainingMCCs, method)
+# 	push!(df,
+# 		Dict(:nleaves=>nleaves,
+# 		:nMCCs=>nMCCs,
+# 		:γ=>γ,
+# 		:M=>M,
+# 		:Efinal=>Efinal,
+# 		:Ffinal=>Ffinal,
+# 		:newMCCs=>copy(rMCCs),
+# 		:AllFinalMCCs=>copy(arMCCs),
+# 		:RemainingConsistentClades=>copy(remainingMCCs),
+# 		:method=>method)
+# 		)
+# end

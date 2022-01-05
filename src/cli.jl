@@ -11,7 +11,7 @@ treeknit
 - `-o, --outdir <arg>`: directory for results; Example `-o=treeknit_results`
 - `-g, --gamma <arg>`: value of γ; Example `-g=2`
 - `--seq-lengths <arg>`: length of the sequences. Example: `--seq-length "1500 2000"`
-- `--n-sa-it <arg>`: number of SA iterations per temperature and per leaf.
+- `--n-mcmc-it <arg>`: number of MCMC iterations per leaf; default 25
 
 # Flags
 
@@ -26,7 +26,7 @@ treeknit
 	outdir::AbstractString = "treeknit_results",
 	gamma::Float64 = 2.,
 	seq_lengths::AbstractString = "1 1",
-	n_sa_it::Float64 = 1.,
+	n_mcmc_it::Int = 25,
 	# flags
 	naive::Bool = false,
 	no_likelihood::Bool = false,
@@ -74,7 +74,8 @@ treeknit
 		γ = gamma,
 		likelihood_sort = !no_likelihood,
 		resolve = !no_resolve,
-		Md = 1 / n_sa_it,
+		nMCMC = n_mcmc_it,
+		seq_lengths = sl,
 		verbose=true,
 	)
 
@@ -82,29 +83,36 @@ treeknit
 	@info "Parameters: $oa"
 
 	@info "Inferring MCCs...\n"
-	MCCs = computeMCCs(t1, t2, oa; naive, seqlengths = sl)
-	@info "Found $(length(MCCs)) MCCs\n"
+	out = @timed computeMCCs(t1, t2, oa; naive)
+	MCCs = out[1]
+	@info "Found $(length(MCCs)) MCCs (runtime $(out[2]))\n"
+
+	verbose && println()
 
 	@info "Resolving trees based on found MCCs..."
 	rS = resolve!(t1, t2, MCCs)
 	@info "Resolved $(length(rS[1])) splits in $(nwk1) and $(length(rS[1])) splits in $(nwk2)\n"
 
+	verbose && println()
+
 	@info "Building ARG from trees and MCCs..."
 	arg, rlm, lm1, lm2 = SRG.arg_from_trees(t1, t2, MCCs)
 	@info "Found $(length(arg.hybrids)) reassortments in the ARG.\n"
 
+	verbose && println()
+
 	# Write output
 	@info "Writing results in $(outdir)"
 	write_mccs(outdir * "/" * "MCCs.dat", MCCs)
-	for (nwk, t) in zip((nwk1,nwk2),(t1,t2))
-		fn = basename(nwk)
-		name, ext = splitext(fn)
-		write_newick(outdir * "/" * name * ".resolved" * ext, t)
-	end
+	out_nwk1, out_nwk2 = make_output_tree_names(nwk1, nwk2)
+	write_newick(outdir * "/" * out_nwk1, t1)
+	write_newick(outdir * "/" * out_nwk2, t2)
 	write(outdir * "/" * "arg.nwk", arg)
 	write_rlm(outdir * "/" * "nodes.dat", rlm)
 
 	close(io)
+
+	println()
 end
 
 function write_rlm(filename, rlm)
@@ -127,6 +135,30 @@ function write_rlm(filename, rlm)
 			end
 		end
 	end
+end
+
+function make_output_tree_names(nwk1, nwk2)
+	fn = [basename(nwk) for nwk in (nwk1, nwk2)]
+	name1, name2 = if fn[1] == fn[2]
+		name, ext = splitext(fn[1])
+		d1 = split(dirname(nwk1), '/')[end]
+		d2 = split(dirname(nwk2), '/')[end]
+		name1, name2 = if d1 == d2
+			name * "_1.resolved" * ext, name * "_2.resolved" * ext
+		else
+			name * "_$(d1).resolved" * ext, name * "_$(d2).resolved" * ext
+		end
+		@warn "The two input trees have the same filename. Writing output as:
+		$nwk1 --> $name1
+		$nwk2 --> $name2"
+		name1, name2
+	else
+		f1, ext1 = splitext(fn[1])
+		f2, ext2 = splitext(fn[2])
+		f1 * ".resolved" * ext1, f2 * ".resolved" * ext2
+	end
+
+	return name1, name2
 end
 
 

@@ -2,6 +2,7 @@ module SplitGraph
 
 using TreeKnit
 using TreeTools
+using ProgressMeter
 
 include("objects.jl")
 include("tools.jl")
@@ -20,9 +21,9 @@ end
 # 	opttrees!(γ, Trange, M, seq_lengths, [copy(x, TreeTools.EmptyData) for x in t]...)
 # end
 
-function opttrees(t...; kwargs...)
-	opttrees!([copy(x, TreeTools.EmptyData) for x in t]...; kwargs...)
-end
+# function opttrees(t...; kwargs...)
+# 	opttrees!([copy(x, TreeTools.EmptyData) for x in t]...; kwargs...)
+# end
 """
 	opttrees!(t... ; kwargs...)
 
@@ -30,7 +31,7 @@ Return a list of MCCs for input trees.
 Output:
 1.
 """
-function opttrees!(t...;
+function opttrees(t...;
 	γ=2,
 	seq_lengths=1000 * ones(Int64, length(t)),
 	Trange=reverse(0.001:0.01:1.),
@@ -41,7 +42,7 @@ function opttrees!(t...;
 	verbose=false
 )
 	opttrees!(
-		γ, Trange, M, seq_lengths, t...;
+		γ, Trange, M, seq_lengths, [copy(x, TreeTools.EmptyData) for x in t]...;
 		likelihood_sort, resolve, sa_rep, verbose
 	)
 end
@@ -66,17 +67,16 @@ function opttrees!(
 	oconfs, F, nfound = sa_opt(g, γ=γ, Trange=Trange, M=M, rep=sa_rep, resolve=resolve)
 	# Computing likelihoods
 	if length(oconfs) != 1
-		# v() && println("Sorting $(length(oconfs)) topologically equivalent configurations.")
 		v() && @info "Sorting $(length(oconfs)) topologically equivalent configurations."
-		vv() && println("Configurations\n", oconfs)
-		vv() && println(g.labels)
+		vv() && @info "Configurations\n $oconfs"
+		vv() && @info g.labels
 		oconf, L = sortconf(oconfs, treelist, g, seq_lengths, mcc_names, likelihood_sort, false)
 	else
 		oconf = oconfs[1]
 		L = Union{Missing,Float64}[]
 	end
-	vv() && println("Final configuration for this iteration: $oconf.")
-	vv() && println("MCCs removed: $([mcc_names[x] for x in g.labels[.!oconf]])")
+	vv() && @info "Final configuration for this iteration: $oconf."
+	vv() && @info "MCCs removed: $([mcc_names[x] for x in g.labels[.!oconf]])"
 	return [mcc_names[x] for x in g.labels[.!oconf]], compute_energy(oconf,g), compute_F(oconf, g, γ), L
 end
 
@@ -86,7 +86,6 @@ function sortconf(oconfs, trees, g::Graph, seq_lengths, mcc_names, likelihood_so
 		E = [compute_energy(conf,g) for conf in oconfs]
 		Emin = minimum(E)
 		oconfs_ = oconfs[findall(x->x==Emin, E)]
-		# v() && println("Removing ", length(oconfs) - length(oconfs_), " configurations using energy.")
 		v() && @info "Removing ", length(oconfs) - length(oconfs_), " configurations using energy."
 	else # Removing configurations where nothing is removed
 		oconfs_ = oconfs[findall(c->sum(c)<length(c), oconfs)]
@@ -96,21 +95,16 @@ function sortconf(oconfs, trees, g::Graph, seq_lengths, mcc_names, likelihood_so
 	if length(oconfs_) == 1
 		return oconfs_[1], Union{Missing,Float64}[]
 	elseif !likelihood_sort
-		# v() && println("Picking a random configuration among remaining ones")
 		v() && @info "No likelihood sort: picking a random configuration among remaining ones"
 		return rand(oconfs_), Union{Missing,Float64}[]
 	else
-		# v() && println("Comparing $(length(oconfs_)) configurations using likelihood")
 		v() && @info "Comparing $(length(oconfs_)) configurations using likelihood"
 		L = Union{Missing,Float64}[]
 		for conf in oconfs_
-			# vv() && println("## Looking at configuration $conf with energy $(compute_energy(conf,g))")
 			push!(L, conf_likelihood(conf, g, seq_lengths, trees, mode=:time, v=vv()))
-			# vv() && println()
 		end
 		vv() && println("Confs: ", [[mcc_names[x] for x in g.labels[.!conf]] for conf in oconfs_])
-		# v() && println("Likelihoods: ", L)
-		v() && @info "Likelihoods: $L"
+		vv() && @info "Likelihoods: $L"
 		Lmax = maximum(L)
 		ismissing(Lmax) && @warn "Maximum likelihood is `missing`"
 		oconfs_ = oconfs_[findall(isequal(Lmax), L)]

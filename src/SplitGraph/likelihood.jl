@@ -70,7 +70,7 @@ function conf_likelihood_(divfunction, conf::Array{Bool,1}, g::Graph, seq_length
 					end
 					# If a1.conf and a2.conf are equal, we just inferred that this branch is common to trees k1 and k2
 					if (!get_resolve() && are_equal(a1.conf, a2.conf, conf)) ||
-						(get_resolve() && are_equal_with_resolution(g, a1.conf, a2.conf, conf, k1, k2))
+						(get_resolve() && are_equal_with_resolution(g, a1, a2, conf))
 						tau1 = divfunction(tn1, ta1)
 						tau2 = divfunction(tn2, ta2)
 						# v && println("No inconsistency for leaf $i ($(g.labels[i]))")
@@ -139,9 +139,9 @@ function conf_likelihood_times(conf::Array{Bool,1}, g::Graph, μ, trees; v=false
 						# in dL, μ[k1]*τ1 should ultimately be replaced by n1 which is the observed number of mutations (same goes for 2)
 						# What is currently there only makes sense for artificial data, where t is known exactly. 
 						L += dL
-						v && println("No inconsistency for leaf $i ($(g.labels[i]))")
-						v && println("Inferring that times $(τ1) on tree $k1 and $(τ2) on tree $k2 are the same.")
-						v && println("Corresponding likelihood is $dL.")
+						v && @info "No inconsistency for leaf $i ($(g.labels[i]))"
+						v && @info "Inferring that times $(τ1) on tree $k1 and $(τ2) on tree $k2 are the same."
+						v && @info "Corresponding likelihood is $dL."
 					end
 				end
 			end

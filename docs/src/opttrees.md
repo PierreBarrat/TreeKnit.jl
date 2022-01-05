@@ -140,9 +140,8 @@ For this simple example, $\gamma = 3$ is the "critical" value above which the fa
   In the second, three MCCs and three reassortments will be found. 
 
 ```@repl opttrees
-trees = Dict(1=>t1, 2=>t2);
-computeMCCs(trees, OptArgs(γ=3.1))[1,2]
-computeMCCs(trees, OptArgs(γ=2.9))[1,2]
+computeMCCs(t1, t2, OptArgs(γ=3.1))
+computeMCCs(t1, t2, OptArgs(γ=2.9))
 ```
 
 ## Simulated annealing 

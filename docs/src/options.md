@@ -19,7 +19,6 @@ The example below illustrates the difference between different $\gamma$ values:
 using TreeKnit # hide
 t1 = node2tree(parse_newick("((((A,B),C),D),E)"))
 t2 = node2tree(parse_newick("((((D,B),E),A),C)")) # Same topology, but shuffled leaves
-trees = Dict(1=>t1, 2=>t2)
 nothing # hide
 ```
 Here, pruning the two leaves `(A,C)` or `(D,E)` results in compatible trees (resp. `((B,D),E)` and `((A,B),C)`). 
@@ -27,8 +26,8 @@ Here, pruning the two leaves `(A,C)` or `(D,E)` results in compatible trees (res
   They will only be accepted if $\gamma \leq 2.5$. 
 
 ```@repl gamma1
-  computeMCCs(trees, OptArgs(γ=2))[1,2]
-  computeMCCs(trees, OptArgs(γ=3))[1,2]
+  computeMCCs(t1, t2, OptArgs(γ=2))
+  computeMCCs(t1, t2, OptArgs(γ=3))
 ```
 
 
@@ -42,13 +41,12 @@ In the example below, there are three equivalent decompositions if only topology
 using TreeKnit # hide
 t1 = node2tree(parse_newick("((A:2,B:2):2,C:4)"))
 t2 = node2tree(parse_newick("(A:2,(B:1,C:1):1)"))
-trees = Dict(1=>t1, 2=>t2)
 oa = OptArgs(likelihood_sort = false)
-unique([computeMCCs(trees, oa)[1,2] for rep in 1:50]) # Repeating computation many times 
+unique([computeMCCs(t1, t2, oa) for rep in 1:50]) # Repeating computation many times 
 ```
 
 When taking branch lengths into account, this degeneracy vanishes: 
 ```@example degeneracy
 oa = OptArgs(likelihood_sort = true)
-unique([computeMCCs(trees, oa)[1,2] for rep in 1:50])
+unique([computeMCCs(t1, t2, oa) for rep in 1:50])
 ```

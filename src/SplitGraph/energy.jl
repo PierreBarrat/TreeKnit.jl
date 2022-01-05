@@ -18,6 +18,7 @@ function compute_energy(conf::Array{Bool,1}, g::Graph)
 	if length(g.leaves) + length(g.internals) == 1
 		return E
 	end
+
 	@inbounds for (i,s) in enumerate(conf)
 		if s
 			for k1 in 1:g.K
@@ -34,7 +35,7 @@ function compute_energy(conf::Array{Bool,1}, g::Graph)
 					while is_trivial_split(a2.conf, conf) && !a2.isroot
 						a2 = a2.anc
 					end
-					if get_resolve() && !are_equal_with_resolution(g, a1.conf, a2.conf, conf, k1, k2)
+					if get_resolve() && !are_equal_with_resolution(g, a1, a2, conf)
 						E += 1
 					elseif !get_resolve() && !are_equal(a1.conf, a2.conf, conf)
 						E += 1
@@ -47,21 +48,21 @@ function compute_energy(conf::Array{Bool,1}, g::Graph)
 end
 
 """
-	 are_equal(nconf1, nconf2, conf)
+	 are_equal(nsplit1, nsplit2, conf)
 
-Are internal configurations `nconf1` and `nconf2` equal for leaf configuration `conf`?
+Are internal configurations `nsplit1` and `nsplit2` equal for leaf configuration `conf`?
 """
-function are_equal(nconf1, nconf2, conf)
-	_in = max(length(nconf1), length(nconf2)) > 25 ? insorted : in
+function are_equal(nsplit1, nsplit2, conf)
+	_in = max(length(nsplit1), length(nsplit2)) > 25 ? insorted : in
 
-	@inbounds for n1 in nconf1
-		if conf[n1] && !_in(n1, nconf2)
+	@inbounds for n1 in nsplit1
+		if conf[n1] && !_in(n1, nsplit2)
 			return false
 		end
 	end
 
-	@inbounds for n2 in nconf2
-		if conf[n2] && !_in(n2, nconf1)
+	@inbounds for n2 in nsplit2
+		if conf[n2] && !_in(n2, nsplit1)
 			return false
 		end
 	end
@@ -72,39 +73,50 @@ end
 
 
 """
-	are_equal_with_resolution(g, aconf1, aconf2, conf, k1, k2)
+	are_equal_with_resolution(g, a1, a2, conf)
+
+From a given leaf, we reached nodes `a1` and `a2` for the two trees, and call `asplit1` and
+`asplit2` the splits of these nodes.  Three cases:
+- `asplit1 == asplit2`
+- `asplit1 ⊂ asplit2` AND we can resolve `asplit2` to obtain `asplit1`
+- `asplit2 ⊂ asplit1` AND we can resolve `asplit1` to obtain `asplit2`
+
+How do we proceed in the second case?
+To resolve, `asplit1` needs to be compatible with all splits below `asplit2`. We know it's
+included in `asplit2`. We need that for every split `S` below `asplit2`, `S ⊂ asplit1` or
+`S ∩ asplit1` is empty.
+Note that it is *impossible* to have `asplit1 ⫅ S`, since in these case
+we would have reached `S` instead of `asplit2` when going up from the leaf.
+
+### Example
+
+`asplit1 = ABC`, `asplit2 = ABCXYZ`.
+
+1. If the children of `asplit2` are *e.g.* `AB`, `C`, `X`, `YZ`, then we can clearly resolve.
+2. If ... are `ABX`, `C`, `YZ`, then we can't resolve because of the first split.
 """
-function are_equal_with_resolution(g, aconf1, aconf2, conf, k1::Int, k2::Int)
-	if are_equal(aconf1, aconf2, conf)
+function are_equal_with_resolution(g, a1::SplitNode, a2::SplitNode, conf)
+	if are_equal(a1.conf, a2.conf, conf)
 		return true
-	elseif is_contained(aconf1, aconf2, conf) && are_equal_with_resolution(g, aconf1, aconf2, k2, conf)
+	elseif is_contained(a1.conf, a2.conf, conf) && _are_equal_with_resolution(g, a1.conf, a2, conf)
 		return true
-	elseif is_contained(aconf2, aconf1, conf) && are_equal_with_resolution(g, aconf2, aconf1, k1, conf)
+	elseif is_contained(a2.conf, a1.conf, conf) && _are_equal_with_resolution(g, a2.conf, a1, conf)
 		return true
 	end
 	return false
 end
 
 """
-	are_equal_with_resolution(g, aconf1, aconf2, k2, conf)
+	are_equal_with_resolution(g, asplit1, asplit2, k2, conf)
 
-For every leaf `n` in `a1.conf`, check if all ancestors of `n` in tree `k2` up to `a2`
-  have a split that is contained in `a1.conf`, for `conf` as a leaves state.
-  If so, the split `a1.conf` (for `conf`) can be transformed into a clade in the other
-  tree `k2` by adding one internal node.
-
-**Expects `is_contained(a1.conf, a2.conf, conf)` to return `true`.**
+For every leaf of `a2`, check that the corresponding split `S` is either disjoint from
+`asplit1` or included in `asplit1`.
 """
-function are_equal_with_resolution(g::SplitGraph.Graph, aconf1, aconf2, k2::Int, conf)
-	@inbounds for i in aconf1
-		if conf[i]
-			a = g.leaves[i].anc[k2]
-			while a.conf != aconf2
-				if !is_contained(a.conf, aconf1, conf)
-					return false
-				end
-				a = a.anc::SplitNode
-			end
+function _are_equal_with_resolution(g::SplitGraph.Graph, asplit1, a2::SplitNode, conf)
+	for c in a2.child
+		S = c.conf
+		if typeof(c) == SplitNode && !is_contained(S, asplit1, conf) && !are_disjoint(S, asplit1, conf)
+			return false
 		end
 	end
 	return true
@@ -120,21 +132,48 @@ function is_trivial_split(nodeconf, conf)
 	return n < 2
 end
 
+#=
+NOTE
+
+is_contained and are_disjoint could be made much faster with dictionaries for large arrays.
+=#
 
 """
-	is_contained(nconf1, nconf2, conf)
+	is_contained(nsplit1, nsplit2, conf)
 
-Is `nconf1` in `nconf2` for leaf configuration `conf`?
+Is `nsplit1` in `nsplit2` for leaf configuration `conf`?
 """
-function is_contained(nconf1, nconf2, conf)
-	_in = max(length(nconf2)) > 25 ? insorted : in
-	@inbounds for i in nconf1
-		if conf[i] && !_in(i, nconf2)
+function is_contained(nsplit1, nsplit2, conf)
+	_in = max(length(nsplit2)) > 25 ? insorted : in
+	@inbounds for i in nsplit1
+		if conf[i] && !_in(i, nsplit2)
 			return false
 		end
 	end
 	return true
 end
+
+"""
+	are_disjoint(S1, S2, conf)
+
+Are `S1` and `S2` disjoint for configuration `conf`?
+"""
+function are_disjoint(S1, S2, conf)
+	Ssmall, Sbig = if length(S1) > length(S2)
+		S2, S1
+	else
+		S1, S2
+	end
+
+	_in = length(Sbig) > 25 ? insorted : in
+	@inbounds for i in Ssmall
+		if conf[i] && _in(i, Sbig)
+			return false
+		end
+	end
+	return true
+end
+
 
 """
 """
@@ -149,22 +188,14 @@ function doMCMC(g::Graph, conf::Array{Bool,1}, M::Int64; T=1, γ=1)
 	_conf = copy(conf)
 	E = compute_energy(_conf, g)
 	F = E + γ*(length(conf) - sum(conf))
-	##
-	# ee = zeros(Int,M+1)
-	# ff = zeros(Float64,M+1)
-	# ee[1] = E
-	# ff[1] = F
-	##
 	Fmin = F
+
 	oconf = [copy(_conf)]
 	for m in 1:M
 		E, F = mcmcstep!(_conf, g, F, T, γ)
-		# ee[m+1] = E
-		# ff[m+1] = F
 		# If new minimum is found
 		if F < Fmin
 			Fmin = F
-			# oconf = [copy(_conf)]
 			oconf[1] .= _conf
 			deleteat!(oconf, 2:length(oconf))
 		end
@@ -221,14 +252,22 @@ function sa_opt(g::Graph; Trange=reverse(1e-3:1e-2:0.6), γ=2., M=10, rep=1, res
 end
 
 function _sa_opt(g::Graph, γ, Trange, M)
-	reset_chance = 0.0
+	reset_chance = 0.
 	conf = ones(Bool, length(g.leaves))
 	oconf = [copy(conf)]
 	F = Float64[Inf]
 	Fmin = F[1]
+	p = Progress(
+		length(Trange);
+		dt=1.,
+		desc="Simulated annealing: ",
+		enabled=v(),
+		barglyphs=BarGlyphs("[=> ]"),
+		showspeed=true,
+	)
 	for T in Trange
 		if rand() < reset_chance
-			tmp_oconf, conf, fmin = doMCMC(g, oconf[rand(1:length(oconf))], M, T=T,γ=γ)
+			tmp_oconf, conf, fmin = doMCMC(g, oconf[rand(1:length(oconf))], M, T=T, γ=γ)
 		else
 			tmp_oconf, conf, fmin = doMCMC(g, conf, M, T=T,γ=γ)
 		end
@@ -243,6 +282,12 @@ function _sa_opt(g::Graph, γ, Trange, M)
 			append!(oconf, tmp_oconf)
 			oconf = unique(oconf)
 		end
+		ProgressMeter.next!(p; showvalues = [
+			(:Tstart, Trange[1]),
+			(:T, round(T, digits=4)),
+			(:Tend, round(Trange[end], digits=4)),
+			(:Fmin, Fmin)
+		])
 	end
 	return oconf,F
 end

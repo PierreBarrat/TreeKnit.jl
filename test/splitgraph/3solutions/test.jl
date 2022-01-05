@@ -26,8 +26,8 @@ end
 @testset "With likelihood" begin
 	local out = []
 	for rep in 1:20
-		tmp = SplitGraph.opttrees!(
-			deepcopy(t1),deepcopy(t2);
+		tmp = SplitGraph.opttrees(
+			t1, t2;
 			γ=2, M=10, Trange=Trange, likelihood_sort = true
 		)
 		if !in(tmp[1], out)

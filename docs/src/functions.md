@@ -11,11 +11,15 @@ end
 Pages = ["functions.md"]
 ```
 
-## Computing Maximal Compatible Clades (MCCs) for a set of trees
+## Function used for the CLI
+```@docs
+TreeKnit.treeknit
+```
+
+## Computing Maximal Compatible Clades (MCCs) for pairs
 ### Main functions 
 ```@docs
 computeMCCs
-computeMCCs!
 ```
 
 ### For pairs of trees only
@@ -23,6 +27,7 @@ computeMCCs!
 naive_mccs
 TreeKnit.runopt
 ```
+
 
 ## Resolving trees
 ### Using topology
