@@ -108,7 +108,13 @@ function which_mcc(n::AbstractString, MCCs)
 	return nothing
 end
 
-
+function sort_polytomies!(t1::Tree, t2::Tree, MCCs)
+	mcc_order = get_leaves_order(t1, MCCs)
+	_mcc_map = mcc_map(t2, MCCs)
+	sort_polytomies!(t2.root, MCCs, _mcc_map, mcc_order)
+	node2tree!(t2, t2.root)
+	return nothing
+end
 function sort_polytomies!(n::TreeNode, MCCs, mcc_map, mcc_order)
 	if n.isleaf
 		i = mcc_map[n.label] # in MCCs[i]
@@ -131,7 +137,6 @@ function sort_polytomies!(n::TreeNode, MCCs, mcc_map, mcc_order)
 				# r += 1
 			end
 		end
-		# println(n.label, " -- ", rank, " --> ", (findmin(r -> isnothing(r[1]) ? Inf : r[1], rank)[1], sum(x[2] for x in rank)))
 
 		# # Sort children
 		_sort_children!(n, rank)
@@ -150,7 +155,7 @@ function _sort_children!(n, rank)
 		if !isnothing(x[1]) && !isnothing(y[1])
 			return x[1] < y[1] # those two numbers can't be equal (rank in mcc)
 		else
-			return x[2] >= y[2]
+			return x[2] <= y[2]
 		end
 	end
 

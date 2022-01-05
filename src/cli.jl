@@ -91,6 +91,8 @@ treeknit
 
 	@info "Resolving trees based on found MCCs..."
 	rS = resolve!(t1, t2, MCCs)
+	TreeTools.ladderize!(t1)
+	sort_polytomies!(t1, t2, MCCs)
 	@info "Resolved $(length(rS[1])) splits in $(nwk1) and $(length(rS[1])) splits in $(nwk2)\n"
 
 	verbose && println()
