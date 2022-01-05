@@ -104,11 +104,9 @@ treeknit
 	# Write output
 	@info "Writing results in $(outdir)"
 	write_mccs(outdir * "/" * "MCCs.dat", MCCs)
-	for (nwk, t) in zip((nwk1,nwk2),(t1,t2))
-		fn = basename(nwk)
-		name, ext = splitext(fn)
-		write_newick(outdir * "/" * name * ".resolved" * ext, t)
-	end
+	out_nwk1, out_nwk2 = make_output_tree_names(nwk1, nwk2)
+	write_newick(outdir * "/" * out_nwk1, t1)
+	write_newick(outdir * "/" * out_nwk2, t2)
 	write(outdir * "/" * "arg.nwk", arg)
 	write_rlm(outdir * "/" * "nodes.dat", rlm)
 
@@ -137,6 +135,30 @@ function write_rlm(filename, rlm)
 			end
 		end
 	end
+end
+
+function make_output_tree_names(nwk1, nwk2)
+	fn = [basename(nwk) for nwk in (nwk1, nwk2)]
+	name1, name2 = if fn[1] == fn[2]
+		name, ext = splitext(fn[1])
+		d1 = split(dirname(nwk1), '/')[end]
+		d2 = split(dirname(nwk2), '/')[end]
+		name1, name2 = if d1 == d2
+			name * "_1.resolved" * ext, name * "_2.resolved" * ext
+		else
+			name * "_$(d1).resolved" * ext, name * "_$(d2).resolved" * ext
+		end
+		@warn "The two input trees have the same filename. Writing output as:
+		$nwk1 --> $name1
+		$nwk2 --> $name2"
+		name1, name2
+	else
+		f1, ext1 = splitext(fn[1])
+		f2, ext2 = splitext(fn[2])
+		f1 * ".resolved" * ext1, f2 * ".resolved" * ext2
+	end
+
+	return name1, name2
 end
 
 
