@@ -86,8 +86,7 @@ function mcc_map!(mcc_map::Dict, n::TreeNode, MCCs)
 		elseif length(MCCs[i]) > M
 			return (i, M) # in MCC i, representing M nodes
 		else
-			error("Reached root $(n.label) of MCC $i and have not found all nodes \
-				($(M) out of $(length(MCCs[i])))")
+			error("Reached root $(n.label) of MCC $i and have not found all nodes ($(M) out of $(length(MCCs[i])))")
 		end
 	end
 end
