@@ -72,8 +72,7 @@ function mcc_map!(mcc_map::Dict, n::TreeNode, MCCs)
 				if !isnothing(i)
 					# if !isnothing(ic), we're not done with MCC[ic]
 					# Meaning n has to belong to it
-					@assert i == ic "MCCs $i and $ic conflict \
-					(resp. node $(n.label) and $(c.label)). \
+					@assert i == ic "MCCs $i and $ic conflict (resp. node $(n.label) and $(c.label)).
 					Are trees resolved using the MCCs?"
 				end
 				i = ic
