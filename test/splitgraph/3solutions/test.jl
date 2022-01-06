@@ -12,10 +12,9 @@ end
 g = trees2graph(treelist)
 
 oa = OptArgs(resolve = false, likelihood_sort = false, γ = 2)
-Trange = reverse(oa.Tmin:oa.dT:oa.Tmax)
 
 @testset "No likelihood" begin
-	local out = SplitGraph.sa_opt(g; Trange=Trange, γ=2, M = 100, resolve = false)[1]
+	local out = SplitGraph.sa_opt(g; Trange=oa.Trange, γ=2, M = 100, resolve = false)[1]
 	sort!(out)
 	@test out[1] == Bool[0,1,1]
 	@test out[2] == Bool[1,0,1]
@@ -28,7 +27,7 @@ end
 	for rep in 1:20
 		tmp = SplitGraph.opttrees(
 			t1, t2;
-			γ=2, M=10, Trange=Trange, likelihood_sort = true
+			γ=2, M=10, Trange=oa.Trange, likelihood_sort = true
 		)
 		if !in(tmp[1], out)
 			push!(out, tmp[1])
