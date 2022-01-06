@@ -155,7 +155,7 @@ function _sort_children!(n, rank)
 		if !isnothing(x[1]) && !isnothing(y[1])
 			return x[1] < y[1] # those two numbers can't be equal (rank in mcc)
 		else
-			return x[2] <= y[2]
+			return x[2] < y[2]
 		end
 	end
 
