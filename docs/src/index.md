@@ -2,7 +2,7 @@
 
 ## Installation
 
-You can simply install *TreeKnit* using the julia package manager: 
+You can simply install *TreeKnit* using the julia package manager (if you don't have julia, you can get it from [here](https://julialang.org/downloads/)): 
 ```julia
 using Pkg
 Pkg.add("TreeKnit")
