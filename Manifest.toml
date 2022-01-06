@@ -201,9 +201,9 @@ uuid = "a4e569a6-e804-4fa4-b0f3-eef7a1d5b13e"
 
 [[deps.TreeTools]]
 deps = ["Random"]
-git-tree-sha1 = "2a847edb35b9939ee8b79992c14fd3c192ffa1e7"
+git-tree-sha1 = "f4d2ebdefd942d2ba7d78b6e99fd0ced7e686bd0"
 uuid = "62f0eae3-8c0e-4032-a621-7756092209e5"
-version = "0.2.0"
+version = "0.2.1"
 
 [[deps.UUIDs]]
 deps = ["Random", "SHA"]
