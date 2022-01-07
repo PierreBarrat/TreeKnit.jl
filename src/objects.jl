@@ -68,9 +68,9 @@ function get_acos_cooling_schedule(Tmin, Tmax, nT)
 		0.5 - 2^(K-1)*abs(acos(2*x-1)/3.14-0.5)^K
 	end
 	# f(0) = 1.0 and f(1) = 0.
-	return [(Tmax - Tmin)*f(t) + Tmin for t in range(0,1,nT)]
+	return [(Tmax - Tmin)*f(t) + Tmin for t in range(0, stop = 1, length = nT)]
 end
 
-get_linear_cooling_schedule(Tmin, Tmax, nT) = return collect(reverse(range(Tmin, Tmax, nT)))
+get_linear_cooling_schedule(Tmin, Tmax, nT) = return collect(reverse(range(Tmin, stop = Tmax, length = nT)))
 
 
