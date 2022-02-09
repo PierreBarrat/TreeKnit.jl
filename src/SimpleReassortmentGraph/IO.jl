@@ -1,3 +1,9 @@
+"""
+	write(io::IO, arg::ARG)
+	write(filename::AbstractString, arg::ARG)
+
+Write `arg` using the extended Newick format.
+"""
 write(filename::AbstractString, arg::ARG) = write(filename, extended_newick(arg))
 write(io::IO, arg::ARG) = write(io, extended_newick(arg))
 
