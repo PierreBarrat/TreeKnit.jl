@@ -307,7 +307,7 @@ end
 	count_mismatches(t::Vararg{Tree})
 """
 function count_mismatches(trees::Vararg{Tree})
-	treelist = [copy(t, TreeTools.EmptyData) for t in trees]
+	treelist = [convert(Tree{TreeTools.EmptyData}, t) for t in trees]
 	mcc = naive_mccs(treelist)
 	mcc_names = TreeKnit.name_mcc_clades!(treelist, mcc)
 	for (i,t) in enumerate(treelist)
