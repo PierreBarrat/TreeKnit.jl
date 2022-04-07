@@ -64,18 +64,13 @@ Run optimization at constant γ. See `?Optargs` for arguments. In the first form
 runopt(t1::Tree, t2::Tree; kwargs...) = runopt(OptArgs(;kwargs...), t1, t2)
 
 function runopt(oa::OptArgs, t1::Tree, t2::Tree; output = :mccs)
-	datatype = TreeTools.EmptyData
-
 	# Copying input trees for optimization
-	# ot = Dict(k=>copy(t, datatype) for (k,t) in trees)
 	ot1 = copy(t1)
 	ot2 = copy(t2)
 
 	# Resolve
-	# oa.resolve && resolve!(values(ot)...)
 	oa.resolve && resolve!(ot1, ot2)
 
-	# iMCCs = naive_mccs(values(ot)...)
 	iMCCs = naive_mccs(ot1, ot2)
 	oa.verbose && @info "Initial state: $(length(iMCCs)) naive MCCs"
 
