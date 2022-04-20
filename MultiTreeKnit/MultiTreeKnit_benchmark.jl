@@ -3,6 +3,8 @@ using TreeTools
 using Combinatorics
 
 include("GenerateTrees.jl")
+include("ARG_Plot_functions.jl")
+
 """
     assign_pos_maps(no_trees::Int64) 
     ...
@@ -34,7 +36,7 @@ end
     resolved trees from previous MCC calculations are used as the tree input for the next pair, 
     the order is specified in Combinatorics.combinations(1:length(trees), 2)
 """
-function get_MCC_pairs(trees::Vector{Any}, store_trees::Bool)
+function get_infered_MCC_pairs(trees::Vector{Tree}, store_trees::Bool)
     MCC_ordered_pairs = Vector{Vector{String}}[]
     l_t = length(trees)
     for i in 1:(l_t-1)
@@ -62,7 +64,7 @@ end
     given as input a list of MCC lists this function joins these MCC lists (sets) by calculating their intersection recursively
     and returning their intersection
 """
-function join_sets(input_sets::Vector{Vector{String}})
+function join_sets(input_sets::Vector{Vector{Vector{String}}})
     start_set = input_sets[1]
     for i in 2:length(input_sets)
         joint_sets = Vector{String}[]
@@ -86,42 +88,74 @@ function join_sets(input_sets::Vector{Vector{String}})
     return start_set
 end
 
+"""
+    print_MCCs(MCCs_list::Vector{Vector{String}}, MCC_combinations_pos_to_trees_list::Vector{Int64})
 
-if abspath(PROGRAM_FILE) == @__FILE__
-    no_trees = 4
-    lineage_number = 6
+    prints out infered MCCs 
+"""
+function print_MCCs(MCCs_list::Vector{Vector{Vector{String}}}, MCC_combinations_pos_to_trees_list::Vector{Vector{Int64}})
+    for i in 1:length(MCCs_list)
+        println("")
+        println(MCC_combinations_pos_to_trees_list[i])
+        println(MCCs_list[i])
+        println("")
+    end
+end
 
-    trees, tree_strings = get_trees(no_trees, lineage_number);
 
+"""
+    infer_benchmark_MCCs(no_trees::Int64, lineage_number::Int64, debug=true)
+"""
+function infer_benchmark_MCCs(no_trees::Int64, lineage_number::Int64; debug=true)
+    trees, MCCsReal = get_trees(no_trees, lineage_number; get_real_MCCs=true);
+
+    if debug
+        ##print the trees and the true MCCs
+        for tree in trees
+            TreeTools.print(tree)
+        end
+    end
+
+    MCCsInfered = get_infered_MCC_pairs(trees, false)
     MCC_combinations_pos_to_trees_list, MCC_combinations_trees_to_pos_dict = assign_pos_maps(no_trees) 
 
-    # MCC_ordered_pairs = get_MCC_pairs(trees, false)
-    # for i in 1:length(trees)
-    #     tree_string= "";
-    #     tree_string = TreeTools.write_newick!(tree_string, trees[i].root)
-    #     py"print_tree"(tree_string, i)
-    # end
-
-    l_t = length(trees)
-    for k in 3:l_t
-        k_iters = Combinatorics.combinations(1:l_t, k)
+    for k in 3:no_trees
+        k_iters = Combinatorics.combinations(1:no_trees, k)
         for combination in k_iters
             all_sub_combinations = Combinatorics.combinations(combination, k-1)
-            all_sets = []
-            println("MCCs of all sub combinations: \n")
+            all_sets = Vector{Vector{String}}[]
+            #println("MCCs of all sub combinations: \n")
             for sub_combo in all_sub_combinations
                 pos = MCC_combinations_trees_to_pos_dict[sub_combo]
-                #println(pos)
-                mccs = MCC_ordered_pairs[pos]
-                println(mccs)
+                mccs = MCCsInfered[pos]
+                #println(mccs)
                 push!(all_sets, mccs)
             end
             joint_sets = join_sets(all_sets)
-            push!(MCC_ordered_pairs, joint_sets)
-            println("MCCs of joint sets: \n")
-            println(joint_sets)
+            push!(MCCsInfered, joint_sets)
+            #println("MCCs of joint sets: \n")
+            #println(joint_sets)
         end
+    end
+
+    tree_strings = Vector{String}()
+    for tree in trees
+        tree_string= "";
+        tree_string = TreeTools.write_newick!(tree_string, tree.root)
+        append!(tree_strings, [tree_string])
+    end
+    py"ARGPlot"(tree_strings, MCCsInfered[1:(no_trees-1)], draw_connections=true, tree_names=nothing)
+    if debug
+        println("Found MCCs:")
+        print_MCCs(MCCsInfered, MCC_combinations_pos_to_trees_list)
     end
 
 
 end
+
+no_trees = 2
+lineage_number = 6
+infer_benchmark_MCCs(no_trees, lineage_number; debug=true)
+println("done")
+
+

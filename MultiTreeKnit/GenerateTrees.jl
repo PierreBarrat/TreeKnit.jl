@@ -1,22 +1,5 @@
 using ARGTools
-
-using PyCall
-using Conda
-Conda.add("biopython")
-
-## use a python wrapper to plot trees using Bio.Phylo
-py"""
-from Bio import Phylo
-from io import StringIO
-import matplotlib.pyplot as plt
-
-def print_tree(tree_string, number):
-    ax = plt.axes()
-    tree = Phylo.read(StringIO(tree_string), "newick")
-    Phylo.draw_ascii(tree)
-    #plt.title("Tree "+ str(number))
-    #Phylo.draw(tree, axes=ax)
-"""
+using TreeTools
 
 # get recombination rate
 function get_r(ρ, n, N, simtype::Symbol)
@@ -32,12 +15,13 @@ function get_r(ρ, n, N, simtype::Symbol)
 end
 
 """
-    get_trees(no_trees, no_lineages)
+    get_trees(no_trees, no_lineages, get_real_MCCs)
     
+    returns trees as well as true MCCs
     simulate a total of `no_trees` trees using the ARGTools package, 
     specifying the `lineage_no` determines the number of nodes in each tree
 """
-function get_trees(no_trees, no_lineages)
+function get_trees(no_trees, no_lineages; get_real_MCCs=false)
     # Parameters of the ARG simulation
     N = 10_000 # pop size
     n = no_lineages # Number of lineages
@@ -45,34 +29,20 @@ function get_trees(no_trees, no_lineages)
     simtype = :kingman
     r = get_r(ρ, n, N, simtype) # Absolute reassortment rate
 
-    tree_pairs = ceil(Int64, no_trees/2)
-    last_tree_needed = (no_trees% 2 == 0)
-    print(last_tree_needed)
-    tree_strings = String[]
-    trees = Any[]
+    # Simulating the ARG
+    arg = ARGTools.SimulateARG.simulate(N, r, n; K=no_trees, simtype);
+    # The trees for the 2 segments
+    trees = ARGTools.trees_from_ARG(arg; node_data = TreeTools.MiscData);
 
-    for i in 1:tree_pairs
-        println(i)
-        # Simulating the ARG
-        arg = ARGTools.SimulateARG.simulate(N, r, n; simtype);
-        # The trees for the 2 segments
-        t_a, t_b = ARGTools.trees_from_ARG(arg; node_data = TreeTools.MiscData);
-
-        tree_string= "";
-        tree_string = TreeTools.write_newick!(tree_string, t_a.root)
-        push!(tree_strings, tree_string)
-        push!(trees, t_a)
-        py"print_tree"(tree_string, 2*(i-1) +1)
-        if i==tree_pairs && !last_tree_needed
-            println("break")
-            break
+    if get_real_MCCs
+        rMCCs = Vector{Vector{String}}()
+        for k in 2:no_trees
+            k_iters = Combinatorics.combinations(1:no_trees, k)
+            for combination in k_iters
+                append!(rMCCs, ARGTools.MCCs_from_arg(arg, combination...));
+            end
         end
-        tree_string= "";
-        tree_string = TreeTools.write_newick!(tree_string, t_b.root)
-        push!(tree_strings, tree_string)
-        push!(trees, t_b)
-        py"print_tree"(tree_string, 2*(i-1) +2)
+        return trees, rMCCs
     end
-
-    return trees, tree_strings
+    return trees
 end
