@@ -2,6 +2,7 @@ using PyCall
 using Conda
 Conda.add("biopython")
 
+function ARGPlot(tree_list_input, MCC_list; draw_connections=false, tree_names=nothing)
 ## use a python wrapper to plot trees using Bio.Phylo
 py"""
 from Bio import Phylo
@@ -19,6 +20,8 @@ def ARGPlot(tree_list_input, MCC_list, draw_connections=False, tree_names=None):
     print("\nARGPlot: reading trees into python")
 
     ## add mccs as labels to trees, similar to assign.mccs in TreeTime
+    print(main_tree)
+    print(tree_list)
     prepare_trees(main_tree, tree_list, MCC_list)
     print("ARGPlot: pre-preparing trees")
     ## find location of recombination events in the tree
@@ -58,7 +61,7 @@ def assign_mccs_first_tree(first_tree, len_tree_list, mcc_map, one_mutation=1e-4
     mcc_intersection = [set.intersection(*[c.child_mccs[pos] for c in first_tree.root]) for pos in range(len_tree_list)]
     first_tree.root.mcc = []
     for pos in range(len_tree_list):
-        if len(mcc_intersection):
+        if len(mcc_intersection[pos]):
             first_tree.root.mcc.append(list(mcc_intersection[pos])[0])
         else:
             first_tree.root.mcc.append(None)
@@ -181,6 +184,8 @@ def get_recombination_sites(first_tree, tree_list, MCC_lists):
         recombination_pairs_list += [recombination_pairs]
     return recombination_pairs_list
 
+
+from Bio import MissingPythonDependencyError
 
 def draw_ARG(
         first_tree, tree_list,
@@ -413,7 +418,7 @@ def draw_ARG(
                 )
             )
 
-    def draw_clade(clade, x_start, color, lw, recombination=False, pos=None, epsilon=0.05):
+    def draw_clade(clade, x_start, color, lw, recombination=False, recombination_sites = None, pos=None, epsilon=0.05):
         epsilon = epsilon
         x_here = x_posns[clade]
         y_here = y_posns[clade]
@@ -469,17 +474,23 @@ def draw_ARG(
                 y_bot -= (pos+1)*epsilon
                 l = len(clade.clades)
                 if clade.clades[0].mcc[pos] != mcc[pos]:
-                    i=1
-                    #y_top = y_here
-                    while i<l and clade.clades[i].mcc[pos] != mcc[pos] and y_posns[clade.clades[i]]<y_here:
-                        i+=1
-                    y_top = min(y_posns[clade.clades[i]], y_here)
+                    if mcc[pos] is None and clade.clades[0].mcc[pos] not in recombination_sites:
+                        i = 0
+                    else:
+                        i=1
+                        while i+1<l and ((mcc[pos] is not None and clade.clades[i+1].mcc[pos]!= mcc[pos])
+                        or (mcc[pos] is None and clade.clades[i+1].mcc[pos] in recombination_sites)) and y_posns[clade.clades[i+1]]<=y_here:
+                            i+=1
+                        y_top = min(y_posns[clade.clades[i]], y_here)
                 if clade.clades[-1].mcc[pos] != mcc[pos]:
-                    i=2
-                    while i<(l+1) and clade.clades[-i].mcc[pos] != mcc[pos] and y_posns[clade.clades[-i]]>y_here:
-                        i+=1
-                    y_bot = max(y_posns[clade.clades[-i]], y_here)
-
+                    if mcc[pos] is None and clade.clades[-1].mcc[pos] not in recombination_sites:
+                        i = 1
+                    else:
+                        i=2
+                        while i+1<(l+1) and ((mcc[pos] is not None and clade.clades[-i-1].mcc[pos]!= mcc[pos])
+                        or (mcc[pos] is None and clade.clades[-i-1].mcc[pos] in recombination_sites)) and y_posns[clade.clades[-i-1]]>=y_here:
+                            i+=1
+                        y_bot = max(y_posns[clade.clades[-i]], y_here)
             # Only apply widths to horizontal lines, like Archaeopteryx
             draw_clade_lines(
                 use_linecollection=True,
@@ -493,15 +504,15 @@ def draw_ARG(
             # Draw descendents
             if recombination:
                 for child in clade:
-                    if child.mcc[pos] == mcc[pos]:
-                        draw_clade(child, x_here, color, lw, recombination=recombination, pos=pos)
+                    if child.mcc[pos] == mcc[pos] or mcc[pos] is None and child.mcc[pos] not in recombination_sites:
+                        draw_clade(child, x_here, color, lw, recombination=recombination, recombination_sites =recombination_sites, pos=pos)
             else:
                 for child in clade:
                     draw_clade(child, x_here, color, lw, recombination=recombination)
 
     draw_clade(tree.root, 0, "k", plt.rcParams["lines.linewidth"])
     for pos in range(len(tree_list)):
-        draw_clade(tree.root, 0, "k", plt.rcParams["lines.linewidth"], recombination=True, pos=pos)
+        draw_clade(tree.root, 0, "k", plt.rcParams["lines.linewidth"], recombination=True, pos=pos, recombination_sites =set(recombination_sites[pos].keys()))
         for mcc in recombination_sites[pos]:
             draw_clade(recombination_sites[pos][mcc][0], x_recom[pos][mcc], "k", plt.rcParams["lines.linewidth"], recombination=True, pos=pos)
     # If line collections were used to create clade lines, here they are added
@@ -555,3 +566,6 @@ def draw_ARG(
             lines.append(Line2D([0], [0], marker='o', color=colors[pos], label=tree_name_list[1+pos]))
         axes.legend(handles=lines)
 """
+
+    py"ARGPlot"(tree_list_input, MCC_list, draw_connections=draw_connections, tree_names=tree_names)
+end

@@ -10,7 +10,9 @@ using Setfield
 # Personal modules
 using TreeTools
 
-
+using PyCall
+using Conda
+Conda.add("biopython")
 
 
 include("mcc_base.jl")
@@ -40,6 +42,9 @@ import TreeKnit.SimpleReassortmentGraph: SRG
 export SRG
 
 include("cli.jl")
+
+include("ARG_Plot_functions.jl")
+export ARGPlot
 
 # TreeTools re-exports for docs
 import TreeTools: node2tree, parse_newick

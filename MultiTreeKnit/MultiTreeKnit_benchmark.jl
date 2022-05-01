@@ -3,7 +3,6 @@ using TreeTools
 using Combinatorics
 
 include("GenerateTrees.jl")
-include("ARG_Plot_functions.jl")
 
 """
     assign_pos_maps(no_trees::Int64) 
@@ -111,8 +110,8 @@ function infer_benchmark_MCCs(no_trees::Int64, lineage_number::Int64; debug=true
 
     if debug
         ##print the trees and the true MCCs
-        for tree in trees
-            TreeTools.print(tree)
+        for i in range(1,length(trees))
+            TreeTools.print(trees[i])
         end
     end
 
@@ -139,12 +138,20 @@ function infer_benchmark_MCCs(no_trees::Int64, lineage_number::Int64; debug=true
     end
 
     tree_strings = Vector{String}()
-    for tree in trees
+    for i in range(1, length(trees))
         tree_string= "";
-        tree_string = TreeTools.write_newick!(tree_string, tree.root)
+        tree_string = TreeTools.write_newick!(tree_string, trees[i].root)
         append!(tree_strings, [tree_string])
+        if debug
+            write_newick("tree"*string(i)*".nwk", trees[i])
+        end
     end
-    py"ARGPlot"(tree_strings, MCCsInfered[1:(no_trees-1)], draw_connections=true, tree_names=nothing)
+    if debug
+        for i in range(1, no_trees-1)
+            write_mccs("MCCs1"*string(i+1)*".dat", MCCsInfered[i])
+        end
+    end
+    ARGPlot(tree_strings, MCCsInfered[1:(no_trees-1)], draw_connections=true, tree_names=nothing)
     if debug
         println("Found MCCs:")
         print_MCCs(MCCsInfered, MCC_combinations_pos_to_trees_list)
@@ -153,7 +160,8 @@ function infer_benchmark_MCCs(no_trees::Int64, lineage_number::Int64; debug=true
 
 end
 
-no_trees = 2
+
+no_trees = 3
 lineage_number = 6
 infer_benchmark_MCCs(no_trees, lineage_number; debug=true)
 println("done")
