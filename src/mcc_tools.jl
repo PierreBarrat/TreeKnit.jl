@@ -161,44 +161,6 @@ function _sort_children!(n, rank)
 	n.child = n.child[children_order]
 end
 
-
-
-## BEFORE REMOVING `write_mccs!`:
-## Check whether it's used in annotating auspice json files
-# """
-#     write_mccs!(trees::Dict, MCCs::Dict, key=:mcc_id)
-
-# Write MCCs id to field `data.dat[key]` of tree nodes. Expect `trees` indexed by single segments, and `MCCs` indexed by pairs of segments.
-# """
-# function write_mccs!(trees::Dict, MCCs::Dict, key=:mcc_id; overwrite=false)
-#     for ((i,j), mccs) in MCCs
-#         k = Symbol(key,"_$(i)_$(j)")
-#         write_mccs!(trees[i], mccs, k, overwrite=overwrite)
-#         write_mccs!(trees[j], mccs, k, overwrite=overwrite)
-#     end
-# end
-# """
-#     write_mccs!(t::Tree, MCCs, key=:mcc_id)
-
-# Write MCCs id to field `data.dat[key]` of tree nodes.
-# """
-# function write_mccs!(t::Tree{TreeTools.MiscData}, MCCs, key=:mcc_id; overwrite=false)
-#     for (i,mcc) in enumerate(MCCs)
-#         for label in mcc
-#             t.lleaves[label].data.dat[key] = i
-#         end
-#         for n in Iterators.filter(n->!n.isleaf, values(t.lnodes))
-#             if is_branch_in_mcc(n, mcc)
-#                 if !overwrite && haskey(n.data.dat, key)
-#                     error("Node $(n.label) already has an MCC attributed")
-#                 end
-#                 n.data.dat[key] = i
-#             end
-#         end
-#     end
-#     nothing
-# end
-
 """
     is_branch_in_mccs(n::TreeNode, mccs::Array)
 
@@ -317,3 +279,164 @@ end
 find_mcc_with_node(n::TreeNode, mccs) = find_mcc_with_node(n.label, mccs)
 find_mcc_with_node(n, mccs) = find_mcc_with_node(n.label, mccs)
 
+################################################################################
+################################# Confidence ###################################
+################################################################################
+
+"""
+	distance_likelihood_ratio(d1, d2[, L1=1, L2=1])
+
+Given two distances between two leaves `d1` and `d2` in two segment trees, estimate whether\
+it is more likely that a reassortment happened along the way or not.
+
+## Method
+
+Given two paths of length `d1` and `d2`, with segments of length `L1` and `L2`, return the log-ratio of:
+- the probability that the two paths are of different real lengths equal to respectively `d1` and `d2`.
+- the probability that the two paths are of the same real length equal to `(d1*L1 + d2*L2) / (L1 + L2)`.
+
+The ratio quantifies the confidence in the fact that there is a reassortment along the path.
+
+*Note*: this assumes the mutation rate to be the same in the two segments.
+
+## Optional sequence length
+
+Sequence length for the two segments `L1` and `L2` can be provided. Ultimately, what \
+matters are the ratio `L1/(L1+L2)` and `L2/(L1+L2)`, which quantify confidence to the \
+observed `d1` and `d2`.
+
+"""
+function distance_likelihood_ratio(d1::Real, d2::Real, L1=1, L2=1)
+	# expected nb of mutations on each segment if the path is shared
+	n1s = (d1*L1 + d2*L2) / (L1 + L2) * L1
+	n2s = (d1*L1 + d2*L2) / (L1 + L2) * L2
+	# expected nb of mutations if the path is not shared
+	n1 = d1*L1
+	n2 = d2*L2
+
+	llk = 0.
+	# log ratios of Poisson probabilities
+	if n1 != 0
+		llk += - n1 + n1s + n1 * log(n1/n1s)
+	else
+		llk += n1s
+	end
+	if n2 != 0
+		llk += - n2 + n2s + n2 * log(n2/n2s)
+	else
+		llk += n2s
+	end
+
+	return llk / (L1+L2)
+end
+
+distance_likelihood_ratio(d1::Missing, d2::Real, L1=1, L2=1) = missing
+distance_likelihood_ratio(d1::Real, d2::Missing, L1=1, L2=1) = missing
+distance_likelihood_ratio(d1::Missing, d2::Missing, L1=1, L2=1) = 0.
+distance_likelihood_ratio(d1, d2, L1=1, L2=1) = 0.
+
+
+function confidence_likelihood_ratio(MCCs, t1, t2; neighbours = :leaves)
+	if neighbours == :leaves
+		return map(m->_confidence_likelihood_ratio_leaves(m, t1, t2), MCCs)
+	elseif neighbours == :joint
+		ct1, ct2 = (copy(t1), copy(t2))
+		resolve!(ct1, ct2, MCCs)
+		mcc_maps = [mcc_map(ct1, MCCs), mcc_map(ct2, MCCs)]
+		return map(m->_confidence_likelihood_ratio_joint(m, t1, t2, mcc_maps), MCCs)
+	end
+end
+function _confidence_likelihood_ratio_joint(MCC, t1, t2, mcc_maps, L1=1, L2=1; verbose=false)
+	verbose && @info "Confidence in MCC: " MCC
+	A1 = lca(t1, MCC...)
+	A2 = lca(t2, MCC...)
+	if A1.isroot || A2.isroot # Infinite confidence in the root ...
+		return Inf
+	end
+
+	neighbours = neighbour_joint_nodes(MCC, (t1, mcc_maps[1]), (t2, mcc_maps[2]))
+
+	L = 0.
+	for n in neighbours # n is an array of labels defining a joint internal node
+		n1 = lca(t1, n...)
+		n2 = lca(t2, n...)
+		d1 = divtime(A1, n1)
+		d2 = divtime(A2, n2)
+		lk = distance_likelihood_ratio(d1, d2, L1, L2)
+		L += lk
+		verbose && @info "Contribution to Likelihood: " n, n1.label, n2.label, lk
+	end
+
+	return L / length(neighbours)
+end
+function _confidence_likelihood_ratio_leaves(MCC, t1, t2, L1=1, L2=1; verbose=false)
+	verbose && @info "Confidence in MCC: " MCC
+	A1 = lca(t1, MCC...)
+	A2 = lca(t2, MCC...)
+	if A1.isroot || A2.isroot # Infinite confidence in the root ...
+		return Inf
+	end
+
+	# I could also look at the first neighbour joint nodes?
+	neighbours = neighbour_leaves(MCC, t1, t2)
+
+	L = 0.
+	for n in neighbours
+		n1 = t1.lnodes[n]
+		n2 = t2.lnodes[n]
+		d1 = divtime(A1, n1)
+		d2 = divtime(A2, n2)
+		lk = distance_likelihood_ratio(d1, d2, L1, L2)
+		L += lk
+		verbose && @info "Contribution to Likelihood: " n, lk
+		# verbose && println
+	end
+
+	return L / length(neighbours)
+end
+
+function neighbour_joint_nodes(MCC, treemap, treemaps...)
+	# Input `treemap` is a tuple `(tree, mcc_map)`
+	S = _neighbour_joint_nodes(MCC, treemap[1], treemap[2])
+	for tm in treemaps
+		union!(S, _neighbour_joint_nodes(MCC, tm[1], tm[2]))
+	end
+	return S
+end
+function _neighbour_joint_nodes(MCC, tree, mp)
+	# !! tree must be resolved !!
+	R = lca(tree, MCC...)
+	A = R.anc # Ancestor of root of MCC
+	list = []
+	for c in Iterators.filter(!=(R), A.child)
+		l = []
+		get_joint_offsprings!(l, c, mp)
+		append!(list, l)
+	end
+	return sort(unique!(list))
+end
+function get_joint_offsprings!(list, A, mp)
+	if !isnothing(mp[A.label])
+		push!(list, map(x->x.label, POTleaves(A)))
+		return nothing
+	else
+		for c in A.child
+			get_joint_offsprings!(list, c, mp)
+		end
+		return nothing
+	end
+end
+
+function neighbour_leaves(MCC, tree)
+	A = lca(tree, MCC...) # MRCA of MCC
+	S = map(x->x.label, POTleaves(A.anc))
+	setdiff!(S, MCC)
+	return S
+end
+function neighbour_leaves(MCC, tree, trees...)
+	S = neighbour_leaves(MCC, tree)
+	for t in trees
+		union!(S, neighbour_leaves(MCC, t))
+	end
+	return S
+end
