@@ -1,7 +1,7 @@
 name = "TreeKnit"
 uuid = "03f602be-98a1-4bb2-9504-fbd3406624a7"
 authors = ["PierreBarrat <p.barrat@live.fr>"]
-version = "0.2.3"
+version = "0.3.0"
 
 [deps]
 Comonicon = "863f3e99-da2a-4334-8734-de3dacbe5542"
@@ -19,6 +19,6 @@ LoggingExtras = "0.4"
 Parameters = "0.12"
 ProgressMeter = "1.7"
 Setfield = "0.8"
-TreeTools = "0.3.0"
-julia = "1.6"
+TreeTools = "0.4.0"
+julia = "1.7"
 
