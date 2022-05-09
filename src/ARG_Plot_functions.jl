@@ -2,7 +2,7 @@ using PyCall
 using Conda
 Conda.add("biopython")
 
-function ARGPlot(tree_list_input, MCC_list; draw_connections=false, tree_names=nothing)
+function ARGPlot(tree_list_input, MCC_list; draw_connections=false, tree_names=nothing, outfolder=nothing)
 ## use a python wrapper to plot trees using Bio.Phylo
 py"""
 from Bio import Phylo
@@ -10,7 +10,7 @@ from Bio import MissingPythonDependencyError
 import matplotlib.pyplot as plt
 from io import StringIO
 
-def ARGPlot(tree_list_input, MCC_list, draw_connections=False, tree_names=None):
+def ARGPlot(tree_list_input, MCC_list, draw_connections=False, tree_names=None, outfolder=None):
 
     main_tree = Phylo.read(StringIO(tree_list_input[0]), "newick")
     tree_list = []
@@ -20,7 +20,6 @@ def ARGPlot(tree_list_input, MCC_list, draw_connections=False, tree_names=None):
     print("\nARGPlot: reading trees into python")
 
     ## add mccs as labels to trees, similar to assign.mccs in TreeTime
-    print(main_tree)
     print(tree_list)
     prepare_trees(main_tree, tree_list, MCC_list)
     print("ARGPlot: pre-preparing trees")
@@ -30,7 +29,10 @@ def ARGPlot(tree_list_input, MCC_list, draw_connections=False, tree_names=None):
     ## draw the ARG from one tree using a modified Phylo.draw function
     draw_ARG(main_tree, tree_list, recombination_pairs_list, draw_connections=draw_connections, tree_name_list=tree_names)
     print("ARGPlot: drawing ARG \n")
-    plt.savefig('ARG_plot.png')
+    if outfolder and isinstance(outfolder, str):
+        plt.savefig(outfolder+'/ARG_plot.png')
+    else:
+        plt.savefig('ARG_plot.png')
 
 def print_tree(tree_string, number):
     ax = plt.axes()
@@ -120,7 +122,6 @@ def prepare_trees(first_tree, tree_list, MCCs_list):
     full_tree_list = tree_list.copy()
     full_tree_list.append(first_tree)
     for tree in full_tree_list:
-        tree.root.branch_length = 0
 
         def label_parent(n):
             parent = n
@@ -131,9 +132,11 @@ def prepare_trees(first_tree, tree_list, MCCs_list):
 
         n = tree.root
         label_parent(n)
-        depths= n.depths(unit_branch_lengths=True)
+        #depths= n.depths(unit_branch_lengths=True)
         for n in tree.find_clades():
-            n.branch_length = depths[n]
+            #n.branch_length = depths[n]
+            n.branch_length = 1
+        tree.root.branch_length = 0
     # make a lookup for the MCCs and assign to trees
     leaf_to_MCC = {}
     for MCCs in MCCs_list:
@@ -567,5 +570,5 @@ def draw_ARG(
         axes.legend(handles=lines)
 """
 
-    py"ARGPlot"(tree_list_input, MCC_list, draw_connections=draw_connections, tree_names=tree_names)
+    py"ARGPlot"(tree_list_input, MCC_list, draw_connections=draw_connections, tree_names=tree_names, outfolder=outfolder)
 end
