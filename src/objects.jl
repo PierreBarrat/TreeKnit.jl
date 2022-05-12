@@ -13,7 +13,8 @@ Storing parameters for `SplitGraph.runopt` function.
   Used in likelihood calculations.
   This is initialized from other input arguments, and defaults to sequences of length one.
 ### Simulated annealing
-- `nMCMC::Int = 25`: The number of MCMC iterations for a tree of `n` leaves is `nMCMC*n`.
+- `nMCMC::Int = 25`: The number *total* number of MCMC steps (swaps) for a tree of `n` leaves
+	is `nMCMC*n`. The number of MCMC steps at one temperature is `nMCMC * n / nT`.
 - `cooling_schedule = :geometric`: type of cooling schedule `(:geometric, :linear, :acos)`
 - `Tmin::Float64 = 0.05`: minimal temperature of SA.
 - `Tmax::Float64 = 0.8`: maximal temperature of SA.
