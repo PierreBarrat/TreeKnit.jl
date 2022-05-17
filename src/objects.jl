@@ -30,11 +30,11 @@ Storing parameters for `SplitGraph.runopt` function.
 	resolve::Bool = true
 	seq_lengths::Vector{Int} = [1, 1]
 	# For the annealing
-	nMCMC::Int = 25
+	nMCMC::Int = 50
 	Tmin::Float64 = 0.05; @assert Tmin > 0
-	Tmax::Float64 = 0.8; @assert Tmax > Tmin
-	nT::Int = 3000
-	cooling_schedule = :linear
+	Tmax::Float64 = 1; @assert Tmax > Tmin
+	nT::Int = 100
+	cooling_schedule = :geometric
 	Trange = get_cooling_schedule(Tmin, Tmax, nT, type=cooling_schedule)
 	sa_rep::Int64 = 1
 	# Verbosity
@@ -55,7 +55,7 @@ function get_cooling_schedule(Tmin, Tmax, nT; type=:geometric)
 end
 
 function get_geometric_cooling_schedule(Tmin, Tmax, nT)
-	α = (log(Tmin) - log(Tmax)) / nT
+	α = exp((log(Tmin) - log(Tmax)) / nT)
 	n = ceil(Int, (log(Tmin) - log(Tmax)) / log(α))
 	return [α^i * Tmax for i in 0:n]
 end
