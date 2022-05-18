@@ -83,6 +83,7 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree; output = :mccs)
 
 		# Topology based inference
 		oa.verbose && @info "Running optimization to find MCCs..."
+		oa.verbose && @info "Cooling schedule: $(oa.cooling_schedule) / Temperature values: $(length(oa.Trange)) / Total of MCMC steps: $(length(ot1.lleaves) * oa.nMCMC)"
 		@assert share_labels(ot1, ot2) "Trees do not share leaves"
 		M = Int(ceil(length(ot1.lleaves) * oa.nMCMC / length(oa.Trange)))
 		mccs, Efinal, Ffinal, lk = SplitGraph.opttrees(
