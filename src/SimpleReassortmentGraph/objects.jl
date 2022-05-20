@@ -178,16 +178,21 @@ function add_color!(n, c::Int)
 	n.color[c] = true
 end
 
+"""
+	set_branch_length!(n, τ, c, clrs...)
+
+Set branch above `n` to length `τ` for all colors in `(c, clrs...)`.
+"""
 function set_branch_length!(n, τ::Real, c, clrs...)
-	@assert hascolor(n, c)
-	@assert hasancestor(n, c)
+	@assert hascolor(n, c) "$(n.label) is not of color $c\n $n"
+	@assert hasancestor(n, c) "No ancestor of color $c for $(n.label)\n $(n)"
 	n.tau[c] = τ + eps()
 	for clr in clrs
 		set_branch_length!(n, τ, clr)
 	end
 end
 function set_branch_length!(n, ::Missing, c, clrs...)
-	@assert hascolor(n, c)
+	@assert hascolor(n, c) "$(n.label) is not of color $c\n $n"
 	n.tau[c] = missing
 	for clr in clrs
 		set_branch_length!(n, missing, clr)
