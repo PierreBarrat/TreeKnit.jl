@@ -157,13 +157,13 @@ function infer_benchmark_MCCs(no_trees::Int64, lineage_number::Int64; debug=true
         print_MCCs(MCCsInfered, MCC_combinations_pos_to_trees_list)
     end
 
-
+    return trees
 end
 
 
 no_trees = 3
 lineage_number = 6
-infer_benchmark_MCCs(no_trees, lineage_number; debug=true)
+trees = infer_benchmark_MCCs(no_trees, lineage_number; debug=true)
 println("done")
 
 
