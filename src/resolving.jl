@@ -91,7 +91,6 @@ function resolve!(Snew, S::Vector{SplitList{String}}, t::Vector{Tree{T}}, Sk::Sp
 				if stmp == sk
 					count +=1
 					push!(resolve_list, i)
-					c += 1
 				else
 					break
 				end
@@ -100,6 +99,7 @@ function resolve!(Snew, S::Vector{SplitList{String}}, t::Vector{Tree{T}}, Sk::Sp
 				for i in resolve_list
 					push!(S[i].splits, sk)
 					push!(Snew[i].splits, sk)
+					c += 1
 				end
 			end
 		end
@@ -109,7 +109,6 @@ function resolve!(Snew, S::Vector{SplitList{String}}, t::Vector{Tree{T}}, Sk::Sp
 end
 
 function resolve!(S::Vector{SplitList{String}}, t::Vector{Tree{T}}) where T
-	print("new resolve function")
 	nit = 0
 	nitmax = 20
 	flag = true
@@ -170,14 +169,6 @@ function resolve!(t1::Tree, t2::Tree, MCCs; tau = 0.)
 
 	return resolvable_splits
 end
-
-
-
-
-###############################################################################################################
-########################### Resolve multiple trees in a list in a compatible way ##############################
-###############################################################################################################
-
 
 
 ###############################################################################################################
