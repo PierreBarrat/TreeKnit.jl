@@ -67,14 +67,16 @@ runopt(t1::Tree, t2::Tree; kwargs...) = runopt(OptArgs(;kwargs...), t1, t2)
 
 function runopt(oa::OptArgs, t1::Tree, t2::Tree, tn::Vararg{Tree}; output = :mccs)
 	# Copying input trees for optimization
-	ot = [copy(t) for t in (t1, t2, tn...)]
-	copy_leaves = prepare_copies(ot)
+	ot = [copy(t) for t in (t1, t2, tn...)];
+	copy_leaves = prepare_copies(ot);
 
 	# Resolve
-	oa.resolve && resolve!(ot...)
+	oa.resolve && resolve!(ot...);
 
-	iMCCs = naive_mccs(ot1, ot2)
-	oa.verbose && @info "Initial state: $(length(iMCCs)) naive MCCs"
+	for tree_pair in Combinatorics.combinations(1:length(ot), 2)
+		iMCCs = naive_mccs([ot[tree_pair[1]], ot[tree_pair[2]]], copy_leaves[tree_pair]);
+		oa.verbose && @info "Initial state: $(length(iMCCs)) naive MCCs for tree pair: $(tree_pair)"
+	end
 
 	MCCs = [] # All final MCCs found up to now
 
@@ -205,19 +207,30 @@ Prune MCCs `mcc_names[x]` for all `x` in `mcc_conf` from trees `t...`.
 """
 pruneconf!(trees, mcc_names, mcc_conf) = pruneconf!([mcc_names[x] for x in mcc_conf], trees...)
 
+
+"""
+	prepare_copies(trees::Vector{Tree{T}}) where T
+
+Prepare trees for finding MCCs, check trees share labels at start, give each node a copy mask,
+each tree has l-1 copies, for tree i, n.dat["copy"][j] lets us know if there is this node is still 
+included in the copy. Additionally, return the current leaves of each copy pair in a dictionary
+the key is the tree pair.
+"""
 function prepare_copies(trees::Vector{Tree{T}}) where T
 	# Check that trees share leaves
     sh = mapreduce(t->share_labels(t[1],t[2]), *, zip(trees[1:end-1], trees[2:end]))
     !sh && error("Can only be used on trees that share leaf nodes.")
 
 	##give each node in each tree a copy mask, at the beginning every node has (l-1) copies 
+	##but give a l -dimensional list for faster look-up when comparing pairs
 	l = length(trees)
 	for t in trees
 		for n in values(t.lnodes)
-			println(n.label)
 			n.data = TreeTools.MiscData(Dict("copy"=>[1 for i in 1:(l-1)]))
 		end
 	end
+
+	## return the leaves for each tree copy pair
 	copy_leaves = Dict(c=>deepcopy(trees[1].lleaves) for c in Combinatorics.combinations(1:l, 2))
 	return copy_leaves
 end

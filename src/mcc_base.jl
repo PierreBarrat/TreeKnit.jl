@@ -1,24 +1,117 @@
+function copysplitlist(r::TreeNode, leaves::Array{T,1}, leafmap::Dict) where T
+    S = SplitList(
+	    leaves,
+		Array{Split,1}(undef,0),
+		zeros(Bool, length(leaves)),
+		Dict{eltype(leaves), Split}(),
+	)
+	copysplitlist!(S, r, leaves, leafmap)
+	return S
+end
+
+function copysplitlist!(S::SplitList, r::TreeNode, leaves::Array{T,1}, leafmap::Dict) where T
+	if r.label in leaves
+		s = Split([leafmap[r.label]])
+	else
+		L = 0
+		for c in r.child
+			sc = copysplitlist!(S, c, leaves, leafmap)
+			L += length(sc)
+		end
+		s = Split(L)
+		i = 1
+		for c in r.child
+			if c.label in leaves
+				s.dat[i] = leafmap[c.label]
+				i += 1
+			else
+				sc = S.splitmap[c.label]
+				TreeTools._joinsplits!(s,sc,i)
+				i += length(sc)
+			end
+		end
+		sort!(s.dat)
+		unique!(s.dat)
+		push!(S.splits, s)
+		S.splitmap[r.label] = s
+	end
+	return s
+end
+
+
+function is_coherent_clade_copy_pair(roots::Array{<:TreeNode,1}, S::Tuple{<:SplitList,n} where n, leaves)
+    # All `r` in `roots` should at least have the same number of non-masked children
+    #if length([c if c.data["copy"][loc_pair[1]] for roots[2].child]) != 
+    #        length([c if c.data["copy"][loc_pair[2]] for roots[1].child])
+    #    return false
+    #end
+
+    # Checking clade consistency
+    for cref in roots[1].child
+        if cref.label in leaves
+            found = false
+            for c in roots[2].child
+                if c.label == cref.label
+                    found = true
+                    break
+                end
+            end
+            if !found
+                return false
+            end
+        else
+            children = [cref]
+            sref = S[1].splitmap[cref.label]
+            # Looking at child `cref` for `roots[1]`
+            # For every `r` in roots, there has to be a child `c` with the same split
+            for c in roots[2].child
+                if c.label ∉ leaves && S[2].splitmap[c.label] == sref
+                    push!(children, c)
+                    break
+                end
+            end
+            if length(children) != 2 # nothing found
+                return false
+            end
+
+            # Clade below all children found
+            if !is_coherent_clade_copy_pair(children, S, leaves)
+                return false
+            end
+        end
+    end
+    return true
+end
+
 """
     naive_mccs(treelist)
 
 Find sets of nodes which are:
-- clades in all trees of `treelist`,
+- clades in all trees of `treelist` / current tree copies in `treelist`
 - all subclades of nodes are clades in all trees of `treelist`
   (both of these properties define consistency),
 - maximal: adding a node to a set results it in not being a clade in at least
   one of the trees.
 
-All the trees of `treelist` should share the same leaf nodes.
+All the trees / tree copies of `treelist` should share the same leaf nodes. 
+These are either specified in the dictionary `copyleaves` or defined as the shared 
+leaves in  `treelist`
 """
-function naive_mccs(treelist; copyleaves=None)
+function naive_mccs(treelist::Vector{Tree{T}}, copyleaves::Union{Nothing, Dict{String, TreeNode{T}}}) where T
 
-    # List of splits in trees
+    if isnothing(copyleaves)
+        # Check that trees share leaves
+        sh = mapreduce(t->share_labels(t[1],t[2]), *, zip(treelist[1:end-1], treelist[2:end]))
+        !sh && error("Can only be used on trees that share leaf nodes.")
+        copyleaves = treelist[1].lleaves
+    end
+    # List of splits in trees/ copy pairs
     leaves = sort(collect(keys(copyleaves)))
     leafmap = Dict(leaf=>i for (i,leaf) in enumerate(leaves))
-    S = Tuple(SplitList(t.root, leaves, ones(Bool, length(leaves)), leafmap) for t in treelist)
+    S = Tuple(copysplitlist(t.root, leaves, leafmap) for t in treelist)
 
     # List of already visited nodes
-    checklist = Dict(k=>false for k in keys(leaves))
+    checklist = Dict(k=>false for k in leaves)
 
     # Explore one leaf at a time
     mc_clades = []
@@ -28,8 +121,6 @@ function naive_mccs(treelist; copyleaves=None)
             croot = [t.lnodes[cl] for t in treelist]
             # Initial individual, always a common clade in all trees
             clabel = [cl]
-
-            # We're going to go up in all trees at the same time
             flag = true
             while flag &&  mapreduce(x->!x.isroot, *, croot; init=true) #prod(!x.isroot for x in croot)
                 # Ancestors of current maximal clade in all trees
@@ -50,7 +141,7 @@ function naive_mccs(treelist; copyleaves=None)
                     )
                     # --> `r ∈ nroot` is the same split in all trees
                     # check if children of `r` are also same splits in all trees
-                    if is_coherent_clade(nroot,S)
+                    if is_coherent_clade_copy_pair(nroot,S, leaves)
                         if nroot == croot
                             # Singleton in the tree, or clade with a single node
                             # --> the algorithm is stuck on this node
