@@ -10,25 +10,23 @@ Find sets of nodes which are:
 
 All the trees of `treelist` should share the same leaf nodes.
 """
-function naive_mccs(treelist)
-    # Check that trees share leaves
-    sh = mapreduce(t->share_labels(t[1],t[2]), *, zip(treelist[1:end-1], treelist[2:end]))
-    !sh && error("Can only be used on trees that share leaf nodes.")
+function naive_mccs(treelist; copyleaves=None)
 
     # List of splits in trees
-    S = Tuple(SplitList(t) for t in treelist)
+    leaves = sort(collect(keys(copyleaves)))
+    leafmap = Dict(leaf=>i for (i,leaf) in enumerate(leaves))
+    S = Tuple(SplitList(t.root, leaves, ones(Bool, length(leaves)), leafmap) for t in treelist)
 
     # List of already visited nodes
-    tref = treelist[1]
-    checklist = Dict(k=>false for k in keys(tref.lleaves))
+    checklist = Dict(k=>false for k in keys(leaves))
 
     # Explore one leaf at a time
     mc_clades = []
     for (cl,v) in checklist
         if !v # If leave not already visited
             # Root of current maximal clade, in all trees
-            croot = [t.lleaves[cl] for t in treelist]
-            # Initial individual, always a common clade in all trees since it's a leaf.
+            croot = [t.lnodes[cl] for t in treelist]
+            # Initial individual, always a common clade in all trees
             clabel = [cl]
 
             # We're going to go up in all trees at the same time
