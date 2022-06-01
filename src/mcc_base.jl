@@ -164,7 +164,14 @@ function naive_mccs(treelist::Vector{Tree{T}}, copyleaves::Union{Nothing, Dict{S
     end
     return sort(mc_clades, lt = clt)
 end
-naive_mccs(t...) = naive_mccs(t)
+
+function naive_mccs(treelist::Vector{Tree{T}}) where T
+    return naive_mccs(treelist, nothing)
+end
+
+function naive_mccs(t1::Tree{T}, t2::Tree{T}, tn::Vararg{Tree{T}}) where T
+    return naive_mccs([t1, t2, tn...], nothing)
+end
 
 #= Custom order for MCCs =#
 function clt(x,y)

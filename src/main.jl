@@ -87,10 +87,10 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree, tn::Vararg{Tree}; output = :mcc
 
 		# Topology based inference
 		oa.verbose && @info "Running optimization to find MCCs..."
-		@assert share_labels(ot1, ot2) "Trees do not share leaves"
-		M = Int(ceil(length(ot1.lleaves) * oa.nMCMC / length(oa.Trange)))
+		@assert share_labels(ot...) "Trees do not share leaves"
+		M = Int(ceil(length(ot[1].lleaves) * oa.nMCMC / length(oa.Trange)))
 		mccs, Efinal, Ffinal, lk = SplitGraph.opttrees(
-			ot1, ot2;
+			ot[1], ot[2];
 			γ=oa.γ, seq_lengths = oa.seq_lengths, M=M, Trange=oa.Trange,
 			likelihood_sort=oa.likelihood_sort, resolve=oa.resolve, sa_rep = oa.sa_rep, oa.verbose
 		)
@@ -100,7 +100,7 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree, tn::Vararg{Tree}; output = :mcc
 
 		# Stopping condition
 		oa.verbose && @info "Proceeding based on newly found MCCs..."
-		flag, rMCCs = stop_conditions!(MCCs, mccs, oa, it, ot1, ot2; hardstop=true)
+		flag, rMCCs = stop_conditions!(MCCs, mccs, oa, it, ot[1], ot[2]; hardstop=true)
 
 		#=
 			Note on variables at this point
@@ -110,14 +110,14 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree, tn::Vararg{Tree}; output = :mcc
 		=#
 
 		# Checks
-		@assert prod([check_tree(t) for t in (ot1, ot2)]) "Problem in a tree during opt."
+		@assert prod([check_tree(t) for t in (ot...)]) "Problem in a tree during opt."
 
 		(flag == :stop) && break
 		it += 1
 	end
 
 	if output == :all
-		return TreeKnit.sort_mccs(MCCs), ot1, ot2
+		return TreeKnit.sort_mccs(MCCs), ot...
 	else
 		return sort_mccs(MCCs)
 	end
