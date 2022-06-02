@@ -83,14 +83,16 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree, tn::Vararg{Tree}; output = :mcc
 	it = 1
 	while true
 		flag = :init
-		oa.verbose && @info "--- Iteration $it (max. $(oa.itmax)) - $(length(leaves(ot1))) leaves remaining ---\n"
-
+		oa.verbose && @info "--- Iteration $it (max. $(oa.itmax))"
+		for copy in keys(copy_leaves)
+			oa.verbose && @info "- $(length(copy_leaves[copy])) leaves remaining in tree pair $copy ---\n"
+		end
 		# Topology based inference
 		oa.verbose && @info "Running optimization to find MCCs..."
-		@assert share_labels(ot...) "Trees do not share leaves"
-		M = Int(ceil(length(ot[1].lleaves) * oa.nMCMC / length(oa.Trange)))
+		# TO DO: @assert share_labels(ot...) "Trees do not share leaves"
+		M = [Int(ceil(length(t.lleaves) * oa.nMCMC / length(oa.Trange))) for t in ot]
 		mccs, Efinal, Ffinal, lk = SplitGraph.opttrees(
-			ot[1], ot[2];
+			ot, copy_leaves;
 			γ=oa.γ, seq_lengths = oa.seq_lengths, M=M, Trange=oa.Trange,
 			likelihood_sort=oa.likelihood_sort, resolve=oa.resolve, sa_rep = oa.sa_rep, oa.verbose
 		)
@@ -127,9 +129,6 @@ function stop_conditions!(previous_mccs, new_mccs, oa, it, trees... ; hardstop=t
 	if length(new_mccs) == 0
 		# oa.verbose && print("No solution found... ")
 		oa.verbose && @info "No solution found... "
-		print(typeof(trees))
-		print(typeof(trees...))
-		print(typeof([trees]))
 		remaining_mccs = naive_mccs(trees...)
 		## If hardstop or maxit,  stop
 		if hardstop || it > oa.itmax
@@ -228,12 +227,12 @@ function prepare_copies(trees::Vector{Tree{T}}) where T
 	l = length(trees)
 	for t in trees
 		for n in values(t.lnodes)
-			n.data = TreeTools.MiscData(Dict("copy"=>[1 for i in 1:(l-1)]))
+			n.data = TreeTools.MiscData(Dict("copy"=>[1 for i in 1:l]))
 		end
 	end
 
 	## return the leaves for each tree copy pair
-	copy_leaves = Dict(c=>deepcopy(trees[1].lleaves) for c in Combinatorics.combinations(1:l, 2))
+	copy_leaves = Dict(c=>deepcopy(Set(keys(trees[1].lleaves))) for c in Combinatorics.combinations(1:l, 2))
 	return copy_leaves
 end
 

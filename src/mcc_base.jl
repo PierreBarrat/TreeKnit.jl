@@ -97,7 +97,7 @@ All the trees / tree copies of `treelist` should share the same leaf nodes.
 These are either specified in the dictionary `copyleaves` or defined as the shared 
 leaves in  `treelist`
 """
-function naive_mccs(treelist::Vector{Tree{T}}, copyleaves::Union{Nothing, Dict{String, TreeNode{T}}}) where T
+function naive_mccs(treelist::Vector{Tree{T}}, copyleaves::Union{Nothing, Set{String}}) where T
 
     if isnothing(copyleaves)
         # Check that trees share leaves
@@ -106,7 +106,7 @@ function naive_mccs(treelist::Vector{Tree{T}}, copyleaves::Union{Nothing, Dict{S
         copyleaves = treelist[1].lleaves
     end
     # List of splits in trees/ copy pairs
-    leaves = sort(collect(keys(copyleaves)))
+    leaves = sort(collect(copyleaves))
     leafmap = Dict(leaf=>i for (i,leaf) in enumerate(leaves))
     S = Tuple(copysplitlist(t.root, leaves, leafmap) for t in treelist)
 
@@ -253,7 +253,8 @@ For each clade `m` in `MCC`:
   specific to `m`.
 
 """
-function name_mcc_clades!(treelist, MCC)
+function name_mcc_clades!(treelist, copyleaves, MCC)
+    # make label the same for MCC tree pair roots
     # Finding initial label
     label_init = 1
     for t in treelist
@@ -263,26 +264,59 @@ function name_mcc_clades!(treelist, MCC)
             end
         end
     end
-
-    nd = Dict()
-    for (i,m) in enumerate(MCC)
-        cl = i + label_init - 1
-        # Renaming root
-        for t in treelist
-            r = lca(t, m)
-            old_label = r.label
-            new_label = r.isleaf ? "$(old_label)" : "MCC_$(cl)"
-            r.label = new_label
-            delete!(t.lnodes, old_label)
-            t.lnodes[new_label] = r
-            nd[new_label] = m
+    
+    # remove nodes inside MCCs from copy (they have been "cut off")
+    j = 0
+    for tree_pair in keys(copyleaves)
+        next_j = 0
+        nodes_to_be_removed_from_copy = []
+        nodes_to_be_added_to_copy = []
+        for (i,m) in enumerate(MCC[tree_pair])
+            cl = i + label_init - 1 +j
+            r_i = lca(treelist[tree_pair[1]], m)
+            r_j = lca(treelist[tree_pair[2]], m)
+            if r_i.label ∉ copyleaves[tree_pair]
+                nodes_to_be_removed_from_copy_1 = remove_node_from_copy!(r_i, tree_pair[2], copyleaves[tree_pair])
+                nodes_to_be_removed_from_copy_2 = remove_node_from_copy!(r_j, tree_pair[1], copyleaves[tree_pair])
+                @assert nodes_to_be_removed_from_copy_1 == nodes_to_be_removed_from_copy_2
+                append!(nodes_to_be_removed_from_copy, nodes_to_be_removed_from_copy_1)
+                
+                new_label = "MCC_$(cl)"
+                next_j +=1
+                r_i_old_label, r_j_old_label = r_i.label, r_j.label
+                r_i.label, r_j.label = new_label, new_label
+                delete!(treelist[tree_pair[1]].lnodes, r_i_old_label)
+                delete!(treelist[tree_pair[2]].lnodes, r_j_old_label)
+                treelist[tree_pair[1]].lnodes[new_label] = r_i
+                treelist[tree_pair[2]].lnodes[new_label] = r_j
+                push!(nodes_to_be_added_to_copy, new_label)
+            end
+        end
+        j += next_j 
+        # remove leaves inside an MCC from copyleaves and replace with root of MCC
+        for n in nodes_to_be_removed_from_copy
+            delete!(copyleaves[tree_pair], n)
+        end
+        for n in nodes_to_be_added_to_copy
+            push!(copyleaves[tree_pair], n)
         end
     end
 
-    return nd
 end
 
-
+function remove_node_from_copy!(treenode, pos, copyleaves; internal_copyleaves=Set())
+    if treenode.label ∉ copyleaves
+        for c in treenode.child
+            c.data.dat["copy"][pos] = 0
+            if c.label ∉ copyleaves
+                push!(internal_copyleaves, remove_node_from_copy!(treenode, pos, copyleaves; internal_copyleaves))
+            else
+                push!(internal_copyleaves, c.label)
+            end
+        end
+    end
+    return internal_copyleaves
+end
 
 """
     reduce_to_mcc(tree, MCC)

@@ -31,36 +31,38 @@ Return a list of MCCs for input trees.
 Output:
 1.
 """
-function opttrees(t...;
+function opttrees(treelist::Vector{Tree{T}}, copyleaves::Union{Nothing, Set{String}};
 	γ=2,
-	seq_lengths=1000 * ones(Int64, length(t)),
+	seq_lengths=1000 * ones(Int64, sum([length(t) for t in treelist])),
 	Trange=reverse(0.001:0.01:1.),
 	M = 10,
 	likelihood_sort=true,
 	resolve=true,
 	sa_rep = 1,
 	verbose=false
-)
+) where T 
 	opttrees!(
-		γ, Trange, M, seq_lengths, [convert(Tree{TreeTools.EmptyData}, x) for x in t]...;
+		γ, Trange, M, seq_lengths, treelist, copyleaves;
 		likelihood_sort, resolve, sa_rep, verbose
 	)
 end
 function opttrees!(
-	γ, Trange, M, seq_lengths, t::Vararg{Tree};
+	γ, Trange, M, seq_lengths, t::Vector{Tree{T}}, copyleaves;
 	likelihood_sort=true, resolve=true, sa_rep=1, verbose=false,
-)
+) where T 
 	set_verbose(verbose)
 
-	treelist = t
-	mcc = naive_mccs(treelist...)
+	mcc = Dict()
+	for tree_pair in Combinatorics.combinations(1:length(t), 2)
+		mcc[tree_pair] = naive_mccs([t[tree_pair[1]], t[tree_pair[2]]], copyleaves[tree_pair])
+	end
 	if length(mcc) == 1
 		return mcc, 0, 0., Int64[], Float64[], Union{Missing,Float64}[]
 	end
-	mcc_names = TreeKnit.name_mcc_clades!(treelist, mcc)
-	for (i,t) in enumerate(treelist)
-		TreeKnit.reduce_to_mcc!(t, mcc)
-	end
+	mcc_names, copyleaves = TreeKnit.name_mcc_clades!(t, copyleaves, mcc)
+	# for (i,t) in enumerate(treelist)
+	# 	TreeKnit.reduce_to_mcc!(t, mcc)
+	# end
 	g = trees2graph(treelist)
 
 	# SA - Optimization
