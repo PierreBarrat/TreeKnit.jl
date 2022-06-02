@@ -2,6 +2,9 @@ t1 = read_tree("$(dirname(pathof(TreeKnit)))/..//test/splitgraph/3solutions/t1.n
 t2 = read_tree("$(dirname(pathof(TreeKnit)))/..//test/splitgraph/3solutions/t2.nwk")
 
 t3 = node2tree(parse_newick("(A,B,(C,D)internal_2)"))
+t4 = node2tree(parse_newick("(A,B,C,D)"))
+t5 = node2tree(parse_newick("((A,C)internal_2,B,D)"))
+
 l = Dict{String, TreeNode{TreeTools.EmptyData}}()
 for k in keys(t3.lnodes)
 	if t3.lnodes[k].label in ["A", "B", "internal_2"]
@@ -13,6 +16,11 @@ end
 	@test naive_mccs([t3, t3], t3.lleaves) == [["A", "B", "C", "D"]]
 	##check works with mask
 	@test naive_mccs([t3, t3], l) == [["A", "B", "internal_2"]]
+	##check works after being resolved (in this case should not be resolved)
+	resolve!(t3, t4, t5)
+	@test naive_mccs([t3, t4], t3.lleaves) == [["A"], ["B"], ["C"], ["D"]]
+	@test naive_mccs([t3, t5], t3.lleaves) == [["A"], ["B"], ["C"], ["D"]]
+	@test naive_mccs([t4, t5], t3.lleaves) == [["A"], ["B"], ["C"], ["D"]]
 end
 
 treelist = deepcopy(Tree{TreeTools.EmptyData}[t1, t2])

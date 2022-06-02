@@ -68,6 +68,7 @@ runopt(t1::Tree, t2::Tree; kwargs...) = runopt(OptArgs(;kwargs...), t1, t2)
 function runopt(oa::OptArgs, t1::Tree, t2::Tree, tn::Vararg{Tree}; output = :mccs)
 	# Copying input trees for optimization
 	ot = [copy(t) for t in (t1, t2, tn...)];
+	ot = [convert(Tree{TreeTools.MiscData}, t) for t in ot]
 	copy_leaves = prepare_copies(ot);
 
 	# Resolve
@@ -79,7 +80,6 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree, tn::Vararg{Tree}; output = :mcc
 	end
 
 	MCCs = [] # All final MCCs found up to now
-
 	it = 1
 	while true
 		flag = :init
@@ -97,7 +97,6 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree, tn::Vararg{Tree}; output = :mcc
 		!isempty(mccs) && append!(MCCs, mccs)
 		oa.verbose && @info "Found $(length(mccs)) new mccs."
 
-
 		# Stopping condition
 		oa.verbose && @info "Proceeding based on newly found MCCs..."
 		flag, rMCCs = stop_conditions!(MCCs, mccs, oa, it, ot[1], ot[2]; hardstop=true)
@@ -110,7 +109,7 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree, tn::Vararg{Tree}; output = :mcc
 		=#
 
 		# Checks
-		@assert prod([check_tree(t) for t in (ot...)]) "Problem in a tree during opt."
+		@assert prod([check_tree(t) for t in ot]) "Problem in a tree during opt."
 
 		(flag == :stop) && break
 		it += 1
@@ -128,7 +127,10 @@ function stop_conditions!(previous_mccs, new_mccs, oa, it, trees... ; hardstop=t
 	if length(new_mccs) == 0
 		# oa.verbose && print("No solution found... ")
 		oa.verbose && @info "No solution found... "
-		remaining_mccs = naive_mccs(trees)
+		print(typeof(trees))
+		print(typeof(trees...))
+		print(typeof([trees]))
+		remaining_mccs = naive_mccs(trees...)
 		## If hardstop or maxit,  stop
 		if hardstop || it > oa.itmax
 			append!(previous_mccs, remaining_mccs)
@@ -155,7 +157,7 @@ function stop_conditions!(previous_mccs, new_mccs, oa, it, trees... ; hardstop=t
 	oa.verbose && @info "Found mccs do not cover all leaves. Pruning them from trees."
 	pruneconf!(new_mccs, trees...)
 	oa.resolve && resolve!(trees...)
-	remaining_mccs = naive_mccs(trees)
+	remaining_mccs = naive_mccs(trees...)
 	### If they new trees have an obvious solution, append it to new_mccs and stop
 	if length(remaining_mccs) == 1
 		append!(new_mccs, remaining_mccs)
