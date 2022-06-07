@@ -22,7 +22,13 @@ function resolve!(
 				roots = TreeTools.blca([t.lleaves[x] for x in leaves(S,i)]...)
 				R = lca(roots)
 				# Creating a new node with `roots` as children and `r` as ancestor.
-				nr = TreeNode(T(), label="RESOLVED_$(label_i)")
+				if isa(R, TreeNode{TreeTools.MiscData})
+					copy = R.data.dat["copy"]
+					nr = TreeNode(TreeTools.MiscData(); label="RESOLVED_$(label_i)")
+					nr.data = TreeTools.MiscData(Dict("copy"=>copy))
+				else
+					nr = TreeNode(T(); label="RESOLVED_$(label_i)")
+				end
 				label_i += 1
 				for r in roots
 					prunenode!(r)

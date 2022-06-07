@@ -67,9 +67,8 @@ runopt(t1::Tree, t2::Tree; kwargs...) = runopt(OptArgs(;kwargs...), t1, t2)
 
 function runopt(oa::OptArgs, t1::Tree, t2::Tree, tn::Vararg{Tree}; output = :mccs)
 	# Copying input trees for optimization
-	ot = [copy(t) for t in (t1, t2, tn...)];
-	ot = [convert(Tree{TreeTools.MiscData}, t) for t in ot]
-	copy_leaves = prepare_copies(ot);
+	ot = [t for t in (t1, t2, tn...)];
+	ot, copy_leaves = prepare_copies!(ot);
 
 	# Resolve
 	oa.resolve && resolve!(ot...);
@@ -81,7 +80,10 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree, tn::Vararg{Tree}; output = :mcc
 
 	MCCs = [] # All final MCCs found up to now
 	it = 1
+	mcc_names = Dict()
 	while true
+		ot_c = ot
+		copy_leaves_c = copy_leaves
 		flag = :init
 		oa.verbose && @info "--- Iteration $it (max. $(oa.itmax))"
 		for copy in keys(copy_leaves)
@@ -92,17 +94,17 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree, tn::Vararg{Tree}; output = :mcc
 		# TO DO: @assert share_labels(ot...) "Trees do not share leaves"
 		M = [Int(ceil(length(t.lleaves) * oa.nMCMC / length(oa.Trange))) for t in ot]
 		mccs, Efinal, Ffinal, lk = SplitGraph.opttrees(
-			ot, copy_leaves;
-			γ=oa.γ, seq_lengths = oa.seq_lengths, M=M, Trange=oa.Trange,
+			ot_c, copy_leaves_c; mcc_names=mcc_names,
+			γ=oa.γ, seq_lengths = oa.seq_lengths, M=M[1], Trange=oa.Trange,
 			likelihood_sort=oa.likelihood_sort, resolve=oa.resolve, sa_rep = oa.sa_rep, oa.verbose
 		)
+		print(mcc_names)
 		!isempty(mccs) && append!(MCCs, mccs)
 		oa.verbose && @info "Found $(length(mccs)) new mccs."
 
 		# Stopping condition
 		oa.verbose && @info "Proceeding based on newly found MCCs..."
-		flag, rMCCs = stop_conditions!(MCCs, mccs, oa, it, ot[1], ot[2]; hardstop=true)
-
+		flag, rMCCs = stop_conditions!(MCCs, mccs, oa, it, ot_c[1], ot_c[2]; copy_leaves=copy_leaves_c, hardstop=true)
 		#=
 			Note on variables at this point
 		- mccs: MCCs removed after simulated annealing (`opttrees` step)
@@ -111,7 +113,11 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree, tn::Vararg{Tree}; output = :mcc
 		=#
 
 		# Checks
-		@assert prod([check_tree(t) for t in ot]) "Problem in a tree during opt."
+		print("copy leaves")
+		print(copy_leaves)
+		print(ot_c[1])
+		print(ot_c[2])
+		@assert prod([check_tree(t) for t in ot_c]) "Problem in a tree during opt."
 
 		(flag == :stop) && break
 		it += 1
@@ -124,7 +130,7 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree, tn::Vararg{Tree}; output = :mcc
 	end
 end
 
-function stop_conditions!(previous_mccs, new_mccs, oa, it, trees... ; hardstop=true)
+function stop_conditions!(previous_mccs, new_mccs, oa, it, trees...; copy_leaves=nothing, hardstop=true)
 	# If no solution was found
 	if length(new_mccs) == 0
 		# oa.verbose && print("No solution found... ")
@@ -155,6 +161,7 @@ function stop_conditions!(previous_mccs, new_mccs, oa, it, trees... ; hardstop=t
 	# oa.verbose && println("Found mccs do not cover all leaves. Pruning them from trees. ")
 	oa.verbose && @info "Found mccs do not cover all leaves. Pruning them from trees."
 	pruneconf!(new_mccs, trees...)
+	copy_leaves[[1,2]] = Set(keys(trees[1].lleaves))
 	oa.resolve && resolve!(trees...)
 	remaining_mccs = naive_mccs(trees...)
 	### If they new trees have an obvious solution, append it to new_mccs and stop
@@ -210,14 +217,17 @@ pruneconf!(trees, mcc_names, mcc_conf) = pruneconf!([mcc_names[x] for x in mcc_c
 
 
 """
-	prepare_copies(trees::Vector{Tree{T}}) where T
+	prepare_copies!(trees::Vector{Tree{T}}) where T
 
 Prepare trees for finding MCCs, check trees share labels at start, give each node a copy mask,
 each tree has l-1 copies, for tree i, n.dat["copy"][j] lets us know if there is this node is still 
 included in the copy. Additionally, return the current leaves of each copy pair in a dictionary
 the key is the tree pair.
 """
-function prepare_copies(trees::Vector{Tree{T}}) where T
+function prepare_copies!(trees::Vector{Tree{T}}) where T
+	if !isa(trees[1], Tree{TreeTools.MiscData})
+		trees = [convert(Tree{TreeTools.MiscData}, t) for t in trees]
+	end
 	# Check that trees share leaves
     sh = mapreduce(t->share_labels(t[1],t[2]), *, zip(trees[1:end-1], trees[2:end]))
     !sh && error("Can only be used on trees that share leaf nodes.")
@@ -233,7 +243,7 @@ function prepare_copies(trees::Vector{Tree{T}}) where T
 
 	## return the leaves for each tree copy pair
 	copy_leaves = Dict(c=>deepcopy(Set(keys(trees[1].lleaves))) for c in Combinatorics.combinations(1:l, 2))
-	return copy_leaves
+	return trees, copy_leaves
 end
 
 

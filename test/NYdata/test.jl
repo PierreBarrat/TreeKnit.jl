@@ -16,6 +16,23 @@ t2 = read_tree("$(dirname(pathof(TreeKnit)))/../test/NYdata/tree_na.nwk")
 
 MCCs = computeMCCs(t1, t2)
 
+outdir = "NY_treeknit_results"
+# Setting up directories
+mkpath(outdir)
+rS = resolve!(t1, t2, MCCs)
+TreeTools.ladderize!(t1)
+TreeKnit.sort_polytomies!(t1, t2, MCCs)
+
+
+arg, rlm, lm1, lm2 = SRG.arg_from_trees(t1, t2, MCCs)
+
+TreeKnit.write_mccs(outdir * "/" * "MCCs.dat", MCCs)
+out_nwk1, out_nwk2 = TreeKnit.make_output_tree_names("$(dirname(pathof(TreeKnit)))/../test/NYdata/tree_ha.nwk", "$(dirname(pathof(TreeKnit)))/../test/NYdata/tree_na.nwk")
+TreeKnit.write_newick(outdir * "/" * out_nwk1, t1)
+TreeKnit.write_newick(outdir * "/" * out_nwk2, t2)
+TreeKnit.write(outdir * "/" * "arg.nwk", arg)
+TreeKnit.write_rlm(outdir * "/" * "nodes.dat", rlm)
+
 @testset "NY" begin
 	@test MCCs[1:end-1] == MCCs_ref
 end

@@ -84,7 +84,7 @@ t2 = node2tree(TreeTools.parse_newick("(A,(B,C,D))"))
 t3 = node2tree(TreeTools.parse_newick("((A,B),(C,D))"))
 trees = [t1, t2, t3]
 ot = [convert(Tree{TreeTools.MiscData}, t) for t in trees]
-copy_leaves = TreeKnit.prepare_copies(ot);
+ot, copy_leaves = TreeKnit.prepare_copies!(ot);
 resolve!(ot...);
 
 mcc = Dict()
@@ -92,6 +92,8 @@ for tree_pair in Combinatorics.combinations(1:length(ot), 2)
 	mcc[tree_pair] = naive_mccs([ot[tree_pair[1]], ot[tree_pair[2]]], copy_leaves[tree_pair])
 end
 TreeKnit.name_mcc_clades!(ot, copy_leaves, mcc)
+
+TreeKnit.remove_zero_copies!(ot[1])
 
 
 # println("##### Resolve using MCC inference #####")

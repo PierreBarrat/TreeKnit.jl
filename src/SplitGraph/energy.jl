@@ -1,4 +1,5 @@
 export compute_energy
+using Combinatorics
 
 let n::Int64=0
 	global increment_n() = (n+=1)
@@ -307,11 +308,14 @@ end
 	count_mismatches(t::Vararg{Tree})
 """
 function count_mismatches(trees::Vararg{Tree})
-	treelist = [convert(Tree{TreeTools.EmptyData}, t) for t in trees]
-	mcc = naive_mccs(treelist)
-	mcc_names = TreeKnit.name_mcc_clades!(treelist, mcc)
-	for (i,t) in enumerate(treelist)
-		TreeKnit.reduce_to_mcc!(t, mcc)
+	treelist, copyleaves = TreeKnit.prepare_copies!([trees...])
+	mcc = Dict()
+	for tree_pair in Combinatorics.combinations(1:length(treelist), 2)
+		mcc[tree_pair] = naive_mccs([treelist[tree_pair[1]], treelist[tree_pair[2]]], copyleaves[tree_pair])
+	end
+	TreeKnit.name_mcc_clades!(treelist, copyleaves, mcc)
+	for t in treelist
+		TreeKnit.remove_zero_copies!(t)
 	end
 	g = trees2graph(treelist)
 	conf = ones(Bool, length(g.leaves))

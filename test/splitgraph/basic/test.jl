@@ -1,3 +1,9 @@
+using TreeKnit
+using TreeKnit.SplitGraph
+using Test
+using TreeTools
+using Combinatorics
+
 @testset "Creating" begin
 	sn = SplitNode()
 	ln = LeafNode([], 1)
@@ -44,6 +50,17 @@ end
 t1 = node2tree(parse_newick("((A,B),(C,D))"))
 t2 = node2tree(parse_newick("((A,B),(C,D))"))
 g = trees2graph(t1,t2);
+
+treelist, copyleaves = TreeKnit.prepare_copies!([t1, t2])
+mcc = Dict()
+for tree_pair in Combinatorics.combinations(1:length(treelist), 2)
+	mcc[tree_pair] = naive_mccs([treelist[tree_pair[1]], treelist[tree_pair[2]]], copyleaves[tree_pair])
+end
+TreeKnit.name_mcc_clades!(treelist, copyleaves, mcc)
+for t in treelist
+	TreeKnit.remove_zero_copies!(t)
+end
+g = trees2graph(treelist)
 
 @testset "Compute energy for identical trees" begin
 	conf = ones(Bool, length(g.leaves))
