@@ -1,7 +1,7 @@
 name = "TreeKnit"
 uuid = "03f602be-98a1-4bb2-9504-fbd3406624a7"
 authors = ["PierreBarrat <p.barrat@live.fr>"]
-version = "0.2.3"
+version = "0.3.1"
 
 [deps]
 ARGTools = "9d79bb22-e449-4c7c-894c-454c3d3f5473"
@@ -23,4 +23,5 @@ LoggingExtras = "0.4"
 Parameters = "0.12"
 ProgressMeter = "1.7"
 Setfield = "0.8"
-julia = "1.6"
+TreeTools = "0.4.0"
+julia = "1.7"

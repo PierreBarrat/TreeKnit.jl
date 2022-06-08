@@ -44,8 +44,7 @@ function opttrees(treelist::Vector{Tree{T}}, copyleaves::Union{Nothing, Dict{Vec
 ) where T 
 	opttrees!(
 		γ, Trange, M, seq_lengths, [copy(t) for t in treelist], deepcopy(copyleaves);
-		mcc_names, likelihood_sort, resolve, sa_rep, verbose
-	)
+		mcc_names, likelihood_sort, resolve, sa_rep, verbose)
 end
 function opttrees!(
 	γ, Trange, M, seq_lengths, treelist::Vector{Tree{T}}, copyleaves; mcc_names=Dict(),

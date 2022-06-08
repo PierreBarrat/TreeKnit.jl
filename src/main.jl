@@ -157,6 +157,8 @@ function stop_conditions!(previous_mccs, new_mccs, oa, it, trees...; copy_leaves
 	## If they do not cover all leaves of the trees, remove them from the trees
 	# oa.verbose && println("Found mccs do not cover all leaves. Pruning them from trees. ")
 	oa.verbose && @info "Found mccs do not cover all leaves. Pruning them from trees."
+	oa.vv && @info "Pruned MCCs and trees: " new_mccs
+	oa.vv && show(trees)
 	pruneconf!(new_mccs, trees...)
 	copy_leaves[[1,2]] = Set(keys(trees[1].lleaves))
 	oa.resolve && resolve!(trees...)

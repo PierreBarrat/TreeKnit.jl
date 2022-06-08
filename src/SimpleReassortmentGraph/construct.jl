@@ -4,6 +4,11 @@
 Construct an `ARG` from two trees and a set of MCCs.
 """
 function arg_from_trees(it1, it2, MCCs)
+	if !ismissing(TreeTools.branch_length(it1.root)) || !ismissing(TreeTools.branch_length(it2.root))
+		@warn "Root node of one of the input trees has a non missing branch length.
+		This may cause issues when setting the branch length of the ARG"
+	end
+	#
 	t1 = copy(it1)
 	t2 = copy(it2)
 	# Resolve trees

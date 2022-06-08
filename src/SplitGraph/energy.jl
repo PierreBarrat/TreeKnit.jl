@@ -308,7 +308,8 @@ end
 	count_mismatches(t::Vararg{Tree})
 """
 function count_mismatches(trees::Vararg{Tree})
-	treelist, copyleaves = TreeKnit.prepare_copies!([trees...])
+	treelist = [copy(t) for t in trees]
+	treelist, copyleaves = TreeKnit.prepare_copies!(treelist)
 	mcc = Dict()
 	for tree_pair in Combinatorics.combinations(1:length(treelist), 2)
 		mcc[tree_pair] = naive_mccs([treelist[tree_pair[1]], treelist[tree_pair[2]]], copyleaves[tree_pair])
@@ -316,6 +317,7 @@ function count_mismatches(trees::Vararg{Tree})
 	TreeKnit.name_mcc_clades!(treelist, copyleaves, mcc)
 	for t in treelist
 		TreeKnit.remove_zero_copies!(t)
+
 	end
 	g = trees2graph(treelist)
 	conf = ones(Bool, length(g.leaves))
