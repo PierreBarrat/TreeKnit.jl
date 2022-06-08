@@ -42,7 +42,7 @@ function opttrees(t...;
 	verbose=false
 )
 	opttrees!(
-		γ, Trange, M, seq_lengths, [convert(Tree{TreeTools.EmptyData}, x) for x in t]...;
+		γ, Trange, M, seq_lengths, [copy(convert(Tree{TreeTools.EmptyData}, x)) for x in t]...;
 		likelihood_sort, resolve, sa_rep, verbose
 	)
 end

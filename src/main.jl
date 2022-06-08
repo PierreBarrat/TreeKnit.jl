@@ -83,6 +83,7 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree; output = :mccs)
 
 		# Topology based inference
 		oa.verbose && @info "Running optimization to find MCCs..."
+		oa.verbose && @info "Cooling schedule: $(oa.cooling_schedule) / Temperature values: $(length(oa.Trange)) / Total of MCMC steps: $(length(ot1.lleaves) * oa.nMCMC)"
 		@assert share_labels(ot1, ot2) "Trees do not share leaves"
 		M = Int(ceil(length(ot1.lleaves) * oa.nMCMC / length(oa.Trange)))
 		mccs, Efinal, Ffinal, lk = SplitGraph.opttrees(
@@ -149,6 +150,8 @@ function stop_conditions!(previous_mccs, new_mccs, oa, it, trees... ; hardstop=t
 	## If they do not cover all leaves of the trees, remove them from the trees
 	# oa.verbose && println("Found mccs do not cover all leaves. Pruning them from trees. ")
 	oa.verbose && @info "Found mccs do not cover all leaves. Pruning them from trees."
+	oa.vv && @info "Pruned MCCs and trees: " new_mccs
+	oa.vv && show(trees)
 	pruneconf!(new_mccs, trees...)
 	oa.resolve && resolve!(trees...)
 	remaining_mccs = naive_mccs(trees)

@@ -13,7 +13,8 @@ Storing parameters for `SplitGraph.runopt` function.
   Used in likelihood calculations.
   This is initialized from other input arguments, and defaults to sequences of length one.
 ### Simulated annealing
-- `nMCMC::Int = 25`: The number of MCMC iterations for a tree of `n` leaves is `nMCMC*n`.
+- `nMCMC::Int = 25`: The number *total* number of MCMC steps (swaps) for a tree of `n` leaves
+	is `nMCMC*n`. The number of MCMC steps at one temperature is `nMCMC * n / nT`.
 - `cooling_schedule = :geometric`: type of cooling schedule `(:geometric, :linear, :acos)`
 - `Tmin::Float64 = 0.05`: minimal temperature of SA.
 - `Tmax::Float64 = 0.8`: maximal temperature of SA.
@@ -29,11 +30,11 @@ Storing parameters for `SplitGraph.runopt` function.
 	resolve::Bool = true
 	seq_lengths::Vector{Int} = [1, 1]
 	# For the annealing
-	nMCMC::Int = 25
+	nMCMC::Int = 50
 	Tmin::Float64 = 0.05; @assert Tmin > 0
-	Tmax::Float64 = 0.8; @assert Tmax > Tmin
-	nT::Int = 3000
-	cooling_schedule = :linear
+	Tmax::Float64 = 1; @assert Tmax > Tmin
+	nT::Int = 100
+	cooling_schedule = :geometric
 	Trange = get_cooling_schedule(Tmin, Tmax, nT, type=cooling_schedule)
 	sa_rep::Int64 = 1
 	# Verbosity
@@ -54,7 +55,7 @@ function get_cooling_schedule(Tmin, Tmax, nT; type=:geometric)
 end
 
 function get_geometric_cooling_schedule(Tmin, Tmax, nT)
-	α = (log(Tmin) - log(Tmax)) / nT
+	α = exp((log(Tmin) - log(Tmax)) / nT)
 	n = ceil(Int, (log(Tmin) - log(Tmax)) / log(α))
 	return [α^i * Tmax for i in 0:n]
 end

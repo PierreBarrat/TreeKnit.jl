@@ -4,8 +4,8 @@ using Test
 
 # Lots of intricated singletons
 
-nwk1 = "(((((A:2,X3)AX3:1,X4)AX4:2,X5)AX5:2,B)AB:0.,X1,X2):0.R"
-nwk2 = "((((A:1,X2)AX2:3,X1)AX1:3,B)AB:0.,X3,X4,X5):0.R"
+nwk1 = "(((((A:2,X3)AX3:1,X4)AX4:2,X5)AX5:2,B)AB:0.,X1,X2):0.R;"
+nwk2 = "((((A:1,X2)AX2:3,X1)AX1:3,B)AB:0.,X3,X4,X5):0.R;"
 
 t1 = parse_newick_string(nwk1);
 t2 = parse_newick_string(nwk2);
@@ -55,8 +55,8 @@ end
 end
 
 # Weird branch lenghts
-nwk1 = "((A:1,B:1)AB:1,C:2)R:0"
-nwk2 = "(A:4,(B:0,C:0):4)R:0" # from a resolution
+nwk1 = "((A:1,B:1)AB:1,C:2)R:0;"
+nwk2 = "(A:4,(B:0,C:0):4)R:0;" # from a resolution
 
 t1 = parse_newick_string(nwk1);
 t2 = parse_newick_string(nwk2);
