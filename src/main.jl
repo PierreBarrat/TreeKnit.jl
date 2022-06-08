@@ -110,10 +110,6 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree, tn::Vararg{Tree}; output = :mcc
 		=#
 
 		# Checks
-		print("copy leaves")
-		print(copy_leaves)
-		print(ot[1])
-		print(ot[2])
 		@assert prod([check_tree(t) for t in ot]) "Problem in a tree during opt."
 
 		(flag == :stop) && break

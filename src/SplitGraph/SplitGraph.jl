@@ -52,7 +52,7 @@ function opttrees!(
 ) where T 
 	set_verbose(verbose)
 	if isnothing(copyleaves)
-		print("no copy leaves given")
+		print("WARNING: no copy leaves given to opttrees, using leaves")
 		treelist, copyleaves = TreeKnit.prepare_copies!(treelist);
 	end
 	mcc = Dict()
@@ -66,10 +66,6 @@ function opttrees!(
 	if [length(mcc[pair]) for pair in Combinatorics.combinations(1:length(treelist), 2)] == ones(Int(length(treelist)*(length(treelist)-1)/2))
 		return [mcc_names[[1,2]][x] for x in mcc[[1,2]]], 0, 0., Int64[], Float64[], Union{Missing,Float64}[]
 	end
-	print("after naive")
-	print(copyleaves)
-	print(treelist[1])
-	print(treelist[2])
 	g = trees2graph(treelist)
 	# SA - Optimization
 	oconfs, F, nfound = sa_opt(g, γ=γ, Trange=Trange, M=M, rep=sa_rep, resolve=resolve)
