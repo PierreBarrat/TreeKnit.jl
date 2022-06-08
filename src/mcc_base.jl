@@ -98,12 +98,11 @@ These are either specified in the dictionary `copyleaves` or defined as the shar
 leaves in  `treelist`
 """
 function naive_mccs(treelist::Vector{Tree{T}}, copyleaves::Union{Nothing, Set{String}}) where T
-
     if isnothing(copyleaves)
         # Check that trees share leaves
         sh = mapreduce(t->share_labels(t[1],t[2]), *, zip(treelist[1:end-1], treelist[2:end]))
         !sh && error("Can only be used on trees that share leaf nodes.")
-        copyleaves = treelist[1].lleaves
+        copyleaves = Set(keys(treelist[1].lleaves))
     end
     # List of splits in trees/ copy pairs
     leaves = sort(collect(copyleaves))
@@ -253,7 +252,37 @@ For each clade `m` in `MCC`:
   specific to `m`.
 
 """
-function name_mcc_clades!(treelist, copyleaves, MCC)
+
+# function name_mcc_clades!(treelist, MCC)
+#     # Finding initial label
+#     label_init = 1
+#     for t in treelist
+#         for n in values(t.lnodes)
+#             if match(r"MCC", n.label)!=nothing && parse(Int, n.label[5:end]) >= label_init
+#                 label_init = parse(Int, n.label[5:end]) + 1
+#             end
+#         end
+#     end
+
+#     nd = Dict()
+#     for (i,m) in enumerate(MCC)
+#         cl = i + label_init - 1
+#         # Renaming root
+#         for t in treelist
+#             r = lca(t, m)
+#             old_label = r.label
+#             new_label = r.isleaf ? "$(old_label)" : "MCC_$(cl)"
+#             r.label = new_label
+#             delete!(t.lnodes, old_label)
+#             t.lnodes[new_label] = r
+#             nd[new_label] = m
+#         end
+#     end
+
+#     return nd
+# end
+
+function name_mcc_clades!(treelist, copyleaves, MCC; mcc_names=Dict())
     # make label the same for MCC tree pair roots
     # Finding initial label
     label_init = 1
@@ -264,10 +293,11 @@ function name_mcc_clades!(treelist, copyleaves, MCC)
             end
         end
     end
-    
+
     # remove nodes inside MCCs from copy (they have been "cut off")
     j = 0
     for tree_pair in keys(copyleaves)
+        get!(mcc_names, tree_pair, Dict())
         next_j = 0
         nodes_to_be_removed_from_copy = []
         nodes_to_be_added_to_copy = []
@@ -284,12 +314,27 @@ function name_mcc_clades!(treelist, copyleaves, MCC)
                 new_label = "MCC_$(cl)"
                 next_j +=1
                 r_i_old_label, r_j_old_label = r_i.label, r_j.label
+                if match(r"MCC", r_i_old_label)!=nothing
+                    new_label = r_i_old_label
+                end
+                if match(r"MCC", r_j_old_label)!=nothing
+                    new_label = r_j_old_label
+                end
                 r_i.label, r_j.label = new_label, new_label
                 delete!(treelist[tree_pair[1]].lnodes, r_i_old_label)
                 delete!(treelist[tree_pair[2]].lnodes, r_j_old_label)
                 treelist[tree_pair[1]].lnodes[new_label] = r_i
                 treelist[tree_pair[2]].lnodes[new_label] = r_j
                 push!(nodes_to_be_added_to_copy, new_label)
+                mcc_names[tree_pair][new_label] = m
+                for mc in m 
+                    if match(r"MCC", mc)!=nothing 
+                        append!(mcc_names[tree_pair][new_label], mcc_names[tree_pair][mc])
+                        filter!(e->e≠mc,mcc_names[tree_pair][new_label])
+                    end
+                end
+            else
+                mcc_names[tree_pair][r_i.label] = m
             end
         end
         j += next_j 
@@ -301,55 +346,81 @@ function name_mcc_clades!(treelist, copyleaves, MCC)
             push!(copyleaves[tree_pair], n)
         end
     end
-
+    return mcc_names
 end
 
 function remove_node_from_copy!(treenode, pos, copyleaves; internal_copyleaves=Set())
     if treenode.label ∉ copyleaves
-        for c in treenode.child
+        Q = [c for c in treenode.child]
+        while length(Q) !=0
+            c= popfirst!(Q)
             c.data.dat["copy"][pos] = 0
-            if c.label ∉ copyleaves
-                push!(internal_copyleaves, remove_node_from_copy!(treenode, pos, copyleaves; internal_copyleaves))
-            else
+            if c.label in copyleaves
                 push!(internal_copyleaves, c.label)
+            else
+                append!(Q, [ch for ch in c.child])
             end
         end
     end
     return internal_copyleaves
 end
 
-"""
-    reduce_to_mcc(tree, MCC)
+# """
+#     reduce_to_mcc(tree, MCC)
 
-Reduce `tree` to its MCC by grouping leaves. Returns a tree with `length(MCC)` leaves.
-"""
-function reduce_to_mcc(tree::Tree, MCC)
-    out = copy(tree)
-    reduce_to_mcc!(out, MCC)
-    return out
-end
-"""
-    reduce_to_mcc!(tree, MCC)
+# Reduce `tree` to its MCC by grouping leaves. Returns a tree with `length(MCC)` leaves.
+# """
+# function reduce_to_mcc(tree::Tree, MCC)
+#     out = copy(tree)
+#     reduce_to_mcc!(out, MCC)
+#     return out
+# end
+# """
+#     reduce_to_mcc!(tree, MCC)
 
-Reduce `tree` to `MCCs` by grouping leaves.
-"""
-function reduce_to_mcc!(tree::Tree, MCC)
-    for m in MCC
-        r = lca(tree, m)
-        if r.isroot
-            node2tree!(tree, TreeNode(
-                    r.data;
-                    isleaf=true, isroot = true, label=r.label, r.tau
-                ))
-        elseif !r.isleaf
-        	for c in reverse(r.child)
-        		# prunenode!(c)
-        		prunesubtree!(tree, c; remove_singletons=false)
-        	end
-        	r.isleaf = true
-        	r.isroot = false
-        	tree.lleaves[r.label] = r
+# Reduce `tree` to `MCCs` by grouping leaves.
+# """
+# function reduce_to_mcc!(tree::Tree, MCC)
+#     for m in MCC
+#         r = lca(tree, m)
+#         if r.isroot
+#             node2tree!(tree, TreeNode(
+#                     r.data;
+#                     isleaf=true, isroot = true, label=r.label, r.tau
+#                 ))
+#         elseif !r.isleaf
+#         	for c in reverse(r.child)
+#         		# prunenode!(c)
+#         		prunesubtree!(tree, c; remove_singletons=false)
+#         	end
+#         	r.isleaf = true
+#         	r.isroot = false
+#         	tree.lleaves[r.label] = r
+#         end
+#     end
+# end
+
+function remove_zero_copies!(r::TreeNode, tree::Tree)
+    if r.isroot & (sum(r.data.dat["copy"]) == 1)
+        r = TreeNode(
+            r.data;
+            isleaf=true, isroot = true, label=r.label, r.tau
+        )
+    else
+		child_list = [c for c in r.child]
+        for c in child_list
+            if sum(c.data.dat["copy"]) == 1
+                prunesubtree!(tree, c; remove_singletons=false)
+                tree.lleaves[r.label] = r
+            else
+                remove_zero_copies!(c, tree)
+            end
         end
     end
+    return tree
+end
+
+function remove_zero_copies!(tree::Tree{T}) where T
+    remove_zero_copies!(tree.root, tree)
 end
 
