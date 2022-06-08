@@ -43,7 +43,7 @@ function opttrees(treelist::Vector{Tree{T}}, copyleaves::Union{Nothing, Dict{Vec
 	verbose=true
 ) where T 
 	opttrees!(
-		γ, Trange, M, seq_lengths, treelist, copyleaves;
+		γ, Trange, M, seq_lengths, [copy(t) for t in treelist], deepcopy(copyleaves);
 		mcc_names, likelihood_sort, resolve, sa_rep, verbose
 	)
 end
@@ -53,6 +53,7 @@ function opttrees!(
 ) where T 
 	set_verbose(verbose)
 	if isnothing(copyleaves)
+		print("no copy leaves given")
 		treelist, copyleaves = TreeKnit.prepare_copies!(treelist);
 	end
 	mcc = Dict()
@@ -64,10 +65,9 @@ function opttrees!(
 		t = TreeKnit.remove_zero_copies!(t)
 	end
 	if [length(mcc[pair]) for pair in Combinatorics.combinations(1:length(treelist), 2)] == ones(Int(length(treelist)*(length(treelist)-1)/2))
-		print("here")
 		return [mcc_names[[1,2]][x] for x in mcc[[1,2]]], 0, 0., Int64[], Float64[], Union{Missing,Float64}[]
 	end
-	print("	after naive")
+	print("after naive")
 	print(copyleaves)
 	print(treelist[1])
 	print(treelist[2])
@@ -89,9 +89,9 @@ function opttrees!(
 	return [mcc_names[[1,2]][x] for x in g.labels[.!oconf]], compute_energy(oconf,g), compute_F(oconf, g, γ), L
 end
 
-function opttrees(t::Vararg{Tree};
+function opttrees(trees::Vararg{Tree};
 	γ=2,
-	seq_lengths=1000 * ones(Int64, length(t)),
+	seq_lengths=1000 * ones(Int64, length(trees)),
 	Trange=reverse(0.001:0.01:1.),
 	M = 10,
 	likelihood_sort=true,
@@ -99,7 +99,7 @@ function opttrees(t::Vararg{Tree};
 	sa_rep = 1,
 	verbose=false
 ) where T 
-return opttrees([t...], nothing; γ, seq_lengths, Trange, M, likelihood_sort, resolve, sa_rep, verbose)
+return opttrees([copy(t) for t in trees], nothing; γ, seq_lengths, Trange, M, likelihood_sort, resolve, sa_rep, verbose)
 end
 
 function sortconf(oconfs, trees, g::Graph, seq_lengths, mcc_names, likelihood_sort, E_sort)

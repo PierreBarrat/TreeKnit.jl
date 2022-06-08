@@ -82,8 +82,6 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree, tn::Vararg{Tree}; output = :mcc
 	it = 1
 	mcc_names = Dict()
 	while true
-		ot_c = ot
-		copy_leaves_c = copy_leaves
 		flag = :init
 		oa.verbose && @info "--- Iteration $it (max. $(oa.itmax))"
 		for copy in keys(copy_leaves)
@@ -94,17 +92,16 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree, tn::Vararg{Tree}; output = :mcc
 		# TO DO: @assert share_labels(ot...) "Trees do not share leaves"
 		M = [Int(ceil(length(t.lleaves) * oa.nMCMC / length(oa.Trange))) for t in ot]
 		mccs, Efinal, Ffinal, lk = SplitGraph.opttrees(
-			ot_c, copy_leaves_c; mcc_names=mcc_names,
+			ot, copy_leaves; mcc_names=mcc_names,
 			γ=oa.γ, seq_lengths = oa.seq_lengths, M=M[1], Trange=oa.Trange,
 			likelihood_sort=oa.likelihood_sort, resolve=oa.resolve, sa_rep = oa.sa_rep, oa.verbose
 		)
-		print(mcc_names)
 		!isempty(mccs) && append!(MCCs, mccs)
 		oa.verbose && @info "Found $(length(mccs)) new mccs."
 
 		# Stopping condition
 		oa.verbose && @info "Proceeding based on newly found MCCs..."
-		flag, rMCCs = stop_conditions!(MCCs, mccs, oa, it, ot_c[1], ot_c[2]; copy_leaves=copy_leaves_c, hardstop=true)
+		flag, rMCCs = stop_conditions!(MCCs, mccs, oa, it, ot[1], ot[2]; copy_leaves=copy_leaves, hardstop=true)
 		#=
 			Note on variables at this point
 		- mccs: MCCs removed after simulated annealing (`opttrees` step)
@@ -115,9 +112,9 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree, tn::Vararg{Tree}; output = :mcc
 		# Checks
 		print("copy leaves")
 		print(copy_leaves)
-		print(ot_c[1])
-		print(ot_c[2])
-		@assert prod([check_tree(t) for t in ot_c]) "Problem in a tree during opt."
+		print(ot[1])
+		print(ot[2])
+		@assert prod([check_tree(t) for t in ot]) "Problem in a tree during opt."
 
 		(flag == :stop) && break
 		it += 1
