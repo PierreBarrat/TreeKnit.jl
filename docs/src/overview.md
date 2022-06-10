@@ -17,8 +17,12 @@ Example:
 treeknit tree1.nwk tree2.nwk
 ```
 
+There are other important requirements for input trees, highlighted below. 
+They are not strict conditions in the sense that the algorithm will not fail if they are not met. 
+However, not meeting them might result in irrelevant or meaningless output. 
+
 !!! warning "Insignificant branches"
-    Tree builders sometimes introduce branches of insignificant length in order to resolve polytomies and obtain binary trees. Since `TreeKnit` relies on topological differences between trees, it is important to remove these branches prior to passing the trees to `treeknit`. This can be done by using only branches with high bootstrap value (typically, $>75$), or by removing branches shorter than, *e.g.*, $(L/2)^{-1}$, where $L$ is the length of the sequences. 
+    Tree builders sometimes introduce branches of insignificant length in order to resolve polytomies and obtain binary trees. Since `TreeKnit` relies on topological differences between trees, and all internal nodes of input trees are interpreted as hard topological constraints. It is therefore important to remove low support branches/internal nodes prior to passing the trees to `treeknit`. This is most easily done by removing every branch that is not supported by at least one mutation, *e.g.* branches shorter than $(L/2)^{-1}$, where $L$ is the length of the sequences. Additionally, internal nodes with a low bootstrap value (typically $<75$) can be remove for additional robustness. 
 
 !!! warning "Rooting the trees"
     The result `TreeKnit` depend how the trees are rooted. It is important that the two trees are rooted in a consistent way. We recommend using the same outgroup for rooting both trees.
