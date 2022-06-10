@@ -74,8 +74,8 @@ treeknit
 		@assert length(sl) == 2
 		sl
 	catch err
-		@error "Unrecognized format for `--seq-lengths`.\
-		Should be of the form `--seq-lengths \"1500 2000\"`"
+		@error "Unrecognized format for `--seq-lengths`.
+Should be of the form `--seq-lengths \"1500 2000\"`"
 		error(err)
 	end
 
