@@ -25,7 +25,7 @@ function get_trees(no_trees, no_lineages; get_real_MCCs=false)
     # Parameters of the ARG simulation
     N = 10_000 # pop size
     n = no_lineages # Number of lineages
-    ρ = 0.1 # Reassortment rate scaled to coalescence rate
+    ρ = 0.05 # Reassortment rate scaled to coalescence rate
     simtype = :kingman
     r = get_r(ρ, n, N, simtype) # Absolute reassortment rate
 
@@ -35,11 +35,11 @@ function get_trees(no_trees, no_lineages; get_real_MCCs=false)
     trees = ARGTools.trees_from_ARG(arg; node_data = TreeTools.MiscData);
 
     if get_real_MCCs
-        rMCCs = Vector{Vector{String}}()
+        rMCCs = Vector{Vector{String}}[]
         for k in 2:no_trees
             k_iters = Combinatorics.combinations(1:no_trees, k)
             for combination in k_iters
-                append!(rMCCs, ARGTools.MCCs_from_arg(arg, combination...));
+                push!(rMCCs, ARGTools.MCCs_from_arg(arg, combination...));
             end
         end
         return trees, rMCCs

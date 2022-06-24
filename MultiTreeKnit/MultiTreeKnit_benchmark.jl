@@ -1,5 +1,6 @@
 using TreeKnit
 using TreeTools
+using TestRecombTools
 using Combinatorics
 
 include("GenerateTrees.jl")
@@ -76,15 +77,57 @@ function join_sets(input_sets::Vector{Vector{Vector{String}}})
                     if !isempty(joint_set)
                         s2 = setdiff(s2,joint_set)
                         nodes -= length(joint_set)
-                        append!(joint_sets, Vector{Vector{String}}(sort([collect(joint_set)])))
+                        append!(joint_sets, [sort(collect(joint_set))])
                     end
                 end
             end
         end
         start_set = joint_sets
     end
-    sort!(start_set)
-    return start_set
+    return sort(start_set; lt=TreeKnit.clt)
+end
+
+function join_unique_sets(input_sets::Vector{Vector{Vector{String}}})
+    start_set = input_sets[1]
+    same_sets = Vector{String}[]
+    for i in 2:length(input_sets)
+        joint_sets = Vector{String}[]
+        to_be_joint_set = [Set{String}(s2) for s2 in input_sets[i]]
+        for s1 in start_set
+            nodes = length(s1)
+            while nodes>0
+                for s2 in to_be_joint_set
+                    joint_set = intersect(Set{String}(s1), s2)
+                    if !isempty(joint_set)
+                        if s2 == joint_set == Set{String}(s1)
+                            append!(same_sets, [sort(collect(joint_set))])
+                        else
+                            append!(joint_sets, [sort(collect(joint_set))])
+                        end
+                        s2 = setdiff(s2,joint_set)
+                        nodes -= length(joint_set)
+                    end
+                end
+            end
+        end
+        start_set = joint_sets
+    end
+    if !isempty(same_sets)
+        if isempty(start_set)
+            set = Set{String}(same_sets[1])
+            for s in same_sets
+                set = union(set, Set{String}(s))
+            end
+            start_set = [sort(collect(set))]
+        else
+            set = Set{String}(start_set[end])
+            for s in same_sets
+                set = union(set, Set{String}(s))
+            end
+            start_set[end] = [sort(collect(set))]
+        end
+    end
+    return sort(start_set; lt=TreeKnit.clt)
 end
 
 """
@@ -111,7 +154,7 @@ function infer_benchmark_MCCs(no_trees::Int64, lineage_number::Int64; debug=true
     if debug
         ##print the trees and the true MCCs
         for i in range(1,length(trees))
-            TreeTools.print(trees[i])
+            TreeTools.print_tree_ascii("", trees[i])
         end
     end
 
@@ -160,10 +203,46 @@ function infer_benchmark_MCCs(no_trees::Int64, lineage_number::Int64; debug=true
     return trees
 end
 
+function is_consistant(MCCs_list)
+    MCC_combinations_pos_to_trees_list, MCC_combinations_trees_to_pos_dict = assign_pos_maps(length(MCCs_list)) 
+    k_iters = Combinatorics.combinations(1:length(MCCs_list), 3)
+    for combinations in k_iters
+        pos1 = MCC_combinations_trees_to_pos_dict[sort([combinations[1],combinations[2]])]
+        pos2 = MCC_combinations_trees_to_pos_dict[sort([combinations[1],combinations[3]])]
+        pos3 = MCC_combinations_trees_to_pos_dict[sort([combinations[3],combinations[2]])]
+        if (join_unique_sets([MCCs_list[pos1], MCCs_list[pos2]]) == MCCs_list[pos3] &&
+            join_unique_sets([MCCs_list[pos1], MCCs_list[pos3]]) == MCCs_list[pos2] &&
+            join_unique_sets([MCCs_list[pos3], MCCs_list[pos2]]) == MCCs_list[pos1])
+            return true
+        else
+            return false
+        end
+    end
+end
 
 no_trees = 3
-lineage_number = 6
+lineage_number = 
+function check_MCCs(no_trees::Int64, lineage_number::Int64; debug=true)
+    trees, rMCCs = get_trees(no_trees, lineage_number; get_real_MCCs=true);
+
+    if debug
+        ##print the trees and the true MCCs
+        for i in range(1,length(trees))
+            TreeTools.print_tree_ascii("", trees[i])
+        end
+    end
+
+    iMCCs = get_infered_MCC_pairs(trees, false)
+    print(rMCCs[1:length(trees)])
+    print(iMCCs)
+    for i in range(1, length(trees))
+        print(TestRecombTools.rand_index_similarity(rMCCs[i], iMCCs[i]))
+        print(TestRecombTools.varinfo_similarity(rMCCs[i], iMCCs[i]))
+        print(is_consistant(rMCCs[1:length(trees)]))
+        print(is_consistant(iMCCs))
+    end
+end
+check_MCCs(no_trees, lineage_number; debug=true)
 trees = infer_benchmark_MCCs(no_trees, lineage_number; debug=true)
 println("done")
-
 
