@@ -10,15 +10,12 @@ using Setfield
 # Personal modules
 using TreeTools
 
-using PyCall
-using Conda
-Conda.add("biopython")
-
-
 include("mcc_base.jl")
 export naive_mccs
 
 include("mcc_splits.jl")
+
+include("mcc_measures.jl")
 
 include("mcc_tools.jl")
 
@@ -45,6 +42,8 @@ include("cli.jl")
 
 include("ARG_Plot_functions.jl")
 export ARGPlot
+
+include("MultiTreeKnit/MultiTreeKnit_benchmark.jl")
 
 # TreeTools re-exports for docs
 import TreeTools: node2tree, parse_newick
