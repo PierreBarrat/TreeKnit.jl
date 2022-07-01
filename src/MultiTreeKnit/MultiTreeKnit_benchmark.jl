@@ -1,5 +1,6 @@
 using TestRecombTools
 using Combinatorics
+using Random
 
 include("GenerateTrees.jl")
 
@@ -180,27 +181,25 @@ function is_MCC_subset(MCC1::Vector{Vector{String}}, MCC2::Vector{Vector{String}
     end
     return true
 end
+
 """
 MCC degeneracy measure
 """
-function is_degenerate(MCCs_list)
-    MCC_combinations_pos_to_trees_list, MCC_combinations_trees_to_pos_dict = assign_pos_maps(length(MCCs_list)) 
-    k_iters = Combinatorics.combinations(1:length(MCCs_list), 3)
+function is_degenerate(no_trees, MCCs_list)
+    MCC_combinations_pos_to_trees_list, MCC_combinations_trees_to_pos_dict = assign_pos_maps(no_trees) 
+    k_iters = Combinatorics.combinations(1:no_trees, 3)
     for combinations in k_iters
         pos1 = MCC_combinations_trees_to_pos_dict[sort([combinations[1],combinations[2]])]
         pos2 = MCC_combinations_trees_to_pos_dict[sort([combinations[1],combinations[3]])]
         pos3 = MCC_combinations_trees_to_pos_dict[sort([combinations[3],combinations[2]])]
         join_sets([MCCs_list[pos1], MCCs_list[pos2]])
-        if (is_MCC_subset(join_sets([MCCs_list[pos1], MCCs_list[pos2]]), MCCs_list[pos3]) &&
-            is_MCC_subset(join_sets([MCCs_list[pos1], MCCs_list[pos3]]), MCCs_list[pos2]) &&
-            is_MCC_subset(join_sets([MCCs_list[pos3], MCCs_list[pos2]]), MCCs_list[pos1])
-)
-            return false
-        else
+        if (!is_MCC_subset(join_sets([MCCs_list[pos1], MCCs_list[pos2]]), MCCs_list[pos3]) ||
+            !is_MCC_subset(join_sets([MCCs_list[pos1], MCCs_list[pos3]]), MCCs_list[pos2]) ||
+            !is_MCC_subset(join_sets([MCCs_list[pos3], MCCs_list[pos2]]), MCCs_list[pos1]))
             return true
         end
     end
-    join_sets(MCCs)
+    return false
 end
 
 function check_MCCs(no_trees::Int64, lineage_number::Int64; debug=true)
@@ -213,17 +212,17 @@ function check_MCCs(no_trees::Int64, lineage_number::Int64; debug=true)
     iMCCs = get_infered_MCC_pairs(trees, false)
     RF_iMCCs = get_infered_MCC_pairs(trees[RF_order], false)
     res_iMCCs = get_infered_MCC_pairs(trees[res_order], false)
-    deg = is_degenerate(rMCCs)
-    ideg = is_degenerate(iMCCs)
-    RF_ideg = is_degenerate(RF_iMCCs)
-    res_ideg = is_degenerate(res_iMCCs)
+    deg = is_degenerate(no_trees, rMCCs[1:binomial(no_trees,2)])
+    ideg = is_degenerate(no_trees, iMCCs)
+    RF_ideg = is_degenerate(no_trees, RF_iMCCs)
+    res_ideg = is_degenerate(no_trees, res_iMCCs)
 
     if debug
         ##print the trees and the true MCCs
         for i in range(1,length(trees))
             TreeTools.print_tree_ascii("", trees[i])
         end
-        print(rMCCs[1:length(trees)])
+        print(rMCCs[1:binomial(no_trees,2)])
         print("\n infered:")
         print(iMCCs)
         print("\n using resolution order:")
@@ -232,20 +231,20 @@ function check_MCCs(no_trees::Int64, lineage_number::Int64; debug=true)
         print(RF_iMCCs)
     end
 
-    rand_index_random = Float64[]
+    rand_index_random = Float64[] #we would like the rand index to be close to 1
     rand_index_RF = Float64[]
     rand_index_res = Float64[]
-    var_index_random = Float64[]
+    var_index_random = Float64[] # we would like the varinfo index to be close to 0
     var_index_RF = Float64[]
     var_index_res= Float64[]
 
     k_iters = collect(Combinatorics.combinations(1:no_trees, 2))
-    for i in range(1, length(trees))
+    for i in range(1, binomial(no_trees,2))
         comb = k_iters[i]
         push!(rand_index_random, TestRecombTools.rand_index_similarity(rMCCs[i], iMCCs[i]))
         push!(var_index_random, TestRecombTools.varinfo_similarity(rMCCs[i], iMCCs[i]))
-        pos_res = MCC_combinations_trees_to_pos_dict[[res_order[comb[1]], res_order[comb[2]]]]
-        pos_RF = MCC_combinations_trees_to_pos_dict[[RF_order[comb[1]], RF_order[comb[2]]]]
+        pos_res = MCC_combinations_trees_to_pos_dict[sort([res_order[comb[1]], res_order[comb[2]]])]
+        pos_RF = MCC_combinations_trees_to_pos_dict[sort([RF_order[comb[1]], RF_order[comb[2]]])]
         push!(rand_index_res, TestRecombTools.rand_index_similarity(rMCCs[i], res_iMCCs[pos_res]))
         push!(var_index_res, TestRecombTools.varinfo_similarity(rMCCs[i], res_iMCCs[pos_res]))
         push!(rand_index_RF, TestRecombTools.rand_index_similarity(rMCCs[i], RF_iMCCs[pos_RF]))

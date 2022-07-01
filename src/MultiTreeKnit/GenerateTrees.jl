@@ -54,7 +54,7 @@ function get_tree_order(trees ;order="RF_distance")
         permvec = sortperm(resol_index, rev=true)
     else
         ##start with trees that are most similar to all other trees
-            RF_index = Int16[]
+            RF_index = Float16[]
             for i in range(1, no_trees)
                 rf = 0
                 for j in range(1, no_trees)
