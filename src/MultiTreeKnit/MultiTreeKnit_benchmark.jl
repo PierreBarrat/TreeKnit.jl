@@ -41,7 +41,7 @@ function get_infered_MCC_pairs(trees::Vector{Tree}, store_trees::Bool)
     for i in 1:(l_t-1)
         for j in (i+1):l_t
             oa = OptArgs(;γ = 2., likelihood_sort = true, resolve = true,
-                        nMCMC = 25, verbose=true,)
+                        nMCMC = 25, verbose=false,)
             #mCCs= TreeKnit.runopt(oa, trees[i], trees[j]; output = :all)
             #trees[i] = t_i_r
             #trees[j] = t_j_r
