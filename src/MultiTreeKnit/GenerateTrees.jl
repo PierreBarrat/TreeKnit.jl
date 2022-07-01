@@ -1,5 +1,6 @@
 using ARGTools
 using TreeTools
+using Random
 
 # get recombination rate
 function get_r(ρ, n, N, simtype::Symbol)
@@ -21,7 +22,7 @@ end
     simulate a total of `no_trees` trees using the ARGTools package, 
     specifying the `lineage_no` determines the number of nodes in each tree
 """
-function get_trees(no_trees, no_lineages)
+function get_trees(no_trees, no_lineages; remove=false, debug=false)
     # Parameters of the ARG simulation
     N = 10_000 # pop size
     n = no_lineages # Number of lineages
@@ -33,6 +34,27 @@ function get_trees(no_trees, no_lineages)
     arg = ARGTools.SimulateARG.simulate(N, r, n; K=no_trees, simtype);
     # The trees for the 2 segments
     trees = ARGTools.trees_from_ARG(arg; node_data = TreeTools.MiscData);
+    if remove
+        c = 0.75
+        for i in range(1, no_trees)
+            tree = trees[i]
+            delete_list = String[]
+            for node in internals(tree)
+                if !node.isroot
+                    Pr = exp(-node.tau/(c*N))
+                    if rand() <= Pr
+                        push!(delete_list, node.label)
+                    end
+                end
+            end
+            for node_label in delete_list
+                delete_node!(trees[i], node_label, ptau=true)
+                if debug
+                    println("removing node: "* node_label)
+                end
+            end
+        end
+    end
     return trees, arg
 end
 

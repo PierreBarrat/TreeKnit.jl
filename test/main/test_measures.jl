@@ -24,9 +24,9 @@ MCC2 = [["1", "2"], ["3", "4", "5", "6"]]
 MCC3 = [["1", "2", "3", "4", "5", "6"]]
 
 @testset "is_degenerate" begin
-	@test TreeKnit.is_degenerate([MCC1, MCC1, MCC2]) ==false
-    @test TreeKnit.is_degenerate([MCC1, MCC1, MCC3]) ==false
-    @test TreeKnit.is_degenerate([MCC2, MCC2, MCC1]) ==true
+	@test TreeKnit.is_degenerate(3, [MCC1, MCC1, MCC2]) ==false
+    @test TreeKnit.is_degenerate(3, [MCC1, MCC1, MCC3]) ==false
+    @test TreeKnit.is_degenerate(3, [MCC2, MCC2, MCC1]) ==true
 end
 
 no_trees = 3

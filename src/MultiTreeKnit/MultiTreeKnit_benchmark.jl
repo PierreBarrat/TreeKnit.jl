@@ -205,7 +205,7 @@ end
 function check_MCCs(no_trees::Int64, lineage_number::Int64; debug=true)
 
     MCC_combinations_pos_to_trees_list, MCC_combinations_trees_to_pos_dict = assign_pos_maps(no_trees) 
-    trees, arg = get_trees(no_trees, lineage_number);
+    trees, arg = get_trees(no_trees, lineage_number, remove=true);
     rMCCs = get_real_MCCs(no_trees, arg)
     RF_order = get_tree_order(trees, order="RF_distance")
     res_order = get_tree_order(trees, order="resolution")
