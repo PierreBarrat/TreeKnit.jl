@@ -28,8 +28,3 @@ MCC3 = [["1", "2", "3", "4", "5", "6"]]
     @test TreeKnit.is_degenerate(3, [MCC1, MCC1, MCC3]) ==false
     @test TreeKnit.is_degenerate(3, [MCC2, MCC2, MCC1]) ==true
 end
-
-no_trees = 3
-lineage_number = 10
-deg, rand_index, var_index = TreeKnit.check_MCCs(no_trees, lineage_number; debug=true)
-print("done")

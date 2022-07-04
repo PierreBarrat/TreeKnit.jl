@@ -1,7 +1,3 @@
-using TestRecombTools
-using Combinatorics
-using Random
-
 include("GenerateTrees.jl")
 
 """
@@ -105,8 +101,9 @@ end
 """
     infer_benchmark_MCCs(no_trees::Int64, lineage_number::Int64, debug=true)
 """
-function infer_benchmark_MCCs(no_trees::Int64, lineage_number::Int64; debug=true)
+function infer_benchmark_MCCs(no_trees::Int64, lineage_number::Int64; debug=true, order="resolution")
     trees, arg = get_trees(no_trees, lineage_number);
+    trees = trees[get_tree_order(trees, order=order)]
 
     if debug
         ##print the trees and the true MCCs
@@ -160,97 +157,27 @@ function infer_benchmark_MCCs(no_trees::Int64, lineage_number::Int64; debug=true
     return trees
 end
 
-
-"""
-    is_MCC_subset(MCC1::Vector{Vector{String}}, MCC2::Vector{Vector{String}})
-
-    function to check that every set in MCC1 is a subset of a set in MCC2
-"""
-function is_MCC_subset(MCC1::Vector{Vector{String}}, MCC2::Vector{Vector{String}})
-    for mcc1 in MCC1
-        subset = false
-        for mcc2 in MCC2
-            if issubset(Set{String}(mcc1), Set{String}(mcc2))
-                subset = true
-                break
+function get_tree_order(trees ;order="resolution")
+    no_trees = length(trees)
+    if order=="RF_distance"
+        ##start with trees that are most similar to all other trees
+            RF_index = Float16[]
+            for i in range(1, no_trees)
+                rf = 0
+                for j in range(1, no_trees)
+                    if j!=i
+                        rf += RF_distance(trees[i], trees[j])^2
+                    end
+                end
+                push!(RF_index, rf/(no_trees-1))
             end
-        end
-        if !subset
-            return false
-        end
+            permvec = sortperm(RF_index)
+    else  ##start with most resolved trees
+        resol_index = [resolution_value(t) for t in trees]
+        permvec = sortperm(resol_index, rev=true)
     end
-    return true
+
+    return permvec
 end
 
-"""
-MCC degeneracy measure
-"""
-function is_degenerate(no_trees, MCCs_list)
-    MCC_combinations_pos_to_trees_list, MCC_combinations_trees_to_pos_dict = assign_pos_maps(no_trees) 
-    k_iters = Combinatorics.combinations(1:no_trees, 3)
-    for combinations in k_iters
-        pos1 = MCC_combinations_trees_to_pos_dict[sort([combinations[1],combinations[2]])]
-        pos2 = MCC_combinations_trees_to_pos_dict[sort([combinations[1],combinations[3]])]
-        pos3 = MCC_combinations_trees_to_pos_dict[sort([combinations[3],combinations[2]])]
-        join_sets([MCCs_list[pos1], MCCs_list[pos2]])
-        if (!is_MCC_subset(join_sets([MCCs_list[pos1], MCCs_list[pos2]]), MCCs_list[pos3]) ||
-            !is_MCC_subset(join_sets([MCCs_list[pos1], MCCs_list[pos3]]), MCCs_list[pos2]) ||
-            !is_MCC_subset(join_sets([MCCs_list[pos3], MCCs_list[pos2]]), MCCs_list[pos1]))
-            return true
-        end
-    end
-    return false
-end
-
-function check_MCCs(no_trees::Int64, lineage_number::Int64; debug=true)
-
-    MCC_combinations_pos_to_trees_list, MCC_combinations_trees_to_pos_dict = assign_pos_maps(no_trees) 
-    trees, arg = get_trees(no_trees, lineage_number, remove=true);
-    rMCCs = get_real_MCCs(no_trees, arg)
-    RF_order = get_tree_order(trees, order="RF_distance")
-    res_order = get_tree_order(trees, order="resolution")
-    iMCCs = get_infered_MCC_pairs(trees, false)
-    RF_iMCCs = get_infered_MCC_pairs(trees[RF_order], false)
-    res_iMCCs = get_infered_MCC_pairs(trees[res_order], false)
-    deg = is_degenerate(no_trees, rMCCs[1:binomial(no_trees,2)])
-    ideg = is_degenerate(no_trees, iMCCs)
-    RF_ideg = is_degenerate(no_trees, RF_iMCCs)
-    res_ideg = is_degenerate(no_trees, res_iMCCs)
-
-    if debug
-        ##print the trees and the true MCCs
-        for i in range(1,length(trees))
-            TreeTools.print_tree_ascii("", trees[i])
-        end
-        print(rMCCs[1:binomial(no_trees,2)])
-        print("\n infered:")
-        print(iMCCs)
-        print("\n using resolution order:")
-        print(res_iMCCs)
-        print("\n using RF clustering:")
-        print(RF_iMCCs)
-    end
-
-    rand_index_random = Float64[] #we would like the rand index to be close to 1
-    rand_index_RF = Float64[]
-    rand_index_res = Float64[]
-    var_index_random = Float64[] # we would like the varinfo index to be close to 0
-    var_index_RF = Float64[]
-    var_index_res= Float64[]
-
-    k_iters = collect(Combinatorics.combinations(1:no_trees, 2))
-    for i in range(1, binomial(no_trees,2))
-        comb = k_iters[i]
-        push!(rand_index_random, TestRecombTools.rand_index_similarity(rMCCs[i], iMCCs[i]))
-        push!(var_index_random, TestRecombTools.varinfo_similarity(rMCCs[i], iMCCs[i]))
-        pos_res = MCC_combinations_trees_to_pos_dict[sort([res_order[comb[1]], res_order[comb[2]]])]
-        pos_RF = MCC_combinations_trees_to_pos_dict[sort([RF_order[comb[1]], RF_order[comb[2]]])]
-        push!(rand_index_res, TestRecombTools.rand_index_similarity(rMCCs[i], res_iMCCs[pos_res]))
-        push!(var_index_res, TestRecombTools.varinfo_similarity(rMCCs[i], res_iMCCs[pos_res]))
-        push!(rand_index_RF, TestRecombTools.rand_index_similarity(rMCCs[i], RF_iMCCs[pos_RF]))
-        push!(var_index_RF, TestRecombTools.varinfo_similarity(rMCCs[i], RF_iMCCs[pos_RF]))
-    end
-
-    return [deg, ideg, RF_ideg, res_ideg], [rand_index_random, rand_index_RF, rand_index_res], [var_index_random, var_index_RF, var_index_res]
-end
 

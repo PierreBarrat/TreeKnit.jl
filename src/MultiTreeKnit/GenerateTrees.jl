@@ -1,6 +1,5 @@
 using ARGTools
 using TreeTools
-using Random
 
 # get recombination rate
 function get_r(ρ, n, N, simtype::Symbol)
@@ -67,27 +66,4 @@ function get_real_MCCs(no_trees, arg)
         end
     end
     return rMCCs
-end
-
-function get_tree_order(trees ;order="RF_distance")
-    no_trees = length(trees)
-    if order=="resolution" ##start with most resolved trees
-        resol_index = [resolution_value(t) for t in trees]
-        permvec = sortperm(resol_index, rev=true)
-    else
-        ##start with trees that are most similar to all other trees
-            RF_index = Float16[]
-            for i in range(1, no_trees)
-                rf = 0
-                for j in range(1, no_trees)
-                    if j!=i
-                        rf += RF_distance(trees[i], trees[j])^2
-                    end
-                end
-                push!(RF_index, rf/(no_trees-1))
-            end
-            permvec = sortperm(RF_index)
-    end
-
-    return permvec
 end
