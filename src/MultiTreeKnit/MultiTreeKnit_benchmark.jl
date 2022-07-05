@@ -31,7 +31,7 @@ end
     resolved trees from previous MCC calculations are used as the tree input for the next pair, 
     the order is specified in Combinatorics.combinations(1:length(trees), 2)
 """
-function get_infered_MCC_pairs(trees::Vector{Tree}, store_trees::Bool)
+function get_infered_MCC_pairs(trees::Vector{Tree{T}}, store_trees::Bool) where T
     MCC_ordered_pairs = Vector{Vector{String}}[]
     l_t = length(trees)
     for i in 1:(l_t-1)
@@ -60,10 +60,10 @@ end
 
     prints out infered MCCs 
 """
-function print_MCCs(MCCs_list::Vector{Vector{Vector{String}}}, MCC_combinations_pos_to_trees_list::Vector{Vector{Int64}})
+function print_MCCs(MCCs_list::Vector{Vector{Vector{String}}}, MCC_combinations_pos_to_trees_list::Vector{Vector{Int64}}, name_list::Vector{String})
     for i in 1:length(MCCs_list)
         println("")
-        println(MCC_combinations_pos_to_trees_list[i])
+        println(sort([name_list[MCC_combinations_pos_to_trees_list[i][k]] for k in range(1, length(MCC_combinations_pos_to_trees_list[i]))]))
         println(MCCs_list[i])
         println("")
     end
@@ -99,21 +99,37 @@ function join_sets(input_sets::Vector{Vector{Vector{String}}})
 end
 
 """
-    infer_benchmark_MCCs(no_trees::Int64, lineage_number::Int64, debug=true)
-"""
-function infer_benchmark_MCCs(no_trees::Int64, lineage_number::Int64; debug=true, order="resolution")
-    trees, arg = get_trees(no_trees, lineage_number);
-    trees = trees[get_tree_order(trees, order=order)]
+infer_benchmark_MCCs(input_trees::Vector{Tree{T}}, tree_names::Union{Nothing,Vector{String}}; debug=false, order="resolution")
 
+Given `input_trees` with names in `tree_names` order trees either using: `"input"`, `"resolution"` (from most to least resolved)
+or the `"RF_distance"` (from most like all trees to least like all other trees using the Robinson-Fould distance) and then infer 
+pairwise MCCs iteratively always using the resolved trees from the last pairwise MCC calculations when calculating later trees.
+To find recombination events of all tree combinations the individual tree pairs are joined. The MCCs of all possible tree 
+combinations are returned in a dictionary `MCC_dict` where the sorted list of tree name combinations is the key, 
+as well as the list of resolved trees `input_trees` in input order. 
+"""
+function infer_benchmark_MCCs(input_trees::Vector{Tree{T}}, tree_names::Union{Nothing,Vector{String}}; debug=false, order="resolution") where T
+    MCC_dict = Dict()
+    no_trees = length(input_trees)
+    if isnothing(tree_names)
+        tree_names = [string(i) for i in range(1, no_trees)]
+    end
     if debug
-        ##print the trees and the true MCCs
-        for i in range(1,length(trees))
-            TreeTools.print_tree_ascii("", trees[i])
+        ##print the input trees
+        for i in range(1,length(input_trees))
+            print(tree_names[i])
+            TreeTools.print_tree_ascii("", input_trees[i])
         end
     end
 
+    tree_order = get_tree_order(input_trees, order=order)
+    trees = input_trees[tree_order]
+
     MCCsInfered = get_infered_MCC_pairs(trees, false)
     MCC_combinations_pos_to_trees_list, MCC_combinations_trees_to_pos_dict = assign_pos_maps(no_trees) 
+    for i in range(1, length(MCCsInfered))
+        MCC_dict[sort([tree_names[tree_order][j] for j in MCC_combinations_pos_to_trees_list[i]])] = MCCsInfered[i]
+    end
 
     for k in 3:no_trees
         k_iters = Combinatorics.combinations(1:no_trees, k)
@@ -129,32 +145,37 @@ function infer_benchmark_MCCs(no_trees::Int64, lineage_number::Int64; debug=true
             end
             joint_sets = join_sets(all_sets)
             push!(MCCsInfered, joint_sets)
-            #println("MCCs of joint sets: \n")
-            #println(joint_sets)
+            MCC_dict[sort([tree_names[tree_order][j] for j in combination])] = joint_sets
         end
     end
 
-    tree_strings = Vector{String}()
-    for i in range(1, length(trees))
-        tree_string= "";
-        tree_string = TreeTools.write_newick!(tree_string, trees[i].root)
-        append!(tree_strings, [tree_string])
-        if debug
-            write_newick("tree"*string(i)*".nwk", trees[i])
-        end
-    end
     if debug
+        tree_strings = Vector{String}()
+        for i in range(1, length(trees))
+            tree_string= "";
+            tree_string = TreeTools.write_newick!(tree_string, trees[i].root)
+            append!(tree_strings, [tree_string])
+            write_newick("tree"*string(tree_names[tree_order][i])*".nwk", trees[i])
+        end
         for i in range(1, no_trees-1)
-            write_mccs("MCCs1"*string(i+1)*".dat", MCCsInfered[i])
+            pair = sort([tree_names[tree_order][1], tree_names[tree_order][i+1]])
+            write_mccs("MCCs"*string(pair[1])*","*string(pair[2])*".dat", MCCsInfered[i])
         end
+        ARGPlot(tree_strings, MCCsInfered[1:(no_trees-1)], draw_connections=true, tree_names=nothing)
     end
-    ARGPlot(tree_strings, MCCsInfered[1:(no_trees-1)], draw_connections=true, tree_names=nothing)
-    if debug
-        println("Found MCCs:")
-        print_MCCs(MCCsInfered, MCC_combinations_pos_to_trees_list)
-    end
+    println("Found MCCs:")
+    print_MCCs(MCCsInfered, MCC_combinations_pos_to_trees_list, tree_names[tree_order])
 
-    return trees
+    return MCC_dict, input_trees
+end
+
+function infer_benchmark_MCCs(no_trees::Int64, lineage_number::Int64; debug=false, order="resolution")
+    trees, arg = get_trees(no_trees, lineage_number);
+    return infer_benchmark_MCCs([trees...], nothing, debug=debug, order=order)
+end
+
+function infer_benchmark_MCCs(input_trees::Vector{Tree{T}}; debug=false, order="resolution") where T
+    return infer_benchmark_MCCs(input_trees, nothing, debug=debug, order=order)
 end
 
 function get_tree_order(trees ;order="resolution")
@@ -172,9 +193,13 @@ function get_tree_order(trees ;order="resolution")
                 push!(RF_index, rf/(no_trees-1))
             end
             permvec = sortperm(RF_index)
-    else  ##start with most resolved trees
-        resol_index = [resolution_value(t) for t in trees]
-        permvec = sortperm(resol_index, rev=true)
+    else
+        if order=="input"
+            permvec = range(1, no_trees)
+        else  ##start with most resolved trees
+            resol_index = [resolution_value(t) for t in trees]
+            permvec = sortperm(resol_index, rev=true)
+        end
     end
 
     return permvec
