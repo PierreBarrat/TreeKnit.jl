@@ -31,17 +31,28 @@ end
     resolved trees from previous MCC calculations are used as the tree input for the next pair, 
     the order is specified in Combinatorics.combinations(1:length(trees), 2)
 """
-function get_infered_MCC_pairs(trees::Vector{Tree{T}}, store_trees::Bool) where T
-    MCC_ordered_pairs = Vector{Vector{String}}[]
+function get_infered_MCC_pairs(trees::Vector{Tree{T}}, store_trees::Bool; consistant = true) where T
     l_t = length(trees)
+    if consistant
+        iter_2 = Combinatorics.combinations(1:l_t, 2)
+        tree_pairs_to_pos_dict = Dict([(i, pos) for (i,pos) in zip(iter_2, 1:binomial(l_t,2))])
+    end
+    MCC_ordered_pairs = Vector{Vector{String}}[]
     for i in 1:(l_t-1)
         for j in (i+1):l_t
+            if i>1
+                x= i
+                y =j
+                first = MCC_ordered_pairs[tree_pairs_to_pos_dict[[x-1, x]]]
+                second = MCC_ordered_pairs[tree_pairs_to_pos_dict[[x-1, y]]]
+                joint_MCCs = join_sets([first, second])
+            else
+                joint_MCCs = nothing
+            end
             oa = OptArgs(;γ = 2., likelihood_sort = true, resolve = true,
-                        nMCMC = 25, verbose=false,)
-            #mCCs= TreeKnit.runopt(oa, trees[i], trees[j]; output = :all)
-            #trees[i] = t_i_r
-            #trees[j] = t_j_r
-            mCCs = runopt(oa, trees[i], trees[j]; output = :mccs)
+                        nMCMC = 25, verbose=false)
+            #mCCs = runopt(oa, trees[i], trees[j]; output = :mccs, constraint= joint_MCCs)
+            mCCs = runopt(oa, trees[i], trees[j]; output = :mccs, constraint=joint_MCCs)
             rS = resolve!(trees[i], trees[j], mCCs)
             if store_trees
                 push!(MCC_ordered_pairs, [mCCs, trees[i], trees[j]])

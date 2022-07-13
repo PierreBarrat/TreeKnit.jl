@@ -55,7 +55,6 @@ function is_degenerate(no_trees, MCCs_list)
         pos1 = MCC_combinations_trees_to_pos_dict[sort([combinations[1],combinations[2]])]
         pos2 = MCC_combinations_trees_to_pos_dict[sort([combinations[1],combinations[3]])]
         pos3 = MCC_combinations_trees_to_pos_dict[sort([combinations[3],combinations[2]])]
-        join_sets([MCCs_list[pos1], MCCs_list[pos2]])
         if (!is_MCC_subset(join_sets([MCCs_list[pos1], MCCs_list[pos2]]), MCCs_list[pos3]) ||
             !is_MCC_subset(join_sets([MCCs_list[pos1], MCCs_list[pos3]]), MCCs_list[pos2]) ||
             !is_MCC_subset(join_sets([MCCs_list[pos3], MCCs_list[pos2]]), MCCs_list[pos1]))

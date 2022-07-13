@@ -42,13 +42,14 @@ function opttrees(t...;
 	verbose=false
 )
 	opttrees!(
-		γ, Trange, M, seq_lengths, [copy(convert(Tree{TreeTools.EmptyData}, x)) for x in t]...;
+		γ, Trange, M, seq_lengths, [copy(convert(Tree{TreeTools.MiscData}, x)) for x in t]...;
 		likelihood_sort, resolve, sa_rep, verbose
 	)
 end
+
 function opttrees!(
-	γ, Trange, M, seq_lengths, t::Vararg{Tree};
-	likelihood_sort=true, resolve=true, sa_rep=1, verbose=false,
+	γ, Trange, M, seq_lengths, t::Vararg{Tree}; 
+	likelihood_sort=true, resolve=true, sa_rep=1, verbose=false
 )
 	set_verbose(verbose)
 
@@ -62,9 +63,10 @@ function opttrees!(
 		TreeKnit.reduce_to_mcc!(t, mcc)
 	end
 	g = trees2graph(treelist)
+	mask = get_mask(g, t[1])
 
 	# SA - Optimization
-	oconfs, F, nfound = sa_opt(g, γ=γ, Trange=Trange, M=M, rep=sa_rep, resolve=resolve)
+	oconfs, F, nfound = sa_opt(g, γ=γ, Trange=Trange, M=M, rep=sa_rep, resolve=resolve, mask=mask)
 	# Computing likelihoods
 	if length(oconfs) != 1
 		v() && @info "Sorting $(length(oconfs)) topologically equivalent configurations."
@@ -118,5 +120,23 @@ function sortconf(oconfs, trees, g::Graph, seq_lengths, mcc_names, likelihood_so
 end
 
 
+function get_mask(g, tree)
+	if !haskey(tree.root.data.dat, "mask")
+		return []
+	end
+
+	mask_names = String[]
+
+	for leaf in tree.lleaves
+		if leaf.second.data["mask"]
+			push!(mask_names, leaf.second.label)
+		end
+	end
+	mask_names = sort!(mask_names)
+
+	mask = [g.labels_to_int[m] for m in mask_names]
+
+	return mask
+end
 
 end # module

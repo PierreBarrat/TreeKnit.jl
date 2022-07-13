@@ -63,13 +63,15 @@ Run optimization at constant γ. See `?Optargs` for arguments. In the first form
 """
 runopt(t1::Tree, t2::Tree; kwargs...) = runopt(OptArgs(;kwargs...), t1, t2)
 
-function runopt(oa::OptArgs, t1::Tree, t2::Tree; output = :mccs)
+function runopt(oa::OptArgs, t1::Tree, t2::Tree; output = :mccs, constraint = Union{Nothing, Vector{Vector{String}}})
 	# Copying input trees for optimization
-	ot1 = copy(t1)
-	ot2 = copy(t2)
+	ot1 = copy(convert(Tree{TreeTools.MiscData}, t1))
+	ot2 = copy(convert(Tree{TreeTools.MiscData}, t2))
 
 	# Resolve
 	oa.resolve && resolve!(ot1, ot2)
+
+	add_mask!(constraint, ot1, ot2)
 
 	iMCCs = naive_mccs(ot1, ot2)
 	oa.verbose && @info "Initial state: $(length(iMCCs)) naive MCCs"
@@ -205,6 +207,84 @@ end
 Prune MCCs `mcc_names[x]` for all `x` in `mcc_conf` from trees `t...`.
 """
 pruneconf!(trees, mcc_names, mcc_conf) = pruneconf!([mcc_names[x] for x in mcc_conf], trees...)
+
+function PRT!(n::TreeNode)
+	
+	if isroot(n)
+		if !isempty(n.data["child_mccs"])
+			n.data["mcc"] = pop!(n.data["child_mccs"])
+		else
+			n.data["mcc"] = nothing
+		end
+	else
+		if n.anc.data["mcc"] in n.data["child_mccs"] # parent MCC part of children -> that is the MCC
+			n.data["mcc"] = n.anc.data["mcc"]
+		elseif length(n.data["child_mccs"])==1  # child is an MCC
+			n.data["mcc"] = pop!(n.data["child_mccs"])
+		else # no unique child MCC and no match with parent -> not part of an MCCs
+			n.data["mcc"] = nothing
+		end
+	end
+
+	delete!(n.data.dat, "child_mccs")
+
+	if !isempty(n.child)
+		for c in n.child
+			PRT!(c)
+		end
+	end
+end
+
+function PRT!(t::Tree)
+	PRT!(t.root)
+end
+
+function add_mask!(filter::Union{Nothing, Vector{Vector{String}}}, t::Vararg{Tree})
+	
+	if isnothing(filter)
+		return []
+	end
+	
+	mcc_map = Dict{String, Int}()
+	cluster_no = Int[]
+  	for (i,mcc) in enumerate(filter)
+		if length(mcc)>1
+			append!(cluster_no, i)
+		end
+		for node in mcc
+			mcc_map[node] = i
+		end
+	end
+	# assign MCCs to leaves
+	for tree in t
+		for leaf in tree.lleaves
+			leaf.second.data["child_mccs"] = Set([mcc_map[leaf.second.label]])
+			leaf.second.data["mcc"] = mcc_map[leaf.second.label]
+		end
+
+		# reconstruct MCCs with Fitch algorithm
+		for n in POT(tree)
+			if !n.isleaf
+				common_mccs = intersect([c.data["child_mccs"] for c in n.child]...)
+				if !isempty(common_mccs)
+					n.data["child_mccs"] = common_mccs
+				else
+					n.data["child_mccs"] = union([c.data["child_mccs"] for c in n.child]...)
+				end
+			end
+		end
+
+		PRT!(tree)
+
+		for n in POT(tree)
+			if n.data["mcc"] in cluster_no
+				n.data["mask"] = true
+			else
+				n.data["mask"] = false
+			end
+		end
+	end
+end
 
 
 
