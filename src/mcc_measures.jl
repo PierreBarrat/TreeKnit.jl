@@ -64,6 +64,27 @@ function is_degenerate(no_trees, MCCs_list)
     return false
 end
 
+
+function consistency_rate(MCCs, trees)
+    l_t = length(trees)
+    score = 0
+    if binomial(l_t,2) != length(MCCs)
+        return "Error MCC list does not align with number of trees"
+    end
+    MCC_combinations_pos_to_trees_list, MCC_combinations_trees_to_pos_dict = assign_pos_maps(l_t) 
+    k_iters = Combinatorics.combinations(1:l_t, 3)
+    for combinations in k_iters
+        print("loop")
+        pos1 = MCC_combinations_trees_to_pos_dict[sort([combinations[1],combinations[2]])]
+        pos2 = MCC_combinations_trees_to_pos_dict[sort([combinations[1],combinations[3]])]
+        pos3 = MCC_combinations_trees_to_pos_dict[sort([combinations[3],combinations[2]])]
+        s = consistency_rate(MCCs[pos1], MCCs[pos2], MCCs[pos3], trees[combinations])
+        score += s
+    end
+
+	return score / binomial(l_t,3)
+end
+
 """
     Calculate the average consistency of MCCs of a triplet of trees, each mcc triplet combination is evaluated
     and the consistency score is averaged. The consistency score for one triplet combination e.g. M12, M13 and M23
