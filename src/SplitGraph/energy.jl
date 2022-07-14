@@ -192,7 +192,10 @@ function doMCMC(g::Graph, conf::Array{Bool,1}, M::Int64; T=1, γ=1, mask=Set())
 
 	oconf = [copy(_conf)]
 	for m in 1:M
-		E, F = mcmcstep!(_conf, g, F, T, γ; mask=mask)
+		E, F, stop = mcmcstep!(_conf, g, F, T, γ; mask=mask)
+		if stop
+			break
+		end
 		# If new minimum is found
 		if F < Fmin
 			Fmin = F
@@ -210,7 +213,12 @@ end
 """
 """
 function mcmcstep!(conf, g, F, T, γ; mask=Set())
+	stop = false
 	s = setdiff(Set(1:length(conf)),mask)
+	if isempty(s)
+		stop = true
+		return (round(Int64, F-γ*(length(conf) - sum(conf))), F, stop)
+	end
 	i = rand(s)
 	conf[i] = !conf[i]
 	Enew = compute_energy(conf, g)
@@ -219,7 +227,7 @@ function mcmcstep!(conf, g, F, T, γ; mask=Set())
 		return Enew, Fnew
 	else
 		conf[i] = !conf[i]
-		return (round(Int64, F-γ*(length(conf) - sum(conf))), F)
+		return (round(Int64, F-γ*(length(conf) - sum(conf))), F, stop)
 	end
 end
 
