@@ -74,7 +74,6 @@ function consistency_rate(MCCs, trees)
     MCC_combinations_pos_to_trees_list, MCC_combinations_trees_to_pos_dict = assign_pos_maps(l_t) 
     k_iters = Combinatorics.combinations(1:l_t, 3)
     for combinations in k_iters
-        print("loop")
         pos1 = MCC_combinations_trees_to_pos_dict[sort([combinations[1],combinations[2]])]
         pos2 = MCC_combinations_trees_to_pos_dict[sort([combinations[1],combinations[3]])]
         pos3 = MCC_combinations_trees_to_pos_dict[sort([combinations[3],combinations[2]])]
