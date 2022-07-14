@@ -63,7 +63,7 @@ Run optimization at constant γ. See `?Optargs` for arguments. In the first form
 """
 runopt(t1::Tree, t2::Tree; kwargs...) = runopt(OptArgs(;kwargs...), t1, t2)
 
-function runopt(oa::OptArgs, t1::Tree, t2::Tree; output = :mccs, constraint = Union{Nothing, Vector{Vector{String}}})
+function runopt(oa::OptArgs, t1::Tree, t2::Tree; output = :mccs, constraint = nothing)
 	# Copying input trees for optimization
 	ot1 = copy(convert(Tree{TreeTools.MiscData}, t1))
 	ot2 = copy(convert(Tree{TreeTools.MiscData}, t2))
