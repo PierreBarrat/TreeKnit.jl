@@ -40,7 +40,7 @@ function get_infered_MCC_pairs(trees::Vector{Tree{T}}, store_trees::Bool; consis
     MCC_ordered_pairs = Vector{Vector{String}}[]
     for i in 1:(l_t-1)
         for j in (i+1):l_t
-            if i>1
+            if i>1 && consistant
                 x= i
                 y =j
                 first = MCC_ordered_pairs[tree_pairs_to_pos_dict[[x-1, x]]]
