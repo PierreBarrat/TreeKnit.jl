@@ -126,7 +126,7 @@ To find recombination events of all tree combinations the individual tree pairs 
 combinations are returned in a dictionary `MCC_dict` where the sorted list of tree name combinations is the key, 
 as well as the list of resolved trees `input_trees` in input order. 
 """
-function infer_benchmark_MCCs(input_trees::Vector{Tree{T}}, tree_names::Union{Nothing,Vector{String}}; debug=false, order="resolution") where T
+function infer_benchmark_MCCs(input_trees::Vector{Tree{T}}, tree_names::Union{Nothing,Vector{String}}; debug=false, consistant=true, order="resolution") where T
     MCC_dict = Dict()
     no_trees = length(input_trees)
     if isnothing(tree_names)
@@ -143,7 +143,7 @@ function infer_benchmark_MCCs(input_trees::Vector{Tree{T}}, tree_names::Union{No
     tree_order = get_tree_order(input_trees, order=order)
     trees = input_trees[tree_order]
 
-    MCCsInfered = get_infered_MCC_pairs(trees, false)
+    MCCsInfered = get_infered_MCC_pairs(trees, false, consistant=consistant)
     MCC_combinations_pos_to_trees_list, MCC_combinations_trees_to_pos_dict = assign_pos_maps(no_trees) 
     for i in range(1, length(MCCsInfered))
         MCC_dict[sort([tree_names[tree_order][j] for j in MCC_combinations_pos_to_trees_list[i]])] = MCCsInfered[i]
@@ -187,13 +187,13 @@ function infer_benchmark_MCCs(input_trees::Vector{Tree{T}}, tree_names::Union{No
     return MCC_dict, input_trees
 end
 
-function infer_benchmark_MCCs(no_trees::Int64, lineage_number::Int64; debug=false, order="resolution")
-    trees, arg = get_trees(no_trees, lineage_number);
-    return infer_benchmark_MCCs([trees...], nothing, debug=debug, order=order)
+function infer_benchmark_MCCs(no_trees::Int64, lineage_number::Int64; debug=false, consistant=true, remove=false, order="resolution")
+    trees, arg = get_trees(no_trees, lineage_number, remove=remove);
+    return infer_benchmark_MCCs([trees...], nothing, debug=debug, consistant=consistant, order=order)
 end
 
-function infer_benchmark_MCCs(input_trees::Vector{Tree{T}}; debug=false, order="resolution") where T
-    return infer_benchmark_MCCs(input_trees, nothing, debug=debug, order=order)
+function infer_benchmark_MCCs(input_trees::Vector{Tree{T}}; debug=false, consistant=true, order="resolution") where T
+    return infer_benchmark_MCCs(input_trees, nothing, debug=debug, consistant=consistant, order=order)
 end
 
 """

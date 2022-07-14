@@ -111,6 +111,9 @@ function consistent_mcc_triplets(MCCs, trees)
     s = 0
 	Z = 0
     for n in nodes(trees[1])
+        if isroot(n)
+            continue
+        end
         if TreeKnit.is_branch_in_mccs(n, MCCs[1]) && TreeKnit.is_branch_in_mccs(n, MCCs[2])
             Z += 1
             # Must find a corresponding common branch in trees[2] (or trees[3])

@@ -29,30 +29,6 @@ MCC3 = [["1", "2", "3", "4", "5", "6"]]
     @test TreeKnit.is_degenerate(3, [MCC2, MCC2, MCC1]) ==true
 end
 
-# nwk1 = "((A,B),C);"
-# nwk2 = "(A,(B,C));"
-# nwk3 = "(A,B,C);"
-# t1 = node2tree(TreeTools.parse_newick(nwk1))
-# t2 = node2tree(TreeTools.parse_newick(nwk2))
-# t3 = node2tree(TreeTools.parse_newick(nwk3))
-# input_trees = [copy(t1), copy(t2), copy(t3)]
-# tree_names = ["a", "b", "c"]
-# MCC_dict, trees = TreeKnit.infer_benchmark_MCCs(input_trees, tree_names)
-# c = TreeKnit.consistency_rate(MCC_dict[["a", "b"]], MCC_dict[["a", "c"]], MCC_dict[["b", "c"]], trees)
-# print("here")
-# cfull = TreeKnit.consistency_rate([MCC_dict[["a", "b"]], MCC_dict[["a", "c"]], MCC_dict[["b", "c"]]], trees)
-# print("end")
-# MCC12 = [["A"], ["B", "C"]]
-# MCC13 = [["A", "B", "C"]]
-# MCC23 = [["B"], ["B", "C"]]
-# MCC14 = [["A", "B", "C"]]
-# MCC24 = [["B"], ["B", "C"]]
-# MCC34 = [["A", "B", "C"]]
-# c1 = TreeKnit.consistent_mcc_triplets([MCC12, MCC13, MCC23], [t1, t2, t3])
-# print("here")
-# c = TreeKnit.consistency_rate(MCC12, MCC13, MCC23, [t1, t2, t3])
-# c = TreeKnit.consistency_rate([MCC12, MCC13, MCC14, MCC23, MCC24, MCC34], [t1, t2, t3, t3])
-
 @testset "consistency_rate" begin
     nwk1 = "((A,B),C);"
     nwk2 = "(A,(B,C));"
@@ -65,7 +41,7 @@ end
     MCC_dict, trees = TreeKnit.infer_benchmark_MCCs(input_trees, tree_names)
     c = TreeKnit.consistency_rate(MCC_dict[["a", "b"]], MCC_dict[["a", "c"]], MCC_dict[["b", "c"]], trees)
     cfull = TreeKnit.consistency_rate([MCC_dict[["a", "b"]], MCC_dict[["a", "c"]], MCC_dict[["b", "c"]]], trees)
-	@test c ==0
+	@test c == 0
     @test c == cfull
     MCC12 = [["A"], ["B", "C"]]
     MCC13 = [["A", "B", "C"]]

@@ -29,6 +29,13 @@ function resolve!(
 					graftnode!(nr,r)
 				end
 				graftnode!(R, nr, tau=tau)
+				if typeof(R.data) != TreeTools.EmptyData && haskey(R.data.dat, "mask") && all([haskey(r.data.dat, "mask") for r in roots])
+					if R.data.dat["mask"] && any([r.data.dat["mask"] for r in roots])
+						nr.data.dat["mask"] = true
+					else
+						nr.data.dat["mask"] = false
+					end
+				end
 				push!(tsplits.splits, s)
 			elseif conflict != :ignore
 				error("Tried to resolve tree with an incompatible split.")
