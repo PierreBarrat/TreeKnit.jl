@@ -45,14 +45,14 @@ end
     @test c == cfull
     MCC12 = [["A"], ["B", "C"]]
     MCC13 = [["A", "B", "C"]]
-    MCC23 = [["B"], ["B", "C"]]
+    MCC23 = [["B"], ["A", "C"]]
     MCC14 = [["A", "B", "C"]]
-    MCC24 = [["B"], ["B", "C"]]
+    MCC24 = [["B"], ["A", "C"]]
     MCC34 = [["A", "B", "C"]]
     c1 = TreeKnit.consistent_mcc_triplets([MCC12, MCC13, MCC23], [t1, t2, t3])
-    @test c1 ==1/3
+    @test c1 ==2/3 #Of the three nodes (B, C and NODE_1) in t1 that are in an MCC in MCC12 and MCC13, 2 are not in an MCC in MCC23 (B and NODE_1)
     c = TreeKnit.consistency_rate(MCC12, MCC13, MCC23, [t1, t2, t3])
-    @test c ==1/9
+    @test c ==(2/3 + 1/2)/3
     c4 = TreeKnit.consistency_rate([MCC12, MCC13, MCC14, MCC23, MCC24, MCC34], [t1, t2, t3, t3])
     @test c4 < c
 end

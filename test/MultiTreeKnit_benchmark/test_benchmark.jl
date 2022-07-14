@@ -54,11 +54,13 @@ end
     input_trees = [copy(t2), copy(t1), copy(t3)]
     tree_names = ["b", "a", "c"]
     MCC_dict, trees = TreeKnit.infer_benchmark_MCCs(input_trees, tree_names, consistant=true)
+    MCCs = [MCC_dict[["a", "b"]], MCC_dict[["a", "c"]], MCC_dict[["b", "c"]]]
     @test 0.0 == TreeKnit.consistency_rate(MCCs, trees)
 
     input_trees = [copy(t3), copy(t1), copy(t2)]
     tree_names = ["c", "a", "b"]
     MCC_dict, trees = TreeKnit.infer_benchmark_MCCs(input_trees, tree_names, order="input", consistant=true)
+    MCCs = [MCC_dict[["a", "b"]], MCC_dict[["a", "c"]], MCC_dict[["b", "c"]]]
     @test 0.0 == TreeKnit.consistency_rate(MCCs, trees)
 end
 
