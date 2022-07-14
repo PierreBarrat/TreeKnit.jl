@@ -64,4 +64,48 @@ function is_degenerate(no_trees, MCCs_list)
     return false
 end
 
+"""
+    Calculate the average consistency of MCCs of a triplet of trees, each mcc triplet combination is evaluated
+    and the consistency score is averaged. The consistency score for one triplet combination e.g. M12, M13 and M23
+    is calculated as the total number of branches that are inconsistent (i.e. not grouped as would be expected)
+    divided by the total number of branches. 
+
+"""
+function consistency_rate(M12, M13, M23, trees)
+    consistency_rate = 0
+    MCCs = [M12, M13, M23]
+    k_iters = Combinatorics.combinations(1:3, 2)
+	for (i, combinations) in enumerate(k_iters)
+        last = filter(e->e∉combinations,1:3)
+        order = append!(combinations, last)
+        tree_order = [i, filter(e->e∉[i],1:3)...]
+        score = consistent_mcc_triplets(MCCs[order], trees[tree_order])
+        consistency_rate += score
+    end
+
+	return consistency_rate / 3
+end
+
+
+function consistent_mcc_triplets(MCCs, trees)
+    s = 0
+	Z = 0
+    for n in nodes(trees[1])
+        if TreeKnit.is_branch_in_mccs(n, MCCs[1]) && TreeKnit.is_branch_in_mccs(n, MCCs[2])
+            Z += 1
+            # Must find a corresponding common branch in trees[2] (or trees[3])
+            # We find it by taking the intesection of the clade of n with the MCC n
+            # belongs to
+            m12 = find_mcc_with_branch(n, MCCs[1])[2]
+            m13 = find_mcc_with_branch(n, MCCs[2])[2]
+            clade = [x.label for x in POTleaves(n)]
+            n2 = lca(trees[2], intersect(clade, m12))
+            n3 = lca(trees[3], intersect(clade, m13))
+            if !TreeKnit.is_branch_in_mccs(n2, MCCs[3]) || !TreeKnit.is_branch_in_mccs(n3, MCCs[3])
+                s += 1
+            end
+        end
+    end
+    return  Z == 0 ? 0.0 : s / Z
+end
 

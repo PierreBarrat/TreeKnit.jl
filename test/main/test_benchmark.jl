@@ -13,7 +13,8 @@ t3 = node2tree(TreeTools.parse_newick(nwk3))
 
 solutions = [   [["A"], ["B", "C"]],
                 [["B"], ["A", "C"]],
-                [["C"], ["A", "B"]] ]
+                [["C"], ["A", "B"]] 
+            ]
 
 @testset "benchmark with input trees" begin
     input_trees = [copy(t1), copy(t2), copy(t3)]
