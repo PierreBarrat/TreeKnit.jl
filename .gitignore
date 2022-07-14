@@ -29,3 +29,13 @@ Manifest.toml
 # 
 examples/treeknit_results/
 examples/_tests
+
+# files generated during debuging
+*.nwk
+*.dat
+*.png
+*.txt
+.ipynb_checkpoints/
+test/.ipynb_checkpoints/
+.vscode/
+test/.vscode/

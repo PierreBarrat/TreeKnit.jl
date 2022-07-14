@@ -211,6 +211,10 @@ function doMCMC(g::Graph, conf::Array{Bool,1}, M::Int64; T=1, γ=1, mask=Set())
 end
 
 """
+mcmcstep!(conf, g, F, T, γ; mask=Set())
+
+Perform an mcmc step by removing a node from `conf` at random.
+If `mask` is specified no masked nodes will be removed.
 """
 function mcmcstep!(conf, g, F, T, γ; mask=Set())
 	stop = false
@@ -224,7 +228,7 @@ function mcmcstep!(conf, g, F, T, γ; mask=Set())
 	Enew = compute_energy(conf, g)
 	Fnew = Enew + γ*(length(conf) - sum(conf))
 	if Fnew < F || exp(-(Fnew-F)/T) > rand()
-		return Enew, Fnew
+		return Enew, Fnew, stop
 	else
 		conf[i] = !conf[i]
 		return (round(Int64, F-γ*(length(conf) - sum(conf))), F, stop)

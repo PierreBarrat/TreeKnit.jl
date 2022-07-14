@@ -119,8 +119,14 @@ function sortconf(oconfs, trees, g::Graph, seq_lengths, mcc_names, likelihood_so
 	end
 end
 
+"""
+get_mask(g, tree)
 
-function get_mask(g, tree)
+Get which branches/ terminal nodes of the current tree (SplitGraph) 
+should not be removed in the subsequent MCMC due to the fact that 
+they are masked.
+"""
+function get_mask(g::Graph, tree::Tree)
 	if !haskey(tree.root.data.dat, "mask")
 		return []
 	end

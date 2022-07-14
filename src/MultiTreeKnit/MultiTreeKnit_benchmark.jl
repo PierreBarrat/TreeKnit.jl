@@ -25,11 +25,18 @@ function assign_pos_maps(no_trees::Int64)
 end 
 
 """
-    get_MCC_pairs(trees::Vector{Any}, store_trees::Bool)
+    get_infered_MCC_pairs(trees::Vector{Tree{T}}, store_trees::Bool; consistant = true) where T
 
     function to get all MCCs of all tree pairs in tree list `trees` using TreeKnit,
     resolved trees from previous MCC calculations are used as the tree input for the next pair, 
-    the order is specified in Combinatorics.combinations(1:length(trees), 2)
+    the order is specified in Combinatorics.combinations(1:length(trees), 2). If MCC pairs should be 
+    consistent with previous MCCs the `consistant` flag can be set to true. A `mask` will then be 
+    computed from the previous MCC pairs to prevent nodes from being removed in an inconsistent manner.
+
+    For example if node `a` and node `b` are both in the same MCC clade for MCC12 and MCC13 they should also 
+    be together in MCC23, otherwise the MCC pairs are inconsistent. Note that inconsistent recombination 
+    events cannot be viewed together in `ARGPlot`.
+
 """
 function get_infered_MCC_pairs(trees::Vector{Tree{T}}, store_trees::Bool; consistant = true) where T
     l_t = length(trees)
@@ -189,6 +196,13 @@ function infer_benchmark_MCCs(input_trees::Vector{Tree{T}}; debug=false, order="
     return infer_benchmark_MCCs(input_trees, nothing, debug=debug, order=order)
 end
 
+"""
+get_tree_order(trees ;order="resolution")
+
+Reorder the list of input trees according the `resolution` index (more resolved trees
+are assumed to have more information and should be used first), or the `RF-distance` index
+(trees that are the most similar to all other trees should be used first), or as `input`.
+"""
 function get_tree_order(trees ;order="resolution")
     no_trees = length(trees)
     if order=="RF_distance"

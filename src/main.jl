@@ -59,7 +59,9 @@ end
 		runopt(oa::OptArgs, trees::Dict{<:Any,<:Tree})
 
 Run optimization at constant γ. See `?Optargs` for arguments. In the first form, keyword
-  arguments are given to `OptArgs`.
+  arguments are given to `OptArgs`. If `constraint` (in the form of an MCC where nodes that should 
+  be together are in the same cluster) is given this will be used as `mask` while performing simulated 
+  annealing, preventing nodes that should be in the same MCC from being split from each other.
 """
 runopt(t1::Tree, t2::Tree; kwargs...) = runopt(OptArgs(;kwargs...), t1, t2)
 
@@ -70,6 +72,9 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree; output = :mccs, constraint = no
 
 	# Resolve
 	oa.resolve && resolve!(ot1, ot2)
+	if !isnothing(constraint)
+		@assert typeof(constraint) == Vector{Vector{String}} "Constraint is not in correct format, see documentation"
+	end
 
 	add_mask!(constraint, ot1, ot2)
 
@@ -208,6 +213,12 @@ Prune MCCs `mcc_names[x]` for all `x` in `mcc_conf` from trees `t...`.
 """
 pruneconf!(trees, mcc_names, mcc_conf) = pruneconf!([mcc_names[x] for x in mcc_conf], trees...)
 
+
+"""
+PRT!(n::TreeNode)
+
+Assign `mcc`s to branches (i.e. their child node) by a Pre-order traversal starting at the root node `n`.
+"""
 function PRT!(n::TreeNode)
 	
 	if isroot(n)
@@ -239,6 +250,17 @@ function PRT!(t::Tree)
 	PRT!(t.root)
 end
 
+"""
+add_mask!(filter::Union{Nothing, Vector{Vector{String}}}, t::Vararg{Tree})
+
+Add a `mask` parameter to the tree, branches with a `mask` cannot have a recombination event occuring 
+on them as they connect clades that should be together according to the input constraints (`filter`).
+The filter should be in the form of an MCC, where if nodes are in the same clade this means they cannot
+have a recombination event happen between them.
+
+The function proceeds by allocating each node to the MCC it should be in using the Fitch algorithm, 
+then branches which are in a MCC with 2 or more nodes are marked with `mask`.
+"""
 function add_mask!(filter::Union{Nothing, Vector{Vector{String}}}, t::Vararg{Tree})
 	
 	if isnothing(filter)
