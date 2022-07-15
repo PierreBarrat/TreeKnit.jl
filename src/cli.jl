@@ -68,8 +68,18 @@ treeknit
 		error("Trees must share leaves")
 	end
 
+	# Reading sequence lengths
+	sl = try
+		local sl = map(i->parse(Int, i), split(seq_lengths, " "))
+		@assert length(sl) == 2
+		sl
+	catch err
+		@error "Unrecognized format for `--seq-lengths`.
+Should be of the form `--seq-lengths \"1500 2000\"`"
+		error(err)
+	end
+
 	# Setting up OptArgs
-	sl = map(i->parse(Int, i), split(seq_lengths, " "))
 	oa = OptArgs(;
 		γ = gamma,
 		likelihood_sort = !no_likelihood,
