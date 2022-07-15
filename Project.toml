@@ -1,7 +1,7 @@
 name = "TreeKnit"
 uuid = "03f602be-98a1-4bb2-9504-fbd3406624a7"
 authors = ["PierreBarrat <p.barrat@live.fr>"]
-version = "0.3.1"
+version = "0.3.2"
 
 [deps]
 ARGTools = "9d79bb22-e449-4c7c-894c-454c3d3f5473"

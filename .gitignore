@@ -27,6 +27,8 @@ Manifest.toml
 
 
 # 
+# examples/treeknit_results/
+examples/_tests
 examples/treeknit_results/
 examples/_tests
 

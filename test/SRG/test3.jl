@@ -3,8 +3,8 @@ using TreeKnit.SRG
 using Test
 using TreeTools
 
-nwk1 = "(A:3,(B:2,C:2)BC:1)R"
-nwk2 = "((A:3,B:3)AB:1,C:4)R"
+nwk1 = "(A:3,(B:2,C:2)BC:1)R;"
+nwk2 = "((A:3,B:3)AB:1,C:4)R;"
 
 t1 = parse_newick_string(nwk1);
 t2 = parse_newick_string(nwk2);
