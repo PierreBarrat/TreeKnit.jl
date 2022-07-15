@@ -20,6 +20,8 @@ include("mcc_measures.jl")
 
 include("mcc_tools.jl")
 
+include("mcc_labels.jl")
+
 include("mcc_IO.jl")
 export read_mccs, write_mccs
 
