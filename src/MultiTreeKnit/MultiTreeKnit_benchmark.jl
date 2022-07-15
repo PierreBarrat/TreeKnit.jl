@@ -179,7 +179,7 @@ function infer_benchmark_MCCs(input_trees::Vector{Tree{T}}, tree_names::Union{No
             pair = sort([tree_names[tree_order][1], tree_names[tree_order][i+1]])
             write_mccs("MCCs"*string(pair[1])*","*string(pair[2])*".dat", MCCsInfered[i])
         end
-        ARGPlot(tree_strings, MCCsInfered[1:(no_trees-1)], draw_connections=true, tree_names=nothing)
+        #ARGPlot(tree_strings, MCCsInfered[1:(no_trees-1)], draw_connections=true, tree_names=nothing)
     end
     println("Found MCCs:")
     print_MCCs(MCCsInfered, MCC_combinations_pos_to_trees_list, tree_names[tree_order])
