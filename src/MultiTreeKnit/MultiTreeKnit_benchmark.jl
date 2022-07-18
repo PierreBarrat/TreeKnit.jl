@@ -203,7 +203,7 @@ Reorder the list of input trees according the `resolution` index (more resolved 
 are assumed to have more information and should be used first), or the `RF-distance` index
 (trees that are the most similar to all other trees should be used first), or as `input`.
 """
-function get_tree_order(trees ;order="resolution")
+function get_tree_order(trees ;order="resolution", rev=false)
     no_trees = length(trees)
     if order=="RF_distance"
         ##start with trees that are most similar to all other trees
@@ -217,13 +217,13 @@ function get_tree_order(trees ;order="resolution")
                 end
                 push!(RF_index, rf/(no_trees-1))
             end
-            permvec = sortperm(RF_index)
+            permvec = sortperm(RF_index, rev=rev)
     else
         if order=="input"
             permvec = range(1, no_trees)
         else  ##start with most resolved trees
             resol_index = [resolution_value(t) for t in trees]
-            permvec = sortperm(resol_index, rev=true)
+            permvec = sortperm(resol_index, rev=!rev)
         end
     end
 
