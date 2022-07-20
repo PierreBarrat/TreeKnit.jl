@@ -311,7 +311,6 @@ function draw_ARG(
 
     x_posns = get_x_positions(tree)
     y_posns = get_y_positions(tree)
-    print(y_posns)
     # The function draw_clade closes over the axes object
     # fig = plt.figure()
     # axes = fig.add_subplot(1, 1, 1)
@@ -342,67 +341,71 @@ function draw_ARG(
     recombination_sites_coord_list = []
 
     for pos in 1:length(tree_list)
-        recombination_sites_coord = Dict()
+        recombination_sites_coord = Dict{Int, Tuple{Float16, Float16, String}}()
         for mcc in keys(recombination_sites[pos])
             recombination_sites_coord[mcc] = (x_recom[pos][mcc], y_posns[recombination_sites[pos][mcc][1]] -(pos+1)*epsilon, "r"*string(mcc))
         end
-        append!(recombination_sites_coord_list, recombination_sites_coord)
+        append!(recombination_sites_coord_list, [recombination_sites_coord])
 
         for (mcc, coord) in recombination_sites_coord
 
             #Add a single point using marker formatted as desired:
             plot!([coord[1]],[coord[2]], markershape=:x,
                 markercolor=colors[pos], markersize=10)
-            annotate!((coord[1] + epsilon,coord[2],text(coord[3], 14, :bottom, :left, colors[pos])))
+            annotate!((coord[1] + 0.01,coord[2],text(coord[3], 10, :bottom, :left, colors[pos])))
         end
     end
     
-    # if draw_connections
+    if draw_connections
 
-    #     def get_node(tree, label):
-    #         if "RESOLVED" in label:
-    #             return False
-    #         l = [n for n in tree.find_clades() if label==n.name]
-    #         if len(l) >0:
-    #             return l[0]
-    #         else:
-    #             return False
+        recom_label_list = []
 
-    #     recom_label_list = []
-
-    #     for pos in range(len(tree_list)):
-    #         recom_labels = {}
-    #         for mcc, n in recombination_sites[pos].items():
-    #             found = False
-    #             child_list = []
-    #             node = n[1]
-    #             go_up = 0
-    #             while not found:
-    #                 for child in node.up.clades:
-    #                     if child.name !=n[1].name:
-    #                         tree_node = get_node(tree, child.name)
-    #                         if tree_node:
-    #                             t_n = tree_node
-    #                             for i in range(go_up):
-    #                                 if t_n != tree.root:
-    #                                     t_n = t_n.up
-    #                             if t_n == tree.root:
-    #                                 t_p = t_n
-    #                             else:
-    #                                 t_p = t_n.up
-    #                             recom_labels[mcc] = (x_posns[t_p]/2 + x_posns[t_n]/2, y_posns[t_n] -(pos+1)*epsilon, "r'" + str(mcc))
-    #                             found = True
-    #                             break
-    #                         else:
-    #                             child_list+= child
-    #                 if not found:
-    #                     node = child_list.pop()
-    #                     go_up += 1
-            
-    #         for mcc in recombination_sites_coord_list[pos]:
-    #             axes.scatter(recom_labels[mcc][0], recom_labels[mcc][1], marker="x", color=colors[pos])
-    #             plt.text(x=recom_labels[mcc][0]+0.01,y =recom_labels[mcc][1]-0.1,s=recom_labels[mcc][2], color=colors[pos])
-    #             plt.plot([recom_labels[mcc][0], recombination_sites_coord_list[pos][mcc][0]], [recom_labels[mcc][1], recombination_sites_coord_list[pos][mcc][1]], color=colors[pos], linewidth=plt.rcParams["lines.linewidth"], linestyle='--')
+        for pos in 1:length(tree_list)
+            recom_labels = Dict{Int, Tuple{Float16, Float16, String}}()
+            for (mcc, n) in recombination_sites[pos]
+                found = false
+                child_list = []
+                node = n[1]
+                go_up = 0
+                while !found
+                    for child in node.anc.child
+                        if child.label !=n[1].label
+                            if haskey(tree.lnodes, child.label) && !occursin("RESOLVED", child.label)
+                                tree_node = tree.lnodes[child.label]
+                                t_n = tree_node
+                                for i in 1:go_up
+                                    if t_n != tree.root
+                                        t_n = t_n.anc
+                                    end
+                                end
+                                if t_n == tree.root
+                                    t_p = t_n
+                                else
+                                    t_p = t_n.anc
+                                end
+                                recom_labels[mcc] = (x_posns[t_p]/2 + x_posns[t_n]/2, y_posns[t_n] -(pos+1)*epsilon, "r'"*string(mcc))
+                                found = true
+                                break
+                            else
+                                child_list+= child
+                            end
+                        end
+                    end
+                    if !found
+                        node = pop!(child_list)
+                        go_up += 1
+                    end
+                end
+            end
+            for mcc in keys(recombination_sites_coord_list[pos])
+                plot!([recom_labels[mcc][1]], [recom_labels[mcc][2]], markershape=:x,
+                markercolor=colors[pos], markersize=10)
+                annotate!((recom_labels[mcc][1]+0.01,recom_labels[mcc][2],text(recom_labels[mcc][3], 10, :bottom, :left, colors[pos])))
+                plot!([recom_labels[mcc][1], recombination_sites_coord_list[pos][mcc][1]], [recom_labels[mcc][2], recombination_sites_coord_list[pos][mcc][2]], color=colors[pos], linestyle=:dash)
+                
+            end
+        end
+    end
 
     function draw_clade_lines(;
         orientation="horizontal", y_here=0, x_start=0, x_here=0, y_bot=0, y_top=0, color=:black, lw=.1
@@ -410,9 +413,6 @@ function draw_ARG(
         if orientation=="horizontal"
             display(plot!([x_start; x_here], [y_here; y_here], lw=lw, lc=color, legend=false))
         else
-            print("print y location")
-            print(y_bot)
-            print(y_top)
             display(plot!([x_here; x_here], [y_bot; y_top], lw=lw, lc=color, legend=false))
         end
     end
@@ -444,7 +444,7 @@ function draw_ARG(
         if !recombination
             label = string(clade.label)
             if !isnothing(label)
-                annotate!((x_here,y_here,text(label, 14, :center, :left, :black)))
+                annotate!((x_here+0.01,y_here,text(label, 10, :center, :left, :black)))
             end
         end
         if !isempty(clade.child)
@@ -454,10 +454,6 @@ function draw_ARG(
             if recombination
                 y_top -= (pos+1)*epsilon
                 y_bot -= (pos+1)*epsilon
-                print("print initial values")
-                print(y_top)
-                print(y_bot)
-                print("\n")
                 l = length(clade.child)
                 if clade.child[1].data["mcc"][pos] != mcc[pos]
                     if isnothing(mcc[pos]) && clade.child[1].data["mcc"][pos] ∉ recombination_sites
@@ -468,8 +464,6 @@ function draw_ARG(
                         || (isnothing(mcc[pos]) && clade.child[i+1].data["mcc"][pos] ∈ recombination_sites)) && y_posns[clade.child[i+1]]<= y_here
                             i+=1
                         end
-                        print("i")
-                        print(i)
                         y_top = min(y_posns[clade.child[i]], y_here)
                     end
                 end

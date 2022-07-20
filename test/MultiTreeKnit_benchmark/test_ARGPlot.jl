@@ -27,3 +27,8 @@ TreeKnit.draw_ARG(
         ot1, [ot2],
         rec_dict
     )
+
+TreeKnit.draw_ARG(
+        ot1, [ot2],
+        rec_dict, draw_connections = true
+    )
