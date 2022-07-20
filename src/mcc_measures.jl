@@ -114,7 +114,7 @@ function consistent_mcc_triplets(MCCs, trees)
         if isroot(n)
             continue
         end
-        if TreeKnit.is_branch_in_mccs(n, MCCs[1]) && TreeKnit.is_branch_in_mccs(n, MCCs[2])
+        if !isnothing(TreeKnit.find_mcc_with_branch(n, MCCs[1])) && !isnothing(TreeKnit.find_mcc_with_branch(n, MCCs[2]))
             Z += 1
             # Must find a corresponding common branch in trees[2] (or trees[3])
             # We find it by taking the intesection of the clade of n with the MCC n
@@ -124,7 +124,7 @@ function consistent_mcc_triplets(MCCs, trees)
             clade = [x.label for x in POTleaves(n)]
             n2 = lca(trees[2], intersect(clade, m12))
             n3 = lca(trees[3], intersect(clade, m13))
-            if !(TreeKnit.is_branch_in_mccs(n2, MCCs[3]) || isroot(n2)) || !(TreeKnit.is_branch_in_mccs(n3, MCCs[3]) || isroot(n3))
+            if !(!isnothing(TreeKnit.find_mcc_with_branch(n2, MCCs[3])) || isroot(n2)) || !(!isnothing(TreeKnit.find_mcc_with_branch(n3, MCCs[3])) || isroot(n3))
                 s += 1
             end
         end
