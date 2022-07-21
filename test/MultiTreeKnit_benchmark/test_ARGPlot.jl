@@ -15,7 +15,8 @@ t3 = node2tree(TreeTools.parse_newick(nwk3))
 TreeKnit.draw_ARG(
         t1, [],
         Dict()
-    )
+)
+
 mcc_map = TreeKnit.get_mcc_map([[["A"], ["B", "C"]]])
 ot1 = copy(convert(Tree{TreeTools.MiscData}, t1))
 ot2 = copy(convert(Tree{TreeTools.MiscData}, t2))
