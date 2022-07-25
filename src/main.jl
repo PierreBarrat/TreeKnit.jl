@@ -59,24 +59,22 @@ end
 		runopt(oa::OptArgs, trees::Dict{<:Any,<:Tree})
 
 Run optimization at constant γ. See `?Optargs` for arguments. In the first form, keyword
-  arguments are given to `OptArgs`. If `constraint` (in the form of an MCC where nodes that should 
+  arguments are given to `OptArgs`. If `oa.constraint` (in the form of an MCC where nodes that should 
   be together are in the same cluster) is given this will be used as `mask` while performing simulated 
   annealing, preventing nodes that should be in the same MCC from being split from each other.
 """
 runopt(t1::Tree, t2::Tree; kwargs...) = runopt(OptArgs(;kwargs...), t1, t2)
 
-function runopt(oa::OptArgs, t1::Tree, t2::Tree; output = :mccs, constraint = nothing)
+function runopt(oa::OptArgs, t1::Tree, t2::Tree; output = :mccs)
 	# Copying input trees for optimization
 	ot1 = copy(convert(Tree{TreeTools.MiscData}, t1))
 	ot2 = copy(convert(Tree{TreeTools.MiscData}, t2))
 
 	# Resolve
 	oa.resolve && resolve!(ot1, ot2)
-	if !isnothing(constraint)
-		@assert typeof(constraint) == Vector{Vector{String}} "Constraint is not in correct format, see documentation"
-	end
 
-	add_mask!(constraint, ot1, ot2)
+	format_constraint!(oa.constraint, t1)
+	add_mask!(oa.constraint, ot1, ot2)
 
 	iMCCs = naive_mccs(ot1, ot2)
 	oa.verbose && @info "Initial state: $(length(iMCCs)) naive MCCs"
@@ -95,8 +93,8 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree; output = :mccs, constraint = no
 		M = Int(ceil(length(ot1.lleaves) * oa.nMCMC / length(oa.Trange)))
 		mccs, Efinal, Ffinal, lk = SplitGraph.opttrees(
 			ot1, ot2;
-			γ=oa.γ, seq_lengths = oa.seq_lengths, M=M, Trange=oa.Trange,
-			likelihood_sort=oa.likelihood_sort, resolve=oa.resolve, sa_rep = oa.sa_rep, oa.verbose
+			γ=oa.γ, seq_lengths = oa.seq_lengths, M=M, Trange=oa.Trange, likelihood_sort=oa.likelihood_sort, 
+			resolve=oa.resolve, sa_rep=oa.sa_rep, constraint_cost=oa.constraint_cost, oa.verbose
 		)
 		!isempty(mccs) && append!(MCCs, mccs)
 		oa.verbose && @info "Found $(length(mccs)) new mccs."

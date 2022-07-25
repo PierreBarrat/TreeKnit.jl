@@ -59,10 +59,7 @@ function get_infered_MCC_pairs!(trees::Vector{Tree{T}}; consistant = true, order
             else
                 joint_MCCs = nothing
             end
-            oa = OptArgs(;γ = 2., likelihood_sort = true, resolve = true,
-                        nMCMC = 25, verbose=false)
-            #mCCs = runopt(oa, trees[i], trees[j]; output = :mccs, constraint= joint_MCCs)
-            pair_MCCs[Set([label_map[i], label_map[j]])] = runopt(oa, trees[i], trees[j]; output = :mccs, constraint=joint_MCCs)
+            pair_MCCs[Set([label_map[i], label_map[j]])] = runopt(OptArgs(;constraint=joint_MCCs), trees[i], trees[j]; output = :mccs)
             rS = resolve!(trees[i], trees[j], pair_MCCs[Set([label_map[i], label_map[j]])])
         end
     end
@@ -158,8 +155,7 @@ function infer_benchmark_MCCs!(trees::Vector{Tree{T}}; debug=false, consistant=t
 
     if debug
         println("Found MCCs:")
-        print_MCCs(MCC_dict, MCC_combinations_pos_to_trees_list, tree_names[tree_order])
-        draw_ARG(tree_strings, MCC_dict, draw_connections=true)
+        print_MCCs(MCC_dict)
     end
 
     return MCC_dict
@@ -167,7 +163,7 @@ end
 
 function infer_benchmark_MCCs(no_trees::Int64, lineage_number::Int64; debug=false, consistant=true, remove=false, order="resolution")
     trees, arg = get_trees(no_trees, lineage_number, remove=remove);
-    return infer_benchmark_MCCs([trees...], debug=debug, consistant=consistant, order=order)
+    return infer_benchmark_MCCs!([trees...], debug=debug, consistant=consistant, order=order)
 end
 
 """

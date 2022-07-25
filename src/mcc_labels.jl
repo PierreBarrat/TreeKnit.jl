@@ -62,7 +62,7 @@ function PRT!(n::TreeNode, k::Int)
             if !isempty(n.data["child_mccs"][pos])
                 append!(n.data["mcc"], pop!(n.data["child_mccs"][pos]))
             else
-                append!(n.data["mcc"], nothing)
+                append!(n.data["mcc"], [nothing])
             end
         end
     else
@@ -73,7 +73,7 @@ function PRT!(n::TreeNode, k::Int)
             elseif length(n.data["child_mccs"][pos])==1  # child is an MCC
                 append!(n.data["mcc"], pop!(n.data["child_mccs"][pos]))
             else # no unique child MCC and no match with parent -> not part of an MCCs
-                append!(n.data["mcc"], nothing)
+                append!(n.data["mcc"], [nothing])
             end
         end
     end
@@ -95,7 +95,7 @@ end
 
 function PRT!(n::TreeNode)
     if isroot(n)
-        if !isempty(n.data["child_mccs"])
+        if !isempty(n.data["child_mccs"]) && length(n.data["child_mccs"])==1
             n.data["mcc"] = pop!(n.data["child_mccs"])
         else
             n.data["mcc"] = nothing
@@ -185,7 +185,21 @@ function assign_mccs!(mcc_map::Dict{String, Int}, t::Tree{TreeTools.MiscData})
     return  assign_mccs!(mcc_map, [t]) 
 end
 
-function assign_all_mccs!(tree, len_tree_list, mcc_map)
+function assign_all_mccs!(tree::Tree{TreeTools.MiscData}, tree_list::Vector{Tree{TreeTools.MiscData}}, 
+    MCCs_dict::Dict{Set{String}, Vector{Vector{String}}})
+    
+    len_tree_list = length(tree_list)
+    MCCs_list = Vector{Vector{String}}[]
+    for t in tree_list
+        append!(MCCs_list, [MCCs_dict[Set([tree.label, t.label])]])
+    end
+    mcc_map = get_mcc_map(MCCs_list)
+    
+    assign_all_mccs!(tree, len_tree_list, mcc_map)
+    
+end
+
+function assign_all_mccs!(tree::Tree{TreeTools.MiscData}, len_tree_list::Int, mcc_map::Dict{String, Vector{Int}})
     # assign MCCs to leaves
     for leaf in tree.lleaves
         leaf.second.data["child_mccs"] = [Set([mcc_map[leaf.second.label][pos]]) for pos in 1:len_tree_list]
@@ -211,10 +225,20 @@ function assign_all_mccs!(tree, len_tree_list, mcc_map)
     
 end
 
-function get_recombination_sites(first_tree, tree_list, MCC_lists)
+function get_recombination_sites(first_tree::Tree{TreeTools.MiscData}, tree_list::Vector{Tree{TreeTools.MiscData}}, 
+    MCCs::Union{Vector{Vector{Vector{String}}}, Dict{Set{String}, Vector{Vector{String}}}})
+
+    if isa(MCCs, Dict)
+        MCC_lists = Vector{Vector{String}}[]
+        for t in tree_list
+            append!(MCC_lists,  [MCCs[Set([first_tree.label, t.label])]])
+        end
+    else
+        MCC_lists = MCCs
+    end
     
     len_trees = length(tree_list)
-    recombination_pairs_list = []
+    recombination_pairs_list = Dict{Int, Tuple{TreeNode, TreeNode}}[]
     for pos in 1:len_trees
         tree = tree_list[pos]
         checked_mccs = Set{Int}()

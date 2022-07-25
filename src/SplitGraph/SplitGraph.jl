@@ -39,17 +39,18 @@ function opttrees(t...;
 	likelihood_sort=true,
 	resolve=true,
 	sa_rep = 1,
+	constraint_cost= γ,
 	verbose=false
 )
 	opttrees!(
 		γ, Trange, M, seq_lengths, [copy(convert(Tree{TreeTools.MiscData}, x)) for x in t]...;
-		likelihood_sort, resolve, sa_rep, verbose
+		likelihood_sort, resolve, sa_rep, constraint_cost, verbose
 	)
 end
 
 function opttrees!(
 	γ, Trange, M, seq_lengths, t::Vararg{Tree}; 
-	likelihood_sort=true, resolve=true, sa_rep=1, verbose=false
+	likelihood_sort=true, resolve=true, sa_rep=1, constraint_cost= γ, verbose=false
 )
 	set_verbose(verbose)
 
@@ -63,10 +64,10 @@ function opttrees!(
 		TreeKnit.reduce_to_mcc!(t, mcc)
 	end
 	g = trees2graph(treelist)
-	mask = get_mask(g, t[1])
+	mask = get_mask(g, treelist[1])
 
 	# SA - Optimization
-	oconfs, F, nfound = sa_opt(g, γ=γ, Trange=Trange, M=M, rep=sa_rep, resolve=resolve, mask=mask)
+	oconfs, F, nfound = sa_opt(g, γ=γ, Trange=Trange, M=M, rep=sa_rep, resolve=resolve, mask=mask, constraint_cost=constraint_cost)
 	# Computing likelihoods
 	if length(oconfs) != 1
 		v() && @info "Sorting $(length(oconfs)) topologically equivalent configurations."
@@ -79,7 +80,7 @@ function opttrees!(
 	end
 	vv() && @info "Final configuration for this iteration: $oconf."
 	vv() && @info "MCCs removed: $([mcc_names[x] for x in g.labels[.!oconf]])"
-	return [mcc_names[x] for x in g.labels[.!oconf]], compute_energy(oconf,g), compute_F(oconf, g, γ), L
+	return [mcc_names[x] for x in g.labels[.!oconf]], compute_energy(oconf,g), compute_F(oconf, g, γ, mask=mask, constraint_cost=constraint_cost), L
 end
 
 

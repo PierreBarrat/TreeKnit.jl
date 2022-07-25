@@ -37,6 +37,9 @@ Storing parameters for `SplitGraph.runopt` function.
 	cooling_schedule = :geometric
 	Trange = get_cooling_schedule(Tmin, Tmax, nT, type=cooling_schedule)
 	sa_rep::Int64 = 1
+	# Cost of breaking a constraint (nodes that should be connected)
+	constraint_cost::Float64 = γ
+	constraint::Union{Nothing, Vector{Vector{String}}} = nothing
 	# Verbosity
 	verbose::Bool = false
 	vv::Bool = false
@@ -73,5 +76,17 @@ function get_acos_cooling_schedule(Tmin, Tmax, nT)
 end
 
 get_linear_cooling_schedule(Tmin, Tmax, nT) = return collect(reverse(range(Tmin, stop = Tmax, length = nT)))
+
+function format_constraint!(constraint, tree)
+	if !isnothing(constraint)
+		constraint_leaves = union([Set([m... ]) for m in constraint]...)
+		for l in keys(tree.lleaves)
+			if l ∉ constraint_leaves
+				append!(constraint, [l])
+			end
+		end
+	end
+	return constraint
+end
 
 

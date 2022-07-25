@@ -43,8 +43,8 @@ export SRG
 
 include("cli.jl")
 
-#include("ARG_Plot_functions.jl")
-#export ARGPlot
+include("arg_plots.jl")
+export draw_ARG
 
 include("MultiTreeKnit/MultiTreeKnit_benchmark.jl")
 
