@@ -38,7 +38,7 @@ end
     events cannot be viewed together in `ARGPlot`.
 
 """
-function get_infered_MCC_pairs!(trees::Vector{Tree{T}}; consistant = true, order="input", rev=false) where T
+function get_infered_MCC_pairs!(trees::Vector{Tree{T}}; consistant = true, order="input", rev=false, constraint_cost=2.) where T
 
     l_t = length(trees)
 
@@ -59,7 +59,7 @@ function get_infered_MCC_pairs!(trees::Vector{Tree{T}}; consistant = true, order
             else
                 joint_MCCs = nothing
             end
-            pair_MCCs[Set([label_map[i], label_map[j]])] = runopt(OptArgs(;constraint=joint_MCCs), trees[i], trees[j]; output = :mccs)
+            pair_MCCs[Set([label_map[i], label_map[j]])] = runopt(OptArgs(;constraint=joint_MCCs, constraint_cost=constraint_cost), trees[i], trees[j]; output = :mccs)
             rS = resolve!(trees[i], trees[j], pair_MCCs[Set([label_map[i], label_map[j]])])
         end
     end
