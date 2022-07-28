@@ -59,7 +59,7 @@ function PRT!(n::TreeNode, k::Int)
     if isroot(n)
         n.data["mcc"] = []
         for pos in 1:k
-            if !isempty(n.data["child_mccs"][pos])
+            if !isempty(n.data["child_mccs"][pos]) && length(n.data["child_mccs"][pos])==1
                 append!(n.data["mcc"], pop!(n.data["child_mccs"][pos]))
             else
                 append!(n.data["mcc"], [nothing])
@@ -78,7 +78,7 @@ function PRT!(n::TreeNode, k::Int)
         end
     end
 
-	delete!(n.data.dat, "child_mccs")
+	#delete!(n.data.dat, "child_mccs")
 
 	if !isempty(n.child)
 		for c in n.child
@@ -109,7 +109,7 @@ function PRT!(n::TreeNode)
             n.data["mcc"] = nothing
         end
     end
-    delete!(n.data.dat, "child_mccs")
+    #delete!(n.data.dat, "child_mccs")
 
     if !isempty(n.child)
         for c in n.child
@@ -137,9 +137,9 @@ then branches which are in a MCC with 2 or more nodes are marked with `mask`.
 function add_mask!(filter::Union{Nothing, Vector{Vector{String}}}, t::Vararg{Tree})
 	
 	if isnothing(filter)
-		return []
+		return "here"
 	end
-	
+
 	mcc_map, cluster_no = get_mcc_map(filter, get_cluster_no =true)
 	# assign MCCs to leaves
     for tree in t
@@ -223,6 +223,137 @@ function assign_all_mccs!(tree::Tree{TreeTools.MiscData}, len_tree_list::Int, mc
 
 	PRT!(tree, len_tree_list)
     
+end
+
+
+# function fix_consist!(MCCs, trees)
+#     @assert length(trees) ==2 && length(MCCs)==3
+#     constraint = TreeKnit.join_sets([MCCs[1], MCCs[2]])
+#     for i in 1:2
+#         tree = copy(trees[i])
+#         try
+#             TreeKnit.add_mask!(constraint, tree)
+#         catch
+#             print("could not add mask")
+#             return MCCs
+#         end
+#         n_list = []
+#         mcc_map = TreeKnit.get_mcc_map(MCCs[i])
+#         next_mcc_no = length(MCCs[i]) + 1
+#         try
+#             TreeKnit.assign_mccs!(mcc_map, tree) 
+#         catch
+#             print("could not assign mccs")
+#             return MCCs
+#         end
+#         for n in nodes(tree)
+#             if isroot(n)
+#                 continue
+#             end
+#             if n.data.dat["mask"]==true ##should be in a MCC
+#                 if !(TreeKnit.is_branch_in_mccs(n, MCCs[3]))
+#                     mcc = n.data.dat["mcc"]
+#                     clade = String[]
+#                     for x in POTleaves(n)
+#                         if x.data.dat["mcc"]==mcc
+#                             mcc_map[x.label] = next_mcc_no
+#                         end
+#                     end
+#                     next_mcc_no +=1
+#                 end
+#             end
+#         end
+#         if next_mcc_no > length(MCCs[i]) + 1
+#             MCC_dict = Dict{Int, Vector{String}}()
+#             for (key, item) in mcc_map
+#                 if haskey(MCC_dict, item)
+#                     append!(MCC_dict[item], [key])
+#                 else
+#                     MCC_dict[item] = [key]
+#                 end
+#             end
+#             MCCs_new = Vector{String}[]
+#             for (num, mcc) in MCC_dict
+#                 append!(MCCs_new, [mcc])
+#             end
+#             MCCs[i] = MCCs_new
+#         end
+#     end
+#     return MCCs
+# end
+
+function fix_consist!(MCCs, trees)
+    @assert length(trees) ==2 && length(MCCs)==3
+    constraint = TreeKnit.join_sets([MCCs[1], MCCs[2]])
+    i = rand((2, 1))
+    tree = copy(trees[i])
+    try
+        TreeKnit.add_mask!(constraint, tree)
+    catch
+        print("could not add mask")
+        return MCCs
+    end
+    mcc_map_i = TreeKnit.get_mcc_map(MCCs[i])
+    #mcc_map_3 = TreeKnit.get_mcc_map(MCCs[3])
+    next_mcc_no = length(MCCs[i]) + 1
+    try
+        assign_mccs!(mcc_map_i, tree) 
+        #assign_all_mccs!(tree, 2, mcc_map)
+    catch
+        print("could not assign mccs")
+        return MCCs
+    end
+    for n in nodes(tree)
+        if isroot(n)
+            continue
+        end
+        if n.data.dat["mask"]==true ##should be in a MCC
+            if !(TreeKnit.is_branch_in_mccs(n, MCCs[3]))
+                ##if can be merged modify MCCs[3] instead of MCCs[i]
+                #desired_mcc_clade = MCCs[i][n.data.dat["mcc"]]
+                # if check_merge(lca(tree, desired_mcc_clade), Set([mcc_map_3[c] for c in desired_mcc_clade]))
+                #     MCCs[3] = modified(MCCs[3])
+                # end
+                mcc = n.data.dat["mcc"]
+                clade = String[]
+                for x in POTleaves(n)
+                    if x.data.dat["mcc"]==mcc
+                        mcc_map_i[x.label] = next_mcc_no
+                    end
+                end
+                next_mcc_no +=1
+            end
+        end
+    end
+    if next_mcc_no > length(MCCs[i]) + 1
+        MCC_dict = Dict{Int, Vector{String}}()
+        for (key, item) in mcc_map_i
+            if haskey(MCC_dict, item)
+                append!(MCC_dict[item], [key])
+            else
+                MCC_dict[item] = [key]
+            end
+        end
+        MCCs_new = Vector{String}[]
+        for (num, mcc) in MCC_dict
+            append!(MCCs_new, [mcc])
+        end
+        MCCs[i] = MCCs_new
+    end
+    return MCCs
+end
+
+
+function check_merge(n, mcc_set)
+    if n.data["mcc"][2] ∈ mcc_set
+        return true
+    elseif isnothing(n.data["mcc"][2]) && !isempty(n.child)
+        for c in n.child
+            return check_merge(c, mcc_set)
+        end
+    else
+        return false
+    end
 end
 
 function get_recombination_sites(first_tree::Tree{TreeTools.MiscData}, tree_list::Vector{Tree{TreeTools.MiscData}}, 

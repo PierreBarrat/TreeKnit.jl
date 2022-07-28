@@ -85,7 +85,7 @@ function consistency_rate(MCC_dict::Dict{Set{String}, Vector{Vector{String}}}, t
         MCC1 = MCC_dict[Set([label_map[comb[1]], label_map[comb[2]]])]
         MCC2 = MCC_dict[Set([label_map[comb[1]], label_map[comb[3]]])]
         MCC3 = MCC_dict[Set([label_map[comb[3]], label_map[comb[2]]])]
-        s = consistency_rate(MCC1, MCC2, MCC3, trees[comb])
+        s = sum(consistency_rate(MCC1, MCC2, MCC3, trees[comb]))/3
         score += s
     end
     return score / binomial(l_t,3)
@@ -101,7 +101,7 @@ end
 function consistency_rate(M12::Vector{Vector{String}}, M13::Vector{Vector{String}}, M23::Vector{Vector{String}}, trees::Vector{Tree{T}}) where T
     
     @assert length(trees) == 3
-    consistency_rate = 0
+    consistency_rate = []
     MCCs = [M12, M13, M23]
     k_iters = Combinatorics.combinations(1:3, 2)
 	for (i, combinations) in enumerate(k_iters)
@@ -109,35 +109,33 @@ function consistency_rate(M12::Vector{Vector{String}}, M13::Vector{Vector{String
         order = append!(combinations, last)
         tree_order = [i, filter(e->e∉[i],1:3)...]
         score = consistent_mcc_triplets(MCCs[order], trees[tree_order])
-        consistency_rate += score
+        append!(consistency_rate, score)
     end
 
-	return consistency_rate / 3
+	return consistency_rate
 end
 
 
-function consistent_mcc_triplets(MCCs, trees)
+function consistent_mcc_triplets(MCCs, trees; masked=false)
+    constraint = TreeKnit.join_sets([MCCs[1], MCCs[2]])
     s = 0
 	Z = 0
-    for n in nodes(trees[1])
-        if isroot(n)
-            continue
-        end
-        if !isnothing(TreeKnit.find_mcc_with_branch(n, MCCs[1])) && !isnothing(TreeKnit.find_mcc_with_branch(n, MCCs[2]))
-            Z += 1
-            # Must find a corresponding common branch in trees[2] (or trees[3])
-            # We find it by taking the intesection of the clade of n with the MCC n
-            # belongs to
-            m12 = find_mcc_with_branch(n, MCCs[1])[2]
-            m13 = find_mcc_with_branch(n, MCCs[2])[2]
-            clade = [x.label for x in POTleaves(n)]
-            n2 = lca(trees[2], intersect(clade, m12))
-            n3 = lca(trees[3], intersect(clade, m13))
-            if !(!isnothing(TreeKnit.find_mcc_with_branch(n2, MCCs[3])) || isroot(n2)) || !(!isnothing(TreeKnit.find_mcc_with_branch(n3, MCCs[3])) || isroot(n3))
-                s += 1
+    for t in trees
+        tree = copy(t)
+        TreeKnit.add_mask!(constraint, tree)
+        for n in nodes(tree)
+            if isroot(n)
+                continue
+            end
+            if n.data.dat["mask"]==true ##should be in a MCC
+                Z += 1
+                if !(TreeKnit.is_branch_in_mccs(n, MCCs[3]))
+                    s += 1
+                end
             end
         end
     end
+    @assert (masked && s!=0 && TreeKnit.is_MCC_subset(TreeKnit.join_sets([MCCs[1], MCCs[2]]), MCCs[3])) == false "Error: Should be consistent" 
     return  Z == 0 ? 0.0 : s / Z
 end
 

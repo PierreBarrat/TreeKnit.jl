@@ -24,6 +24,18 @@ function calc_label_map(tree_names::Vector{String})
     return label_map
 end
 
+# function get_MCC_list(MCC_dict::Dict{Set{String}, Vector{Vector{String}}}(), ordered_trees::Vector{Tree{T}}) where T
+#     MCC_list = Vector{Vector{String}}[]
+#     label_map = calc_label_map(ordered_trees)
+#     l_t = length(trees)
+#     for i in 1:(l_t-1)
+#         for j in i:l_t
+#             append!(MCC_list, MCC_dict[Set([label_map[i], label_map[j]])])
+#         end
+#     end
+#     return MCC_list
+# end
+
 """
     get_infered_MCC_pairs(trees::Vector{Tree{T}}, store_trees::Bool; consistant = true) where T
 
@@ -38,29 +50,57 @@ end
     events cannot be viewed together in `ARGPlot`.
 
 """
-function get_infered_MCC_pairs!(trees::Vector{Tree{T}}; consistant = true, order="input", rev=false, constraint_cost=2.) where T
+function get_infered_MCC_pairs!(trees::Vector{Tree{T}}; consistant = true, order="input", rev=false, constraint_cost=2., rounds=2, force=false, force_rounds=5) where T
 
     l_t = length(trees)
 
     ##if desired first change the order of the trees
-    order = get_tree_order(trees ;order=order, rev=rev)
+    order = TreeKnit.get_tree_order(trees ;order=order, rev=rev)
     trees = trees[order]
 
-    label_map = calc_label_map(trees)
+    label_map = TreeKnit.calc_label_map(trees)
     pair_MCCs = Dict{Set{String}, Vector{Vector{String}}}()
-    for i in 1:(l_t-1)
-        for j in (i+1):l_t
-            if i>1 && consistant
-                x= i
-                y =j
-                first = pair_MCCs[Set([label_map[x-1], label_map[x]])]
-                second = pair_MCCs[Set([label_map[x-1], label_map[y]])]
-                joint_MCCs = join_sets([first, second])
-            else
+    for r in 1:rounds
+        for i in 1:(l_t-1)
+            for j in (i+1):l_t
                 joint_MCCs = nothing
+                if consistant
+                    for x in 1:l_t
+                        if x ∉ Set([i, j]) && haskey(pair_MCCs, Set([label_map[x], label_map[i]])) && haskey(pair_MCCs, Set([label_map[x], label_map[j]]))
+                            first = pair_MCCs[Set([label_map[i], label_map[x]])]
+                            second = pair_MCCs[Set([label_map[j], label_map[x]])]
+                            pre_joint_MCCs = TreeKnit.join_sets([first, second])
+                            if !isnothing(joint_MCCs)
+                                joint_MCCs = TreeKnit.join_sets([joint_MCCs, pre_joint_MCCs])
+                            end
+                        end
+                    end
+                end
+                pair_MCCs[Set([label_map[i], label_map[j]])] = TreeKnit.runopt(TreeKnit.OptArgs(;constraint=joint_MCCs, constraint_cost=constraint_cost), trees[i], trees[j]; output = :mccs)
+                rS = TreeKnit.resolve!(trees[i], trees[j], pair_MCCs[Set([label_map[i], label_map[j]])])
             end
-            pair_MCCs[Set([label_map[i], label_map[j]])] = runopt(OptArgs(;constraint=joint_MCCs, constraint_cost=constraint_cost), trees[i], trees[j]; output = :mccs)
-            rS = resolve!(trees[i], trees[j], pair_MCCs[Set([label_map[i], label_map[j]])])
+        end
+    end
+    if force
+        rep = 0
+        consti = consistency_rate(pair_MCCs, trees)
+        while consti >0 && rep <force_rounds
+            for i in 1:(l_t-1)
+                for j in (i+1):l_t
+                    for x in 1:l_t
+                        if x ∉ Set([i, j]) 
+                            first = pair_MCCs[Set([label_map[i], label_map[x]])]
+                            second = pair_MCCs[Set([label_map[j], label_map[x]])]
+                            third = pair_MCCs[Set([label_map[j], label_map[i]])]
+                            fix_consist!([first, second, third], [trees[j], trees[i]])
+                        end
+                    end
+                end
+            end
+            rep +=1
+        end
+        if sum(consti) >0
+            print("Cannot find a consistent ARG")
         end
     end
     return pair_MCCs
@@ -87,27 +127,35 @@ end
     given as input a list of MCC lists this function joins these MCC lists (sets) by calculating their intersection recursively
     and returning their intersection
 """
-function join_sets(input_sets::Vector{Vector{Vector{String}}})
-    start_set = input_sets[1]
-    for i in 2:length(input_sets)
-        joint_sets = Vector{String}[]
-        to_be_joint_set = [Set{String}(s2) for s2 in input_sets[i]]
-        for s1 in start_set
-            nodes = length(s1)
-            while nodes>0
-                for s2 in to_be_joint_set
-                    joint_set = intersect(Set{String}(s1), s2)
-                    if !isempty(joint_set)
-                        s2 = setdiff(s2,joint_set)
-                        nodes -= length(joint_set)
-                        append!(joint_sets, [sort(collect(joint_set))])
-                    end
+
+function join_sets(MCCs::Vector{Vector{Vector{String}}})
+    sets = [union([Set([m... ]) for m in mcc]...) for mcc in MCCs]
+    @assert union(sets...) == sets[1] ## make sure labels are the same in all trees
+    mcc_map = Dict{String, Vector{Int}}()
+    reverse_mcc_map = Dict{Vector{Int}, Set{String}}()
+    for MCC in MCCs
+        for (i,mcc) in enumerate(MCC)
+            for node in mcc
+                if haskey(mcc_map, node)
+                    append!(mcc_map[node], i)
+                else
+                    mcc_map[node] = [i]
                 end
             end
         end
-        start_set = joint_sets
     end
-    return sort(start_set; lt=clt)
+    for node in keys(mcc_map)
+        if haskey(reverse_mcc_map, mcc_map[node])
+            push!(reverse_mcc_map[mcc_map[node]], node)
+        else
+            reverse_mcc_map[mcc_map[node]] = Set([node])
+        end
+    end
+    MCCs_new = Vector{String}[]
+    for (num, mcc) in reverse_mcc_map
+        append!(MCCs_new, [sort(collect(mcc))])
+    end
+    return TreeKnit.sort(MCCs_new; lt=TreeKnit.clt)
 end
 
 """
