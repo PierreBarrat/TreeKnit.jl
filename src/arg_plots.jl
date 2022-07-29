@@ -225,7 +225,7 @@ function draw_ARG(
         # Add node/taxon labels
         if !recombination
             label = string(clade.label)
-            if !isnothing(label) && label_nodes
+            if !isnothing(label) && label_nodes && isleaf(clade)
                 annotate!((x_here,y_here,text(label, 10, :center, :left, :black)))
             end
         end
