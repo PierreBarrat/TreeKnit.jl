@@ -25,6 +25,12 @@ MCCs = [["A","B"],["X1"],["X2"],["X3"],["X4"],["X5"]]
 
 arg, rlm, lm1, lm2 = SRG.arg_from_trees(t1, t2, MCCs)
 
+nwk1 = "((A,B),C);"
+nwk2 = "(A,(B,C));"
+t1 = node2tree(TreeTools.parse_newick(nwk1), label = "a")
+t2 = node2tree(TreeTools.parse_newick(nwk2), label = "b")
+arg, rlm, lm1, lm2 = SRG.arg_from_trees(t1, t2, [["A"], ["B", "C"]])
+
 ## Case with two different roots
 nwk1 = "(((A:1,B:1)AB:1,C:2)ABC:1,D:3)R;"
 nwk2 = "((A:3,D:3)AD:1,(B:3,C:3)BC:1)R;"

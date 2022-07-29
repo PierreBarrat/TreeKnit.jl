@@ -299,7 +299,7 @@ function fix_consist!(MCCs, trees)
     mcc_map = get_mcc_map([constraint, MCCs[i], MCCs[3]])
     assign_all_mccs!(tree, 3, mcc_map)
     MCCs3_dict = get_MCC_as_dict(mcc_map, 3)
-    for n in nodes(tree)
+    for n in POT(tree)
         if isroot(n)
             continue
         end
@@ -335,6 +335,9 @@ function fix_consist!(MCCs, trees)
                             append!(MCCs3_dict[next_mcc_3], MCCs3_dict[m])
                         else
                             MCCs3_dict[next_mcc_3] = MCCs3_dict[m]
+                        end
+                        for n in MCCs3_dict[m]
+                            mcc_map[n][3] = next_mcc_3
                         end
                         delete!(MCCs3_dict, m)
                     end
