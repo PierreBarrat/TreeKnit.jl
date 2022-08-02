@@ -124,32 +124,32 @@ function PRT!(t::Tree)
 end
 
 """
-add_mask!(filter::Union{Nothing, Vector{Vector{String}}}, t::Vararg{Tree})
+mark_shared_branches!(filter::Union{Nothing, Vector{Vector{String}}}, t::Vararg{Tree})
 
-Add a `mask` parameter to the tree, branches with a `mask` cannot have a recombination event occuring 
-on them as they connect clades that should be together according to the input constraints (`filter`).
-The filter should be in the form of an MCC, where if nodes are in the same clade this means they cannot
-have a recombination event happen between them.
+Add a `shared_branch_constraint` parameter to the tree, branches with a `shared_branch_constraint` cannot 
+have a recombination event occuring on them as they connect clades that should be together according to the 
+input constraints (`constraint`). The constarint should be in the form of an MCC, where if nodes are in the same 
+clade this means they cannot have a recombination event happen between them.
 
 The function proceeds by allocating each node to the MCC it should be in using the Fitch algorithm, 
-then branches which are in a MCC with 2 or more nodes are marked with `mask`.
+then branches which are in a MCC with 2 or more nodes are marked with `shared_branch_constraint`.
 """
-function add_mask!(filter::Union{Nothing, Vector{Vector{String}}}, t::Vararg{Tree})
+function mark_shared_branches!(constraint::Union{Nothing, Vector{Vector{String}}}, t::Vararg{Tree})
 	
-	if isnothing(filter)
+	if isnothing(constraint)
 		return "here"
 	end
 
-	mcc_map, cluster_no = get_mcc_map(filter, get_cluster_no =true)
+	mcc_map, cluster_no = get_mcc_map(constraint, get_cluster_no =true)
 	# assign MCCs to leaves
     for tree in t
 	    assign_mccs!(mcc_map, tree)
 
 		for n in POT(tree)
-			if n.data["mcc"] in cluster_no && (isroot(n) || n.data["mcc"]== n.anc.data["mcc"])
-				n.data["mask"] = true
+			if n.data["mcc"] in cluster_no &&(isroot(n) || n.data["mcc"]== n.anc.data["mcc"])
+				n.data["shared_branch_constraint"] = true
 			else
-				n.data["mask"] = false
+				n.data["shared_branch_constraint"] = false
 			end
 		end
 	end
@@ -287,9 +287,9 @@ function fix_consist!(MCCs, trees)
     ##randomly choose which tree to iterate over when fixing inconsistencies
     tree = copy(trees[rand((2,1))])
     try
-        TreeKnit.add_mask!(constraint, tree)
+        TreeKnit.mark_shared_branches!(constraint, tree)
     catch
-        print("could not add mask")
+        print("could not mask shared branches")
         return MCCs
     end
     #mcc_map = TreeKnit.get_mcc_map(MCCs[i])
@@ -303,7 +303,7 @@ function fix_consist!(MCCs, trees)
         if isroot(n)
             continue
         end
-        if n.data.dat["mask"]==true ##should be in a MCC
+        if n.data.dat["shared_branch_constraint"]==true ##should be in a MCC
             if !(TreeKnit.is_branch_in_mccs(n, MCCs3_dict))
                 ##if can be merged modify MCCs[3] instead of MCCs[i]
                 mcc = n.data.dat["mcc"][1]
@@ -343,7 +343,7 @@ function fix_consist!(MCCs, trees)
                     end
                     next_mcc_3 +=1
                 else
-                    ##check if MCCi can be split
+                    ##split MCCi to make transitivity hold
                     mcc = n.data.dat["mcc"][2]
                     for x in POTleaves(n)
                         if x.data.dat["mcc"][2]==mcc
@@ -355,6 +355,7 @@ function fix_consist!(MCCs, trees)
             end
         end
     end
+    #if MCCs have changed update them from dictionary
     if next_mcc_i > length(MCCs[i]) + 1
         MCCsi_dict = get_MCC_as_dict(mcc_map, 2)
         MCCs_new = Vector{String}[]
