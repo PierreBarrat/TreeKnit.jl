@@ -60,8 +60,8 @@ end
 
 Run optimization at constant γ. See `?Optargs` for arguments. In the first form, keyword
   arguments are given to `OptArgs`. If `oa.constraint` (in the form of an MCC where nodes that should 
-  be together are in the same cluster) is given this will be used as `mask` while performing simulated 
-  annealing, preventing nodes that should be in the same MCC from being split from each other.
+  be together are in the same cluster) is given this will be used as `shared_branch_constraint` while performing 
+  simulated annealing, preventing nodes that should be in the same MCC from being split from each other.
 """
 runopt(t1::Tree, t2::Tree; kwargs...) = runopt(OptArgs(;kwargs...), t1, t2)
 
@@ -74,7 +74,7 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree; output = :mccs)
 	oa.resolve && resolve!(ot1, ot2)
 
 	format_constraint!(oa.constraint, t1)
-	add_mask!(oa.constraint, ot1, ot2)
+	mark_shared_branches!(oa.constraint, ot1, ot2)
 
 	iMCCs = naive_mccs(ot1, ot2)
 	oa.verbose && @info "Initial state: $(length(iMCCs)) naive MCCs"

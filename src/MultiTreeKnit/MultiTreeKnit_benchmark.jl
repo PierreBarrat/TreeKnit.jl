@@ -42,7 +42,7 @@ end
     function to get all MCCs of all tree pairs in tree list `trees` using TreeKnit,
     resolved trees from previous MCC calculations are used as the tree input for the next pair, 
     the order is specified in Combinatorics.combinations(1:length(trees), 2). If MCC pairs should be 
-    consistent with previous MCCs the `consistant` flag can be set to true. A `mask` will then be 
+    consistent with previous MCCs the `consistant` flag can be set to true. A `shared_branch_constraint` will then be 
     computed from the previous MCC pairs to prevent nodes from being removed in an inconsistent manner.
 
     For example if node `a` and node `b` are both in the same MCC clade for MCC12 and MCC13 they should also 
@@ -50,7 +50,7 @@ end
     events cannot be viewed together in `ARGPlot`.
 
 """
-function get_infered_MCC_pairs!(trees::Vector{Tree{T}}; consistant = true, order="input", rev=false, constraint_cost=2., rounds=2, force=false, force_rounds=5) where T
+function get_infered_MCC_pairs!(trees::Vector{Tree{T}}; consistant = true, order="input", rev=false, constraint_cost=4., rounds=2, force=false, force_rounds=5) where T
 
     l_t = length(trees)
 
@@ -72,6 +72,8 @@ function get_infered_MCC_pairs!(trees::Vector{Tree{T}}; consistant = true, order
                             pre_joint_MCCs = TreeKnit.join_sets([first, second])
                             if !isnothing(joint_MCCs)
                                 joint_MCCs = TreeKnit.join_sets([joint_MCCs, pre_joint_MCCs])
+                            else
+                                joint_MCCs = pre_joint_MCCs
                             end
                         end
                     end
@@ -168,7 +170,7 @@ To find recombination events of all tree combinations the individual tree pairs 
 combinations are returned in a dictionary `MCC_dict` where the sorted list of tree name combinations is the key, 
 as well as the list of resolved trees `input_trees` in input order. 
 """
-function infer_benchmark_MCCs!(trees::Vector{Tree{T}}; debug=false, consistant=true, order="resolution", rev=false) where T
+function infer_benchmark_MCCs!(trees::Vector{Tree{TreeTools.MiscData}}; debug=false, consistant=true, order="resolution", rev=false)
     
     ##if desired first change the order of the trees
     order = get_tree_order(trees ;order=order, rev=rev)

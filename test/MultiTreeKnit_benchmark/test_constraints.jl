@@ -61,14 +61,14 @@ end
     end
 end
 
-@testset "add_mask functions" begin
-    TreeKnit.add_mask!(constraint, tree3)
+@testset "mark_shared_branches functions" begin
+    TreeKnit.mark_shared_branches!(constraint, tree3)
     true_labels = Set(["A", "B", "C", "D", "E", "F1", "F2", "i6"])
     for node in nodes(tree3)
         if node.label in true_labels
-            @test node.data["mask"] == true
+            @test node.data["shared_branch_constraint"] == true
         else
-            @test node.data["mask"] == false
+            @test node.data["shared_branch_constraint"] == false
         end
     end
 end

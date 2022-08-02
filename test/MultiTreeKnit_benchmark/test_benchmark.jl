@@ -7,9 +7,9 @@ println("##### testing benchmark #####")
 nwk1 = "((A,B),C);"
 nwk2 = "(A,(B,C));"
 nwk3 = "(A,B,C);"
-t1 = node2tree(TreeTools.parse_newick(nwk1), label = "a")
-t2 = node2tree(TreeTools.parse_newick(nwk2), label = "b")
-t3 = node2tree(TreeTools.parse_newick(nwk3), label = "c")
+t1 = node2tree(TreeTools.parse_newick(nwk1, node_data_type=TreeTools.MiscData), label = "a")
+t2 = node2tree(TreeTools.parse_newick(nwk2, node_data_type=TreeTools.MiscData), label = "b")
+t3 = node2tree(TreeTools.parse_newick(nwk3, node_data_type=TreeTools.MiscData), label = "c")
 
 solutions = [   [["A"], ["B", "C"]],
                 [["B"], ["A", "C"]],
@@ -37,17 +37,17 @@ solutions = [   [["A"], ["B", "C"]],
 
 end
 
-@testset "consistency mask" begin
+@testset "consistency shared_branch_constraint" begin
     input_trees = [copy(t1), copy(t2), copy(t3)]
     ot3 = copy(convert(Tree{TreeTools.MiscData}, input_trees[1]))
     ot2 = copy(convert(Tree{TreeTools.MiscData}, input_trees[2]))
-    TreeKnit.add_mask!([["A"], ["B", "C"]], ot2, ot3)
-    @test ot2.lnodes["NODE_1"].data.dat["mask"] == false
-    @test ot3.lnodes["NODE_1"].data.dat["mask"] == true
-    @test ot2.lleaves["A"].data.dat["mask"] == false
-    @test ot3.lleaves["A"].data.dat["mask"] == false
-    @test ot2.lleaves["B"].data.dat["mask"] == true
-    @test ot3.lleaves["B"].data.dat["mask"] == true
+    TreeKnit.mark_shared_branches!([["A"], ["B", "C"]], ot2, ot3)
+    @test ot2.lnodes["NODE_1"].data.dat["shared_branch_constraint"] == false
+    @test ot3.lnodes["NODE_1"].data.dat["shared_branch_constraint"] == true
+    @test ot2.lleaves["A"].data.dat["shared_branch_constraint"] == false
+    @test ot3.lleaves["A"].data.dat["shared_branch_constraint"] == false
+    @test ot2.lleaves["B"].data.dat["shared_branch_constraint"] == true
+    @test ot3.lleaves["B"].data.dat["shared_branch_constraint"] == true
 
     input_trees = [copy(t1), copy(t2), copy(t3)]
     for constraint in solutions

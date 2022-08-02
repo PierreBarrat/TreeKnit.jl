@@ -107,7 +107,7 @@ function consistency_rate(M12::Vector{Vector{String}}, M13::Vector{Vector{String
 	for (i, combinations) in enumerate(k_iters)
         last = filter(e->e∉combinations,1:3)
         order = append!(combinations, last)
-        tree_order = [i, filter(e->e∉[i],1:3)...]
+        tree_order = [filter(e->e∉[i],1:3)...]
         score = consistent_mcc_triplets(MCCs[order], trees[tree_order])
         append!(consistency_rate, score)
     end
@@ -122,12 +122,12 @@ function consistent_mcc_triplets(MCCs, trees; masked=false)
 	Z = 0
     for t in trees
         tree = copy(t)
-        TreeKnit.add_mask!(constraint, tree)
+        TreeKnit.mark_shared_branches!(constraint, tree)
         for n in nodes(tree)
             if isroot(n)
                 continue
             end
-            if n.data.dat["mask"]==true ##should be in a MCC
+            if n.data.dat["shared_branch_constraint"]==true ##should be in a MCC
                 Z += 1
                 if !(TreeKnit.is_branch_in_mccs(n, MCCs[3]))
                     s += 1

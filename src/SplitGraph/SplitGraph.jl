@@ -64,7 +64,7 @@ function opttrees!(
 		TreeKnit.reduce_to_mcc!(t, mcc)
 	end
 	g = trees2graph(treelist)
-	mask = get_mask(g, treelist[1])
+	mask = get_consistency_mask(g, treelist[1])
 
 	# SA - Optimization
 	oconfs, F, nfound = sa_opt(g, γ=γ, Trange=Trange, M=M, rep=sa_rep, resolve=resolve, mask=mask, constraint_cost=constraint_cost)
@@ -121,21 +121,21 @@ function sortconf(oconfs, trees, g::Graph, seq_lengths, mcc_names, likelihood_so
 end
 
 """
-get_mask(g, tree)
+get_consistency_mask(g, tree)
 
 Get which branches/ terminal nodes of the current tree (SplitGraph) 
 should not be removed in the subsequent MCMC due to the fact that 
-they are masked.
+they have a `shared_branch_constraint`.
 """
-function get_mask(g::Graph, tree::Tree)
-	if !haskey(tree.root.data.dat, "mask")
+function get_consistency_mask(g::Graph, tree::Tree)
+	if !haskey(tree.root.data.dat, "shared_branch_constraint")
 		return []
 	end
 
 	mask_names = String[]
 
 	for leaf in tree.lleaves
-		if leaf.second.data["mask"]
+		if leaf.second.data["shared_branch_constraint"]
 			push!(mask_names, leaf.second.label)
 		end
 	end

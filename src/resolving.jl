@@ -29,11 +29,11 @@ function resolve!(
 					graftnode!(nr,r)
 				end
 				graftnode!(R, nr, tau=tau)
-				if typeof(R.data) != TreeTools.EmptyData && haskey(R.data.dat, "mask") && all([haskey(r.data.dat, "mask") for r in roots])
-					if R.data.dat["mask"] && any([r.data.dat["mask"] for r in roots])
-						nr.data.dat["mask"] = true
+				if typeof(R.data) != TreeTools.EmptyData && haskey(R.data.dat, "shared_branch_constraint") && all([haskey(r.data.dat, "shared_branch_constraint") for r in roots])
+					if R.data.dat["shared_branch_constraint"] && any([r.data.dat["shared_branch_constraint"] for r in roots])
+						nr.data.dat["shared_branch_constraint"] = true
 					else
-						nr.data.dat["mask"] = false
+						nr.data.dat["shared_branch_constraint"] = false
 					end
 				end
 				push!(tsplits.splits, s)
