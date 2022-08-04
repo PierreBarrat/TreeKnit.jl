@@ -85,8 +85,8 @@ function get_infered_MCC_pairs!(trees::Vector{Tree{T}}; consistant = true, order
     end
     if force
         rep = 0
-        consti = consistency_rate(pair_MCCs, trees)
-        while consti >0 && rep <force_rounds
+        consti = is_degenerate_fast(pair_MCCs)
+        while consti !=false && rep <force_rounds
             for i in 1:(l_t-1)
                 for j in (i+1):l_t
                     for x in 1:l_t
@@ -101,7 +101,7 @@ function get_infered_MCC_pairs!(trees::Vector{Tree{T}}; consistant = true, order
             end
             rep +=1
         end
-        if sum(consti) >0
+        if consti !=false
             print("Cannot find a consistent ARG")
         end
     end
@@ -158,6 +158,36 @@ function join_sets(MCCs::Vector{Vector{Vector{String}}})
         append!(MCCs_new, [sort(collect(mcc))])
     end
     return TreeKnit.sort(MCCs_new; lt=TreeKnit.clt)
+end
+
+function join_sets_to_dict(MCCs::Vector{Vector{Vector{String}}})
+    sets = [union([Set([m... ]) for m in mcc]...) for mcc in MCCs]
+    @assert union(sets...) == sets[1] ## make sure labels are the same in all trees
+    mcc_map = Dict{String, Vector{Int}}()
+    reverse_mcc_map = Dict{Vector{Int}, Set{String}}()
+    for MCC in MCCs
+        for (i,mcc) in enumerate(MCC)
+            for node in mcc
+                if haskey(mcc_map, node)
+                    append!(mcc_map[node], i)
+                else
+                    mcc_map[node] = [i]
+                end
+            end
+        end
+    end
+    for node in keys(mcc_map)
+        if haskey(reverse_mcc_map, mcc_map[node])
+            push!(reverse_mcc_map[mcc_map[node]], node)
+        else
+            reverse_mcc_map[mcc_map[node]] = Set([node])
+        end
+    end
+    MCCs_new = Dict{Int, Set{String}}()
+    for (num, key) in enumerate(keys(reverse_mcc_map))
+        MCCs_new[num] = reverse_mcc_map[key]
+    end
+    return MCCs_new
 end
 
 """

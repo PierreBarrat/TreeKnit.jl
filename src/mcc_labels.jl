@@ -284,8 +284,8 @@ function fix_consist!(MCCs, trees)
     constraint = TreeKnit.join_sets([MCCs[1], MCCs[2]])
     ##randomly choose which MCC to put the split in if mccs in MCC3 cannot be merged
     i = rand((2, 1))
-    ##randomly choose which tree to iterate over when fixing inconsistencies
-    tree = copy(trees[rand((2,1))])
+    ##this determines which tree to iterate over when fixing inconsistencies
+    tree = copy(trees[i])
     try
         TreeKnit.mark_shared_branches!(constraint, tree)
     catch
@@ -324,9 +324,8 @@ function fix_consist!(MCCs, trees)
                 for m in to_be_merged_mcc_set
                     union!(to_be_merged, Set(MCCs3_dict[m]))
                 end
-                #check if the mccs can be merged in MCCs3, i.e. if from the lca 
-                #of the desired_sets all the mccs in the to_be_merged_set can be 
-                #reached without crossing into other MCCs
+                #check if the mccs can be merged in MCCs3, i.e. check if splitlists of the 
+                #merged mccs are compatible in the 2 trees
                 if check_merge(trees, to_be_merged)
                     #if can be merged all the nodes in the to be merged mccs should now
                     #be in one MCC together

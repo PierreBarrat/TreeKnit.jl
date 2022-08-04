@@ -45,6 +45,15 @@ function is_MCC_subset(MCC1::Vector{Vector{String}}, MCC2::Vector{Vector{String}
     return true
 end
 
+function is_MCC_subset_dict(MCC1::Dict{Int, Set{String}}, MCC2::Dict{String, Int})
+    for (keys, mcc1) in MCC1
+        if length(Set([MCC2[m] for m in mcc1]))!=1
+            return false
+        end
+    end
+    return true
+end
+
 """
     MCC degeneracy measure, the 
 """
@@ -65,9 +74,9 @@ function is_degenerate(MCC_dict::Dict{Set{String}, Vector{Vector{String}}})
 end
 
 function is_degenerate(MCC1::Vector{Vector{String}}, MCC2::Vector{Vector{String}}, MCC3::Vector{Vector{String}})
-    if (!is_MCC_subset(join_sets([MCC1, MCC2]), MCC3) || 
-        !is_MCC_subset(join_sets([MCC1, MCC3]), MCC2) ||
-        !is_MCC_subset(join_sets([MCC3, MCC2]), MCC1))
+    if (!is_MCC_subset_dict(join_sets_to_dict([MCC1, MCC2]), get_mcc_map(MCC3)) || 
+        !is_MCC_subset_dict(join_sets_to_dict([MCC1, MCC3]), get_mcc_map(MCC2)) ||
+        !is_MCC_subset_dict(join_sets_to_dict([MCC3, MCC2]), get_mcc_map(MCC1)))
         return true
     else
         return false
@@ -138,4 +147,3 @@ function consistent_mcc_triplets(MCCs, trees; masked=false)
     @assert (masked && s!=0 && TreeKnit.is_MCC_subset(TreeKnit.join_sets([MCCs[1], MCCs[2]]), MCCs[3])) == false "Error: Should be consistent" 
     return  Z == 0 ? 0.0 : s / Z
 end
-
