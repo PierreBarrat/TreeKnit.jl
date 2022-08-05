@@ -186,12 +186,12 @@ function assign_mccs!(mcc_map::Dict{String, Int}, t::Tree{TreeTools.MiscData})
 end
 
 function assign_all_mccs!(tree::Tree{TreeTools.MiscData}, tree_list::Vector{Tree{TreeTools.MiscData}}, 
-    MCCs_dict::Dict{Set{String}, Vector{Vector{String}}})
+    MCCs_dict::MCC_set)
     
     len_tree_list = length(tree_list)
     MCCs_list = Vector{Vector{String}}[]
     for t in tree_list
-        append!(MCCs_list, [MCCs_dict[Set([tree.label, t.label])]])
+        append!(MCCs_list, [get(MCCs_dict,(tree.label, t.label))])
     end
     mcc_map = get_mcc_map(MCCs_list)
     
@@ -281,13 +281,13 @@ end
 
 function fix_consist!(MCCs, trees)
     @assert length(trees)==2 && length(MCCs)==3
-    constraint = TreeKnit.join_sets([MCCs[1], MCCs[2]])
+    constraint = join_sets([MCCs[1], MCCs[2]])
     ##randomly choose which MCC to put the split in if mccs in MCC3 cannot be merged
     i = rand((2, 1))
     ##this determines which tree to iterate over when fixing inconsistencies
     tree = copy(trees[i])
     try
-        TreeKnit.mark_shared_branches!(constraint, tree)
+        mark_shared_branches!(constraint, tree)
     catch
         print("could not mask shared branches")
         return MCCs
@@ -359,34 +359,27 @@ function fix_consist!(MCCs, trees)
         MCCsi_dict = get_MCC_as_dict(mcc_map, 2)
         MCCs_new = Vector{String}[]
         for (num, mcc) in MCCsi_dict
-            append!(MCCs_new, [sort(mcc, lt=clt)])
+            append!(MCCs_new, [TreeKnit.sort(mcc, lt=TreeKnit.clt)])
         end
-        MCCs[i] = sort(MCCs_new, lt=clt)
+        MCCs[i] = TreeKnit.sort(MCCs_new, lt=TreeKnit.clt)
     end
     if next_mcc_3 > length(MCCs[3]) + 1
         MCCs_new = Vector{String}[]
         for (num, mcc) in MCCs3_dict
-            append!(MCCs_new, [sort(mcc, lt=clt)])
+            append!(MCCs_new, [TreeKnit.sort(mcc, lt=TreeKnit.clt)])
         end
-        MCCs[3] = sort(MCCs_new, lt=clt)
+        MCCs[3] = TreeKnit.sort(MCCs_new, lt=TreeKnit.clt)
     end
     return MCCs
 end
 
 
 function get_recombination_sites(first_tree::Tree{TreeTools.MiscData}, tree_list::Vector{Tree{TreeTools.MiscData}}, 
-    MCCs::Union{Vector{Vector{Vector{String}}}, Dict{Set{String}, Vector{Vector{String}}}})
+    MCCs::MCC_set)
 
-    if isa(MCCs, Dict)
-        MCC_lists = Vector{Vector{String}}[]
-        for t in tree_list
-            append!(MCC_lists,  [MCCs[Set([first_tree.label, t.label])]])
-        end
-    else
-        MCC_lists = MCCs
-    end
+    MCC_lists = [get(MCCs, first_tree.label, t.label) for t in tree_list]
     
-    len_trees = length(tree_list)
+    len_trees = MCCs.no_trees -1 
     recombination_pairs_list = Dict{Int, Tuple{TreeNode, TreeNode}}[]
     for pos in 1:len_trees
         tree = tree_list[pos]

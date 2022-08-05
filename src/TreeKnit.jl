@@ -16,9 +16,12 @@ export naive_mccs
 
 include("mcc_splits.jl")
 
-include("mcc_measures.jl")
-
 include("mcc_tools.jl")
+
+include("MultiTreeKnit/multitree_objects.jl")
+include("MultiTreeKnit/MultiTreeKnit_benchmark.jl")
+
+include("mcc_measures.jl")
 
 include("mcc_labels.jl")
 
@@ -45,8 +48,6 @@ include("cli.jl")
 
 include("arg_plots.jl")
 export draw_ARG
-
-include("MultiTreeKnit/MultiTreeKnit_benchmark.jl")
 
 # TreeTools re-exports for docs
 import TreeTools: node2tree, parse_newick

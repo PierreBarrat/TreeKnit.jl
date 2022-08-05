@@ -57,15 +57,12 @@ end
 """
     MCC degeneracy measure, the 
 """
-function is_degenerate(MCC_dict::Dict{Set{String}, Vector{Vector{String}}})
-    tree_names = collect([union([key for key in keys(MCC_dict)]...)]...)
-    label_map = calc_label_map(tree_names)
-    no_trees = length(tree_names)
-    k_iters = Combinatorics.combinations(1:no_trees, 3)
+function is_degenerate(M::MCC_set)
+    k_iters = Combinatorics.combinations(1:M.no_trees, 3)
     for comb in k_iters
-        MCC1 = MCC_dict[Set([label_map[comb[1]], label_map[comb[2]]])]
-        MCC2 = MCC_dict[Set([label_map[comb[1]], label_map[comb[3]]])]
-        MCC3 = MCC_dict[Set([label_map[comb[3]], label_map[comb[2]]])]
+        MCC1 = get(M, comb[1], comb[2])
+        MCC2 = get(M, comb[1], comb[3])
+        MCC3 = get(M, comb[2], comb[3])
         if is_degenerate(MCC1, MCC2, MCC3)
             return true
         end
@@ -84,20 +81,19 @@ function is_degenerate(MCC1::Vector{Vector{String}}, MCC2::Vector{Vector{String}
 end
 
 
-function consistency_rate(MCC_dict::Dict{Set{String}, Vector{Vector{String}}}, trees::Vector{Tree{T}}) where T
+function consistency_rate(M::MCC_set, trees::Vector{Tree{T}}) where T
+    @assert M.order_trees == [t.label for t in trees]
     score = 0
-    
-    label_map = calc_label_map(trees)
-    l_t = length(trees)
-    k_iters = Combinatorics.combinations(1:l_t, 3)
+
+    k_iters = Combinatorics.combinations(1:M.no_trees, 3)
     for comb in k_iters
-        MCC1 = MCC_dict[Set([label_map[comb[1]], label_map[comb[2]]])]
-        MCC2 = MCC_dict[Set([label_map[comb[1]], label_map[comb[3]]])]
-        MCC3 = MCC_dict[Set([label_map[comb[3]], label_map[comb[2]]])]
+        MCC1 = get(M, comb[1], comb[2])
+        MCC2 = get(M, comb[1], comb[3])
+        MCC3 = get(M, comb[2], comb[3])
         s = sum(consistency_rate(MCC1, MCC2, MCC3, trees[comb]))/3
         score += s
     end
-    return score / binomial(l_t,3)
+    return score / binomial(M.no_trees,3)
 end
 
 """

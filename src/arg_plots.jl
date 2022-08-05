@@ -1,6 +1,6 @@
 
 
-function draw_ARG(trees:: Vector{Tree{TreeTools.MiscData}}, MCCs_dict::Dict{Set{String}, Vector{Vector{String}}};
+function draw_ARG(trees:: Vector{Tree{TreeTools.MiscData}}, MCCs_dict::MCC_set;
     label_nodes = true, draw_connections = false) 
     
     first_tree = trees[1]
@@ -10,10 +10,11 @@ function draw_ARG(trees:: Vector{Tree{TreeTools.MiscData}}, MCCs_dict::Dict{Set{
 end
 
 function prepare_trees!(first_tree::Tree{TreeTools.MiscData}, tree_list::Vector{Tree{TreeTools.MiscData}}, 
-    MCCs_dict::Dict{Set{String}, Vector{Vector{String}}})
+    MCCs_dict::MCC_set)
 
     for tree in tree_list
-        TreeKnit.assign_mccs!(TreeKnit.get_mcc_map(MCCs_dict[Set([tree.label, first_tree.label])]), tree)
+        mcc = get(MCCs_dict, (tree.label, first_tree.label))
+        TreeKnit.assign_mccs!(TreeKnit.get_mcc_map(mcc), tree)
     end
     assign_all_mccs!(first_tree, tree_list, MCCs_dict)
     recombination_sites = TreeKnit.get_recombination_sites(first_tree, tree_list, MCCs_dict)

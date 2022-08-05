@@ -1,7 +1,3 @@
-using TreeKnit
-using TreeTools
-using Test
-
 println("##### testing constraints #####")
 
 # function join_sets_slow(input_sets::Vector{Vector{Vector{String}}})
