@@ -47,8 +47,8 @@ for r in 1:rounds
 end
 if force
     rep = 0
-    consti = is_degenerate(pair_MCCs)
-    while consti !=false && rep <force_rounds
+    not_const = is_degenerate(pair_MCCs)
+    while not_const ==true && rep <force_rounds
         for i in 1:(l_t-1)
             for j in (i+1):l_t
                 for x in 1:l_t
@@ -65,9 +65,10 @@ if force
             end
         end
         rep +=1
+        not_const = is_degenerate(pair_MCCs)
     end
-    if consti !=false
-        print("Cannot find a consistent ARG")
+    if not_const
+        print("Hi: Cannot find a consistent ARG")
     end
 end
 return pair_MCCs

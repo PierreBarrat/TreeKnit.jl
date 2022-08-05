@@ -53,6 +53,16 @@ function iter_shared(M::MCC_set, tree::String)
     return [get(M, (tree, t)) for t in M.tree_order if t!=tree]
 end
 
+function convert_MCC_list_to_set(no_trees::Int, order_trees::Vector{String}, MCC_list::Vector{Vector{Vector{String}}})
+    @assert length(MCC_list) >= (no_trees*(no_trees-1)/2)
+    M = MCC_set(no_trees, order_trees)
+    iters = Combinatorics.combinations(1:no_trees, 2)
+    for (i, comb) in enumerate(iters)
+        TreeKnit.add!(M, MCC_list[i], comb...)
+    end
+    return M
+end
+
 function Base.print(M::MCC_set)
     for (key, value) in M.mccs
         println("")
