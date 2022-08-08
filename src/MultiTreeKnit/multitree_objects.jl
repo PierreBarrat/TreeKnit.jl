@@ -46,7 +46,7 @@ end
 
 function iter_pairs(M::MCC_set)
     pairs = Combinatorics.combinations(1:M.no_trees, 2)
-    return [get(M, p...) for p in pairs]
+    return [M.order_trees[p] for p in pairs], [get(M, p...) for p in pairs]
 end
 
 function iter_shared(M::MCC_set, tree::String)

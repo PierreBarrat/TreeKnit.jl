@@ -3,8 +3,7 @@ treeknit
 
 # Arguments
 
-- `nwk1`: Newick file for first tree
-- `nwk2`: Newick file for second tree
+- `nwk_files`: Newick files vector
 
 # Options
 
@@ -21,7 +20,8 @@ treeknit
 - `-v, --verbose`: verbosity
 """
 @main function treeknit(
-	nwk1::AbstractString, nwk2::AbstractString;
+	no_trees::Int, 
+	nwk_files::Vector{AbstractString};
 	# options
 	outdir::AbstractString = "treeknit_results",
 	gamma::Float64 = 2.,
@@ -34,11 +34,13 @@ treeknit
 	verbose::Bool = false,
 )
 
+	@assert length(nwk_files) >=2 "TreeKnit needs at least 2 trees"
+	@assert no_trees== length(nwk_files) "Vector of trees is not of expected size"
 	println("Treeknit: ")
-	println("Input trees: $nwk1 \t $nwk2")
+	println("Input trees:")
+	println(join(["$nwk \t" for nwk in nwk_files]))
 	println("Results directory: $outdir")
 	println("γ: $gamma")
-
 	# Setting up directories
 	mkpath(outdir)
 
@@ -59,19 +61,20 @@ treeknit
 
 	global_logger(TeeLogger(loggers...))
 
-
 	# Reading trees
-	@info "Input Newick files: $nwk1 \t $nwk2. Reading trees..."
-	t1 = read_tree(nwk1)
-	t2 = read_tree(nwk2)
-	if !TreeTools.share_labels(t1, t2)
-		error("Trees must share leaves")
+	@info "Input Newick files:"*join(["$nwk \t" for nwk in nwk_files])*". Reading trees..."
+	fn = get_tree_names(nwk_files)
+	trees = [read_tree(nwk, label=f) for (nwk, f) in zip(nwk_files, fn)]
+	for t_i in t[2:end] 
+		if !TreeTools.share_labels(trees[1], t_i)
+			error("Trees must share leaves")
+		end
 	end
 
 	# Reading sequence lengths
 	sl = try
 		local sl = map(i->parse(Int, i), split(seq_lengths, " "))
-		@assert length(sl) == 2
+		@assert length(sl) == length(trees)
 		sl
 	catch err
 		@error "Unrecognized format for `--seq-lengths`.
@@ -93,34 +96,43 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 	@info "Parameters: $oa"
 
 	@info "Inferring MCCs...\n"
-	out = @timed computeMCCs(t1, t2, oa; naive)
+	out = @timed get_infered_MCC_pairs!(trees)
 	MCCs = out[1]
-	@info "Found $(length(MCCs)) MCCs (runtime $(out[2]))\n"
-
+	l = [length(m) for (key,m) in MCCs.mccs]
+	@info "Found $l MCCs (runtime $(out[2]))\n"
 	verbose && println()
 
-	@info "Resolving trees based on found MCCs..."
-	rS = resolve!(t1, t2, MCCs)
-	TreeTools.ladderize!(t1)
-	sort_polytomies!(t1, t2, MCCs)
-	@info "Resolved $(length(rS[1])) splits in $(nwk1) and $(length(rS[1])) splits in $(nwk2)\n"
+	if length(trees) ==2
+		t1 = trees[1]
+		t2 = trees[2]
+		@info "Resolving trees based on found MCCs..."
+		rS = resolve!(t1, t2, MCCs)
+		TreeTools.ladderize!(t1)
+		sort_polytomies!(t1, t2, MCCs)
+		@info "Resolved $(length(rS[1])) splits in $(nwk1) and $(length(rS[1])) splits in $(nwk2)\n"
+
+		verbose && println()
+
+		@info "Building ARG from trees and MCCs..."
+		arg, rlm, lm1, lm2 = SRG.arg_from_trees(t1, t2, get(MCCs, t1.label, t2.label))
+		@info "Found $(length(arg.hybrids)) reassortments in the ARG.\n"
+	else
+		##add resolution info here
+		##write the ARG for 2+ trees
+	end
 
 	verbose && println()
-
-	@info "Building ARG from trees and MCCs..."
-	arg, rlm, lm1, lm2 = SRG.arg_from_trees(t1, t2, MCCs)
-	@info "Found $(length(arg.hybrids)) reassortments in the ARG.\n"
-
-	verbose && println()
-
 	# Write output
 	@info "Writing results in $(outdir)"
-	write_mccs(outdir * "/" * "MCCs.dat", MCCs)
-	out_nwk1, out_nwk2 = make_output_tree_names(nwk1, nwk2)
-	write_newick(outdir * "/" * out_nwk1, t1)
-	write_newick(outdir * "/" * out_nwk2, t2)
-	write(outdir * "/" * "arg.nwk", arg)
-	write_rlm(outdir * "/" * "nodes.dat", rlm)
+	write_mccs(outdir * "/" * "MCCs.json", MCCs)
+	out_nwk = make_output_tree_names(nwk)
+	for i in 1:MCCs.no_trees
+		write_newick(outdir * "/" * out_nwk[i], trees[i])
+	end
+	if length(trees)==2
+		write(outdir * "/" * "arg.nwk", arg)
+		write_rlm(outdir * "/" * "nodes.dat", rlm)
+	end
 
 	close(io)
 
@@ -149,28 +161,26 @@ function write_rlm(filename, rlm)
 	end
 end
 
-function make_output_tree_names(nwk1, nwk2)
-	fn = [basename(nwk) for nwk in (nwk1, nwk2)]
-	name1, name2 = if fn[1] == fn[2]
-		name, ext = splitext(fn[1])
-		d1 = split(dirname(nwk1), '/')[end]
-		d2 = split(dirname(nwk2), '/')[end]
-		name1, name2 = if d1 == d2
-			name * "_1.resolved" * ext, name * "_2.resolved" * ext
-		else
-			name * "_$(d1).resolved" * ext, name * "_$(d2).resolved" * ext
-		end
-		@warn "The two input trees have the same filename. Writing output as:
-		$nwk1 --> $name1
-		$nwk2 --> $name2"
-		name1, name2
-	else
-		f1, ext1 = splitext(fn[1])
-		f2, ext2 = splitext(fn[2])
-		f1 * ".resolved" * ext1, f2 * ".resolved" * ext2
-	end
+function make_output_tree_names(nwk_names)
 
-	return name1, name2
+	f = [splitext(n)[1] for n in nwk_names]
+	ext = [splitext(n)[2] for n in nwk_names]
+	names = [f_i * ".resolved" * ext_i for (f_i, ext_i) in zip(f, ext)]
+
+	return names
 end
+
+function get_tree_names(nwk_files)
+
+	fn = [basename(nwk) for nwk in nwk_files]
+	if unique(fn) != fn
+		name, ext = splitext(fn[1])
+		d = [split(dirname(nwk), '/')[end] for nwk in nwk_files]
+		fn = [name * "_$(d_i).resolved"* ext for d_i in d]
+	end
+	@assert unique(fn) == fn "Input trees must be identifiable by file name"
+	return fn
+end
+
 
 
