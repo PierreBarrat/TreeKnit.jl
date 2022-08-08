@@ -20,8 +20,7 @@ treeknit
 - `-v, --verbose`: verbosity
 """
 @main function treeknit(
-	no_trees::Int, 
-	nwk_files::Vector{AbstractString};
+	nwk_files::AbstractString...;
 	# options
 	outdir::AbstractString = "treeknit_results",
 	gamma::Float64 = 2.,
@@ -35,7 +34,7 @@ treeknit
 )
 
 	@assert length(nwk_files) >=2 "TreeKnit needs at least 2 trees"
-	@assert no_trees== length(nwk_files) "Vector of trees is not of expected size"
+	#@assert no_trees== length(nwk_files) "Vector of trees is not of expected size"
 	println("Treeknit: ")
 	println("Input trees:")
 	println(join(["$nwk \t" for nwk in nwk_files]))
@@ -65,7 +64,7 @@ treeknit
 	@info "Input Newick files:"*join(["$nwk \t" for nwk in nwk_files])*". Reading trees..."
 	fn = get_tree_names(nwk_files)
 	trees = [read_tree(nwk, label=f) for (nwk, f) in zip(nwk_files, fn)]
-	for t_i in t[2:end] 
+	for t_i in trees[2:end] 
 		if !TreeTools.share_labels(trees[1], t_i)
 			error("Trees must share leaves")
 		end
@@ -106,16 +105,18 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 		t1 = trees[1]
 		t2 = trees[2]
 		@info "Resolving trees based on found MCCs..."
-		rS = resolve!(t1, t2, MCCs)
+		rS = resolve!(t1, t2, get(MCCs, t1.label, t2.label))
 		TreeTools.ladderize!(t1)
-		sort_polytomies!(t1, t2, MCCs)
-		@info "Resolved $(length(rS[1])) splits in $(nwk1) and $(length(rS[1])) splits in $(nwk2)\n"
+		sort_polytomies!(t1, t2, get(MCCs, t1.label, t2.label))
+		@info "Resolved $(length(rS[1])) splits in $(nwk_files[1]) and $(length(rS[1])) splits in $(nwk_files[2])\n"
 
 		verbose && println()
 
 		@info "Building ARG from trees and MCCs..."
 		arg, rlm, lm1, lm2 = SRG.arg_from_trees(t1, t2, get(MCCs, t1.label, t2.label))
 		@info "Found $(length(arg.hybrids)) reassortments in the ARG.\n"
+		trees[1] = t1
+		trees[2] = t2
 	else
 		##add resolution info here
 		##write the ARG for 2+ trees
@@ -125,7 +126,7 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 	# Write output
 	@info "Writing results in $(outdir)"
 	write_mccs(outdir * "/" * "MCCs.json", MCCs)
-	out_nwk = make_output_tree_names(nwk)
+	out_nwk = make_output_tree_names(fn)
 	for i in 1:MCCs.no_trees
 		write_newick(outdir * "/" * out_nwk[i], trees[i])
 	end
@@ -165,7 +166,7 @@ function make_output_tree_names(nwk_names)
 
 	f = [splitext(n)[1] for n in nwk_names]
 	ext = [splitext(n)[2] for n in nwk_names]
-	names = [f_i * ".resolved" * ext_i for (f_i, ext_i) in zip(f, ext)]
+	names = [f_i * "_resolved" * ext_i for (f_i, ext_i) in zip(f, ext)]
 
 	return names
 end
@@ -176,7 +177,7 @@ function get_tree_names(nwk_files)
 	if unique(fn) != fn
 		name, ext = splitext(fn[1])
 		d = [split(dirname(nwk), '/')[end] for nwk in nwk_files]
-		fn = [name * "_$(d_i).resolved"* ext for d_i in d]
+		fn = [name * "_$(d_i)"* ext for d_i in d]
 	end
 	@assert unique(fn) == fn "Input trees must be identifiable by file name"
 	return fn

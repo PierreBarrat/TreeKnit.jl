@@ -41,11 +41,11 @@ function write_mccs(filePath, MCCs::MCC_set, mode="w")
 	open(filePath, mode) do w
 		write(w, "{ \"MCC_dict\" : {\n")
 		tree_pairs, Ms = iter_pairs(MCCs)
-		for i in 1:length(tree_pairs)
-			write(w, "\""*string(i)*"\": { \"trees\":[")
+		for i in 1:binomial(MCCs.no_trees, 2)
+			write(w, "\""*string(i)*"\": {\n \"trees\":[")
 			s = sort(tree_pairs[i], lt=clt)
 			write(w, "\""*string(s[1])*"\", \""*string(s[2])*"\"],")
-			write(w, "\"mccs\": [")
+			write(w, "\n\"mccs\": [")
 			m = Ms[i]
 			for x in m[1:end-1]
 				write(w, string(x) * ",")

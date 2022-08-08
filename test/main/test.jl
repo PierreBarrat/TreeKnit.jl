@@ -23,3 +23,15 @@ solutions = [
 	)
 	@test in(MCCs, solutions)
 end
+
+@testset "tree naming" begin
+	nwk = ["~/Documents/TreeKnit/TreeKnit.jl/examples/tree_h3n2_ha.nwk", "~/Documents/TreeKnit/TreeKnit.jl/examples/tree_h3n2_na.nwk"]
+	fn = TreeKnit.get_tree_names(nwk)
+	@test fn == ["tree_h3n2_ha.nwk", "tree_h3n2_na.nwk"]
+	@test TreeKnit.make_output_tree_names(fn) == ["tree_h3n2_ha_resolved.nwk", "tree_h3n2_na_resolved.nwk"]
+
+	nwk = ["~/Documents/TreeKnit/TreeKnit.jl/examples1/tree.nwk", "~/Documents/TreeKnit/TreeKnit.jl/examples2/tree.nwk"]
+	fn = TreeKnit.get_tree_names(nwk)
+	@test fn == ["tree_examples1.nwk", "tree_examples2.nwk"]
+	@test TreeKnit.make_output_tree_names(fn) == ["tree_examples1_resolved.nwk", "tree_examples2_resolved.nwk"]
+end
