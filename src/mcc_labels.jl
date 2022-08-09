@@ -146,9 +146,16 @@ function mark_shared_branches!(constraint::Union{Nothing, Vector{Vector{String}}
 	    assign_mccs!(mcc_map, tree)
 
 		for n in POT(tree)
-			if n.data["mcc"] in cluster_no &&(isroot(n) || n.data["mcc"]== n.anc.data["mcc"])
-				n.data["shared_branch_constraint"] = true
-			else
+			if n.data["mcc"] in cluster_no 
+                m = n.data["mcc"]
+                if (isroot(n) || m==n.anc.data["mcc"])
+				    n.data["shared_branch_constraint"] = true
+                elseif  isnothing(n.anc.data["mcc"]) && any([(c!=n && (c.data["mcc"]==m || (isnothing(c.data["mcc"]) && any([l.data["mcc"] ==m for l in POTleaves(c)])))) for c ∈ n.anc.child])
+                    n.data["shared_branch_constraint"] = true
+                else
+                    n.data["shared_branch_constraint"] = false
+                end
+            else
 				n.data["shared_branch_constraint"] = false
 			end
 		end
@@ -279,7 +286,10 @@ function get_MCC_as_dict(mcc_map::Dict{String, Vector{Int}}, pos::Int)
     return MCC_dict
 end
 
-function fix_consist!(MCCs, trees)
+function fix_consist!(MCCs, trees; merge=true, split=true)
+    if split== false
+        print("no split")
+    end
     @assert length(trees)==2 && length(MCCs)==3
     constraint = join_sets([MCCs[1], MCCs[2]])
     ##randomly choose which MCC to put the split in if mccs in MCC3 cannot be merged
@@ -326,7 +336,7 @@ function fix_consist!(MCCs, trees)
                 end
                 #check if the mccs can be merged in MCCs3, i.e. check if splitlists of the 
                 #merged mccs are compatible in the 2 trees
-                if check_merge(trees, to_be_merged)
+                if merge == true && check_merge(trees, to_be_merged)
                     #if can be merged all the nodes in the to be merged mccs should now
                     #be in one MCC together
                     for m in to_be_merged_mcc_set
@@ -341,11 +351,11 @@ function fix_consist!(MCCs, trees)
                         delete!(MCCs3_dict, m)
                     end
                     next_mcc_3 +=1
-                else
+                elseif split == true
                     ##split MCCi to make transitivity hold
-                    mcc = n.data.dat["mcc"][2]
+                    mcc = n.data.dat["mcc"][1]
                     for x in POTleaves(n)
-                        if x.data.dat["mcc"][2]==mcc
+                        if x.data.dat["mcc"][1]==mcc
                             mcc_map[x.label][2] = next_mcc_i
                         end
                     end
