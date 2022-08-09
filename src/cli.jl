@@ -24,7 +24,7 @@ treeknit
 	# options
 	outdir::AbstractString = "treeknit_results",
 	gamma::Float64 = 2.,
-	seq_lengths::AbstractString = "1 1",
+	seq_lengths::AbstractString = join([string(i) for i in repeat([1], length(nwk_files))], " "),
 	n_mcmc_it::Int = 25,
 	# flags
 	naive::Bool = false,

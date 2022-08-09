@@ -48,7 +48,7 @@ function write_mccs(filePath, MCCs::MCC_set, mode="w")
 			write(w, "\n\"mccs\": [")
 			m = Ms[i]
 			for x in m[1:end-1]
-				write(w, string(x) * ",")
+				write(w, string(x) * ",\n")
 			end
 			if i < length(Ms)
 				write(w, string(m[end]) *"]\n},\n")
