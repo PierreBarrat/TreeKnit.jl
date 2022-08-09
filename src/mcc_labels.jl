@@ -146,9 +146,16 @@ function mark_shared_branches!(constraint::Union{Nothing, Vector{Vector{String}}
 	    assign_mccs!(mcc_map, tree)
 
 		for n in POT(tree)
-			if n.data["mcc"] in cluster_no &&(isroot(n) || n.data["mcc"]== n.anc.data["mcc"])
-				n.data["shared_branch_constraint"] = true
-			else
+			if n.data["mcc"] in cluster_no 
+                if (isroot(n) || n.data["mcc"]==n.anc.data["mcc"])
+				    n.data["shared_branch_constraint"] = true
+                    continue
+                elseif  isnothing(n.anc.data["mcc"]) && any([(c.data["mcc"]==n.data["mcc"] && c!=n) for c ∈ n.anc.child])
+                    n.data["shared_branch_constraint"] = true
+                else
+                    n.data["shared_branch_constraint"] = false
+                end
+            else
 				n.data["shared_branch_constraint"] = false
 			end
 		end
@@ -280,6 +287,9 @@ function get_MCC_as_dict(mcc_map::Dict{String, Vector{Int}}, pos::Int)
 end
 
 function fix_consist!(MCCs, trees; merge=true, split=true)
+    if split== false
+        print("no split")
+    end
     @assert length(trees)==2 && length(MCCs)==3
     constraint = join_sets([MCCs[1], MCCs[2]])
     ##randomly choose which MCC to put the split in if mccs in MCC3 cannot be merged
@@ -343,9 +353,9 @@ function fix_consist!(MCCs, trees; merge=true, split=true)
                     next_mcc_3 +=1
                 elseif split == true
                     ##split MCCi to make transitivity hold
-                    mcc = n.data.dat["mcc"][2]
+                    mcc = n.data.dat["mcc"][1]
                     for x in POTleaves(n)
-                        if x.data.dat["mcc"][2]==mcc
+                        if x.data.dat["mcc"][1]==mcc
                             mcc_map[x.label][2] = next_mcc_i
                         end
                     end
