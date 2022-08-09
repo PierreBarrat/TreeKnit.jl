@@ -147,10 +147,10 @@ function mark_shared_branches!(constraint::Union{Nothing, Vector{Vector{String}}
 
 		for n in POT(tree)
 			if n.data["mcc"] in cluster_no 
-                if (isroot(n) || n.data["mcc"]==n.anc.data["mcc"])
+                m = n.data["mcc"]
+                if (isroot(n) || m==n.anc.data["mcc"])
 				    n.data["shared_branch_constraint"] = true
-                    continue
-                elseif  isnothing(n.anc.data["mcc"]) && any([(c.data["mcc"]==n.data["mcc"] && c!=n) for c ∈ n.anc.child])
+                elseif  isnothing(n.anc.data["mcc"]) && any([(c!=n && (c.data["mcc"]==m || (isnothing(c.data["mcc"]) && any([l.data["mcc"] ==m for l in POTleaves(c)])))) for c ∈ n.anc.child])
                     n.data["shared_branch_constraint"] = true
                 else
                     n.data["shared_branch_constraint"] = false

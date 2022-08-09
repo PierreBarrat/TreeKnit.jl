@@ -21,7 +21,7 @@ end
     simulate a total of `no_trees` trees using the ARGTools package, 
     specifying the `lineage_no` determines the number of nodes in each tree
 """
-function get_trees(no_trees, no_lineages; remove=false, debug=false)
+function get_trees(no_trees, no_lineages; remove=false, debug=false, c=0.75)
     # Parameters of the ARG simulation
     N = 10_000 # pop size
     n = no_lineages # Number of lineages
@@ -34,7 +34,6 @@ function get_trees(no_trees, no_lineages; remove=false, debug=false)
     # The trees for the 2 segments
     trees = ARGTools.trees_from_ARG(arg; node_data = TreeTools.MiscData);
     if remove
-        c = 0.75
         for i in range(1, no_trees)
             tree = trees[i]
             delete_list = String[]
@@ -54,6 +53,7 @@ function get_trees(no_trees, no_lineages; remove=false, debug=false)
             end
         end
     end
+    trees = [convert(TreeTools.Tree{TreeTools.MiscData}, t) for t in trees]
     return trees, arg
 end
 
