@@ -286,80 +286,79 @@ function get_MCC_as_dict(mcc_map::Dict{String, Vector{Int}}, pos::Int)
     return MCC_dict
 end
 
-function fix_consist!(MCCs, trees; merge=true, split=true)
-    if split== false
-        print("no split")
-    end
+function fix_consist!(MCCs, trees; merge=true, split=true, i=nothing)
+
     @assert length(trees)==2 && length(MCCs)==3
     constraint = join_sets([MCCs[1], MCCs[2]])
+
     ##randomly choose which MCC to put the split in if mccs in MCC3 cannot be merged
-    i = rand((2, 1))
     ##this determines which tree to iterate over when fixing inconsistencies
-    tree = copy(trees[i])
-    try
-        mark_shared_branches!(constraint, tree)
-    catch
-        print("could not mask shared branches")
-        return MCCs
+    if isnothing(i)
+        i = rand((2, 1))
     end
-    #mcc_map = TreeKnit.get_mcc_map(MCCs[i])
+    tree = copy(trees[i])
+
+    mark_shared_branches!(constraint, tree)
+
     next_mcc_i = length(MCCs[i]) + 1
+    next_mcc_joint = length(constraint) +1
     next_mcc_3 = length(MCCs[3]) + 1
-    #assign_mccs!(mcc_map, tree) 
+
+    #get dictionary of which mcc each leaf is in
     mcc_map = get_mcc_map([constraint, MCCs[i], MCCs[3]])
-    assign_all_mccs!(tree, 3, mcc_map)
+
+    #get dictionary of which leaves are in a mcc
     MCCs3_dict = get_MCC_as_dict(mcc_map, 3)
+    MCC_constraint_dict = get_MCC_as_dict(mcc_map, 1)
+
     for n in POT(tree)
         if isroot(n)
             continue
         end
         if n.data.dat["shared_branch_constraint"]==true ##should be in a MCC
             if !(TreeKnit.is_branch_in_mccs(n, MCCs3_dict))
-                ##if can be merged modify MCCs[3] instead of MCCs[i]
-                mcc = n.data.dat["mcc"][1]
-                #get all nodes that should be together according to constraint
-                MCC_constraint_dict = get_MCC_as_dict(mcc_map, 1)
-                desired_mcc_clade = MCC_constraint_dict[mcc]
-                # desired_mcc_clade = Set{TreeNode}() 
-                # for x in POTleaves(n)
-                #     if x.data.dat["mcc"][1]==mcc
-                #         append!(desired_mcc_clade, x)
-                #     end
-                # end
+                if merge == true
+                    ##if can be merged modify MCCs[3] instead of MCCs[i]
+                    mcc = n.data.dat["mcc"][1]
+                    #get all nodes that should be together according to constraint
+                    desired_mcc_clade = MCC_constraint_dict[mcc]
 
-                #get which mccs these children are in in MCCs3
-                to_be_merged_mcc_set = Set([mcc_map[c][3] for c in desired_mcc_clade])
-                #get all nodes in these mccs
-                to_be_merged = Set{String}()
-                for m in to_be_merged_mcc_set
-                    union!(to_be_merged, Set(MCCs3_dict[m]))
-                end
-                #check if the mccs can be merged in MCCs3, i.e. check if splitlists of the 
-                #merged mccs are compatible in the 2 trees
-                if merge == true && check_merge(trees, to_be_merged)
-                    #if can be merged all the nodes in the to be merged mccs should now
-                    #be in one MCC together
+                    #get which mccs these children are in in MCCs3
+                    to_be_merged_mcc_set = Set([mcc_map[c][3] for c in desired_mcc_clade])
+                    #get all nodes in these mccs
+                    to_be_merged = Set{String}()
                     for m in to_be_merged_mcc_set
-                        if haskey(MCCs3_dict, next_mcc_3)
-                            append!(MCCs3_dict[next_mcc_3], MCCs3_dict[m])
-                        else
-                            MCCs3_dict[next_mcc_3] = MCCs3_dict[m]
-                        end
-                        for n in MCCs3_dict[m]
-                            mcc_map[n][3] = next_mcc_3
-                        end
-                        delete!(MCCs3_dict, m)
+                        union!(to_be_merged, Set(MCCs3_dict[m]))
                     end
-                    next_mcc_3 +=1
+                    #check if the mccs can be merged in MCCs3, i.e. check if splitlists of the 
+                    #merged mccs are compatible in the 2 trees
+                    if check_merge(trees, to_be_merged)
+                        #if can be merged all the nodes in the to be merged mccs should now
+                        #be in one MCC together
+                        for m in to_be_merged_mcc_set
+                            if haskey(MCCs3_dict, next_mcc_3)
+                                append!(MCCs3_dict[next_mcc_3], MCCs3_dict[m])
+                            else
+                                MCCs3_dict[next_mcc_3] = MCCs3_dict[m]
+                            end
+                            for n in MCCs3_dict[m]
+                                mcc_map[n][3] = next_mcc_3
+                            end
+                            delete!(MCCs3_dict, m)
+                        end
+                        next_mcc_3 +=1
+                    end
                 elseif split == true
                     ##split MCCi to make transitivity hold
-                    mcc = n.data.dat["mcc"][1]
+                    mcc = n.data.dat["mcc"]
                     for x in POTleaves(n)
-                        if x.data.dat["mcc"][1]==mcc
+                        if mcc_map[x.label][1]==mcc
+                            mcc_map[x.label][1] = next_mcc_joint
                             mcc_map[x.label][2] = next_mcc_i
                         end
                     end
                     next_mcc_i +=1
+                    next_mcc_joint +=1
                 end
             end
         end
