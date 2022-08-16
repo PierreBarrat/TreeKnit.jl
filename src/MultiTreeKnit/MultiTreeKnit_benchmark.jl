@@ -23,6 +23,7 @@ function get_infered_MCC_pairs!(trees::Vector{Tree{T}}; consistant = true, order
 
     pair_MCCs = MCC_set(l_t, [t.label for t in trees])
     for r in 1:rounds
+        print("ROUND:"*string(r)*"\n")
         for i in 1:(l_t-1)
             for j in (i+1):l_t
                 joint_MCCs = nothing
@@ -42,10 +43,13 @@ function get_infered_MCC_pairs!(trees::Vector{Tree{T}}; consistant = true, order
                 end
                 add!(pair_MCCs, TreeKnit.runopt(TreeKnit.OptArgs(;constraint=joint_MCCs, constraint_cost=constraint_cost), trees[i], trees[j]; output = :mccs), (i, j))
                 rS = TreeKnit.resolve!(trees[i], trees[j], get(pair_MCCs, (j, i)))
+                print("found MCCs for trees: "*trees[j].label*"and"*trees[i].label*"\n")
             end
         end
     end
     if force
+        print("Fix consistency")
+        trees = [convert(Tree{TreeTools.MiscData}, t) for t in trees]
         rep = 0
         not_const = is_degenerate(pair_MCCs)
         while not_const ==true && rep <force_rounds
@@ -68,7 +72,7 @@ function get_infered_MCC_pairs!(trees::Vector{Tree{T}}; consistant = true, order
             not_const = is_degenerate(pair_MCCs)
         end
         if not_const
-            print("Hi: Cannot find a consistent ARG")
+            print("Cannot find a consistent ARG")
         end
     end
     return pair_MCCs
