@@ -44,7 +44,7 @@ function write_mccs(filePath, MCCs::MCC_set, mode="w")
 		for i in 1:binomial(MCCs.no_trees, 2)
 			write(w, "\""*string(i)*"\": {\n \"trees\":[")
 			s = sort(tree_pairs[i], lt=clt)
-			write(w, "\""*string(s[1])*"\", \""*string(s[2])*"\"],")
+			write(w, "\""*split(s[1], ".")[1]*"\", \""*split(s[2], ".")[1]*"\"],")
 			write(w, "\n\"mccs\": [")
 			m = Ms[i]
 			for x in m[1:end-1]

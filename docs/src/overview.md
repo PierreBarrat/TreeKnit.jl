@@ -32,7 +32,8 @@ However, not meeting them might result in irrelevant or meaningless output.
 Output of the inference is written to a directory called `treeknit_results`. This can be changed using the `--outdir` option.   
 The directory will contain:   
 - the ARG, written as an extended [Newick string](https://doi.org/10.1186/1471-2105-9-532).   
-- the MCCs, *i.e.* shared regions of the trees, indicated by the leaves they contain. The MCCs of all tree pairs are written in JSON format. For example for three trees "a", "b", "c" with 10 shared branches their MCCs would be written to a JSON in the form 
+- the MCCs, *i.e.* shared regions of the trees, indicated by the leaves they contain. The MCCs of all tree pairs are written in JSON format. For example for three trees "a", "b", "c" with 10 shared branches 
+their MCCs would be written to a JSON in the form 
 ```
 { 
     "MCC_dict" : {
