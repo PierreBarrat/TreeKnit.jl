@@ -13,7 +13,7 @@ be together in MCC23, otherwise the MCC pairs are inconsistent. Note that incons
 events cannot be viewed together in `ARGPlot`.
 
 """
-function get_infered_MCC_pairs!(trees::Vector{Tree{T}}; consistant = true, order="input", rev=false, constraint_cost=4., rounds=2, force=true, force_rounds=2) where T
+function get_infered_MCC_pairs!(trees::Vector{Tree{T}}; consistant = true, order="input", rev=false, constraint_cost=4., rounds=2, force=false, force_rounds=2, verbose=false) where T
 
     l_t = length(trees)
 
@@ -23,7 +23,7 @@ function get_infered_MCC_pairs!(trees::Vector{Tree{T}}; consistant = true, order
 
     pair_MCCs = MCC_set(l_t, [t.label for t in trees])
     for r in 1:rounds
-        print("ROUND:"*string(r)*"\n")
+        verbose && @info "ROUND:"*string(r)
         for i in 1:(l_t-1)
             for j in (i+1):l_t
                 joint_MCCs = nothing
@@ -43,12 +43,14 @@ function get_infered_MCC_pairs!(trees::Vector{Tree{T}}; consistant = true, order
                 end
                 add!(pair_MCCs, TreeKnit.runopt(TreeKnit.OptArgs(;constraint=joint_MCCs, constraint_cost=constraint_cost), trees[i], trees[j]; output = :mccs), (i, j))
                 rS = TreeKnit.resolve!(trees[i], trees[j], get(pair_MCCs, (j, i)))
-                print("found MCCs for trees: "*trees[j].label*"and"*trees[i].label*"\n")
+                TreeTools.ladderize!(trees[i])
+		        sort_polytomies!(trees[i], trees[j], get(pair_MCCs, trees[i].label, trees[j].label))
+                verbose && @info "found MCCs for trees: "*trees[j].label*" and "*trees[i].label
             end
         end
     end
     if force
-        print("Fix consistency")
+        verbose && @info "Fix consistency"
         trees = [convert(Tree{TreeTools.MiscData}, t) for t in trees]
         rep = 0
         not_const = is_degenerate(pair_MCCs)
@@ -60,7 +62,7 @@ function get_infered_MCC_pairs!(trees::Vector{Tree{T}}; consistant = true, order
                             first = get(pair_MCCs, (i, x))
                             second = get(pair_MCCs, (j, x))
                             third = get(pair_MCCs, (j, i))
-                            new_MCCs = fix_consist!([first, second, third], [trees[j], trees[i]])
+                            new_MCCs = fix_consist!([first, second, third], [trees[i], trees[j]])
                             add!(pair_MCCs, new_MCCs[1], (i, x))
                             add!(pair_MCCs, new_MCCs[2], (j, x))
                             add!(pair_MCCs, new_MCCs[3], (i, j))
@@ -72,11 +74,12 @@ function get_infered_MCC_pairs!(trees::Vector{Tree{T}}; consistant = true, order
             not_const = is_degenerate(pair_MCCs)
         end
         if not_const
-            print("Cannot find a consistent ARG")
+            verbose && @info "Cannot find a consistent ARG"
         end
     end
     return pair_MCCs
 end
+
 
 
 """

@@ -89,7 +89,7 @@ function draw_ARG(
 
     # Add margins around the tree to prevent overlapping the axes
     xmax = maximum(values(x_posns))
-    plot(xlims=(-0.05 * xmax, 1.25 * xmax), ylims=(0.2, (maximum(values(y_posns)) + 0.8)), ylabel="taxa", xlabel="branch length", label="", legend = :bottomright, title="Dendrogram of ARG")
+    p = plot(xlims=(-0.05 * xmax, 1.25 * xmax), ylims=(0.2, (maximum(values(y_posns)) + 0.8)), ylabel="taxa", xlabel="branch length", label="", legend = :bottomright, title="Dendrogram of ARG")
 
 
     function get_x_positions_recombination(recombination_sites)
@@ -185,9 +185,9 @@ function draw_ARG(
         orientation="horizontal", y_here=0, x_start=0, x_here=0, y_bot=0, y_top=0, color=:black, lw=.1, l=""
     )
         if orientation=="horizontal"
-            display(plot!([x_start; x_here], [y_here; y_here], lw=lw, lc=color, label=l))
+            plot!([x_start; x_here], [y_here; y_here], lw=lw, lc=color, label=l)
         else
-            display(plot!([x_here; x_here], [y_bot; y_top], lw=lw, lc=color, label=l))
+            plot!([x_here; x_here], [y_bot; y_top], lw=lw, lc=color, label=l)
         end
     end
 
@@ -294,6 +294,7 @@ function draw_ARG(
             draw_clade(recombination_sites[pos][mcc][1], x_recom[pos][mcc], 2, x_posns, y_posns, recombination=true, pos=pos)
         end
     end
+    return p
     savefig("arg_plot.png")
 
 end
