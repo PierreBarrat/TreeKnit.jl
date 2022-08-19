@@ -13,7 +13,7 @@ be together in MCC23, otherwise the MCC pairs are inconsistent. Note that incons
 events cannot be viewed together in `ARGPlot`.
 
 """
-function get_infered_MCC_pairs!(trees::Vector{Tree{T}}; consistant = true, order="input", rev=false, constraint_cost=4., rounds=2, force=false, force_rounds=2, verbose=false) where T
+function get_infered_MCC_pairs!(trees::Vector{Tree{T}}; consistant = true, order="input", rev=false, constraint_cost=4., rounds=2, force=false, verbose=false) where T
 
     l_t = length(trees)
 
@@ -52,30 +52,7 @@ function get_infered_MCC_pairs!(trees::Vector{Tree{T}}; consistant = true, order
     if force
         verbose && @info "Fix consistency"
         trees = [convert(Tree{TreeTools.MiscData}, t) for t in trees]
-        rep = 0
-        not_const = is_degenerate(pair_MCCs)
-        while not_const ==true && rep <force_rounds
-            for i in 1:(l_t-1)
-                for j in (i+1):l_t
-                    for x in 1:l_t
-                        if x ∉ Set([i, j]) 
-                            first = get(pair_MCCs, (i, x))
-                            second = get(pair_MCCs, (j, x))
-                            third = get(pair_MCCs, (j, i))
-                            new_MCCs = fix_consist!([first, second, third], [trees[i], trees[j]])
-                            add!(pair_MCCs, new_MCCs[1], (i, x))
-                            add!(pair_MCCs, new_MCCs[2], (j, x))
-                            add!(pair_MCCs, new_MCCs[3], (i, j))
-                        end
-                    end
-                end
-            end
-            rep +=1
-            not_const = is_degenerate(pair_MCCs)
-        end
-        if not_const
-            verbose && @info "Cannot find a consistent ARG"
-        end
+        pair_MCCs = fix_consist_sets!(pair_MCCs, trees)
     end
     return pair_MCCs
 end

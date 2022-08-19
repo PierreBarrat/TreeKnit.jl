@@ -15,17 +15,20 @@ function get_r(ρ, n, N, simtype::Symbol)
 end
 
 """
-    get_trees(no_trees, no_lineages, get_real_MCCs)
+    get_trees(no_trees, no_lineages; remove=false, debug=false, c=0.75, ρ = 0.05
     
     returns trees as well as true MCCs
     simulate a total of `no_trees` trees using the ARGTools package, 
     specifying the `lineage_no` determines the number of nodes in each tree
+    remove - if internal branches should be removed (i.e. if trees should not be fully resolved, see parameter c)
+    c - Parameter to desribe how resolved trees are
+    ρ - Reassortment rate scaled to coalescence rate
+
 """
-function get_trees(no_trees, no_lineages; remove=false, debug=false, c=0.75)
+function get_trees(no_trees, no_lineages; remove=false, debug=false, c=0.75, ρ = 0.05)
     # Parameters of the ARG simulation
     N = 10_000 # pop size
     n = no_lineages # Number of lineages
-    ρ = 0.05 # Reassortment rate scaled to coalescence rate
     simtype = :kingman
     r = get_r(ρ, n, N, simtype) # Absolute reassortment rate
 
@@ -66,4 +69,17 @@ function get_real_MCCs(no_trees, arg)
         end
     end
     return rMCCs
+end
+
+function compute_consecutive_MCC_set(trees::Vector{TreeTools.Tree{T}}) where T
+    M = TreeKnit.MCC_set(length(trees), [t.label for t in trees])
+    for i in 1:(M.no_trees-1)
+        for j in (i+1):M.no_trees
+            oa = TreeKnit.OptArgs(;γ = 2., likelihood_sort = true, resolve = true,
+                nMCMC = 25, verbose=false,)
+            mCCs = TreeKnit.runopt(oa, trees[i], trees[j]; output = :mccs)
+            TreeKnit.add!(M, mCCs, (i, j))
+        end
+    end
+    return M
 end

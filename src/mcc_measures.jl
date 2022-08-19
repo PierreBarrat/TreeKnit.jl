@@ -80,6 +80,114 @@ function is_degenerate(MCC1::Vector{Vector{String}}, MCC2::Vector{Vector{String}
     end
 end
 
+function find_split(constraint_MCC::Vector{Vector{String}}, MCC2::Vector{Vector{String}})
+    add_subsets = Dict()
+    for mcc1 in constraint_MCC
+        for mcc2 in MCC2
+            if issubset(Set{String}(mcc1), Set{String}(mcc2))
+                break
+            elseif !isempty(intersect(Set{String}(mcc2), Set{String}(mcc1)))
+                if haskey(add_subsets, mcc1)
+                    append!(add_subsets[mcc1], [intersect(mcc2, mcc1)])
+                else
+                    add_subsets[mcc1] = [intersect(mcc2, mcc1)]
+                end
+            end
+        end
+    end
+    return add_subsets
+end
+
+function find_set_to_split(MCC_to_split::Vector{Vector{String}}, mcc_constraint::Vector{String})
+    for mcc in MCC_to_split
+        if issubset(Set{String}(mcc_constraint), Set{String}(mcc))
+            return mcc
+        end
+    end
+end
+
+function find_set_to_split(MCC_to_split::Dict{Int, Vector{String}}, mcc_constraint::Vector{String})
+    for (key, mcc) in MCC_to_split
+        if issubset(Set{String}(mcc_constraint), Set{String}(mcc))
+            return key
+        end
+    end
+end
+
+function split_mcc(mcc_to_split::Vector{String}, mcc_constraint::Vector{String}, splits::Vector{Vector{String}}, tree::Tree)
+    new_mcc_list = Vector{String}[]
+    assigned_leaves = Set{String}()
+    count = length(splits) - 1
+    for s in splits
+        lca_ = TreeTools.lca(tree, s...)
+        if Set{String}([x.label for x in POTleaves(lca_) if x.label ∈ mcc_constraint]) == Set{String}(s) && count >0
+            new_mcc = [x.label for x in POTleaves(lca_) if x.label ∈ mcc_to_split]
+            append!(new_mcc_list, [sort(new_mcc, lt=TreeKnit.clt)])
+            union!(assigned_leaves, Set{String}(new_mcc))
+            count -=1
+        end
+    end
+    if count >0
+        print("there is an issue in the split_mcc function")
+    end
+    append!(new_mcc_list, [sort(collect(setdiff(Set{String}(mcc_to_split), assigned_leaves)), lt=TreeKnit.clt)])
+    return sort(new_mcc_list, lt=TreeKnit.clt)
+end
+
+function split_MCCs(first, second, third, tree1, tree2)
+    constraint = TreeKnit.join_sets([first, second])
+    r = rand((1, 2))
+    MCC_to_split = [first, second][r]
+    tree = [tree1, tree2][r]
+    constraint_split_dict = find_split(constraint, third)
+    if !isempty(constraint_split_dict)
+        MCC_to_split_dict = TreeKnit.get_MCC_as_dict(TreeKnit.get_mcc_map(MCC_to_split))
+        next_mcc = length(MCC_to_split) + 1
+        for mcc_constraint in keys(constraint_split_dict)
+            mcc_to_split_key = find_set_to_split(MCC_to_split_dict, mcc_constraint)
+            new_mccs = split_mcc(MCC_to_split_dict[mcc_to_split_key], mcc_constraint, constraint_split_dict[mcc_constraint], tree)
+            MCC_to_split_dict[mcc_to_split_key] = new_mccs[1]
+            for new_m in new_mccs[2:end]
+                MCC_to_split_dict[next_mcc] = new_m
+                next_mcc +=1
+            end
+        end
+        MCC_to_split = MCC_vector_from_dict(MCC_to_split_dict)
+    end
+    if r==1
+        return MCC_to_split, second
+    else
+        return first, MCC_to_split
+    end
+end
+
+function fix_consist_sets!(pair_MCCs::MCC_set, trees::Vector{Tree{MiscData}}; rounds = 1)
+    l_t = pair_MCCs.no_trees
+    rounds = 1+ (l_t-3)*3
+    not_const = TreeKnit.is_degenerate(pair_MCCs)
+    r = 0
+    while not_const ==true && r < rounds
+        for i in 1:(l_t-1)
+            for j in (i+1):l_t
+                for x in 1:l_t
+                    if x ∉ Set([i, j]) 
+                        first, second, third = get(pair_MCCs, (i, x)), get(pair_MCCs, (j, x)), get(pair_MCCs, (j, i))
+                        first, second = split_MCCs(first, second, third, trees[i], trees[j])
+                        TreeKnit.add!(pair_MCCs, first, (i, x))
+                        TreeKnit.add!(pair_MCCs, second, (j, x))
+                    end
+                end
+            end
+        end
+        not_const = TreeKnit.is_degenerate(pair_MCCs)
+        r +=1
+    end
+    if not_const
+        @info "Cannot find a consistent ARG"
+    end
+    return pair_MCCs
+end
+
 
 function consistency_rate(M::MCC_set, trees::Vector{Tree{T}}) where T
     @assert M.order_trees == [t.label for t in trees]

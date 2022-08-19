@@ -150,7 +150,7 @@ function mark_shared_branches!(constraint::Union{Nothing, Vector{Vector{String}}
                 m = n.data["mcc"]
                 if (isroot(n) || m==n.anc.data["mcc"])
 				    n.data["shared_branch_constraint"] = true
-                elseif  isnothing(n.anc.data["mcc"]) && any([(c!=n && (c.data["mcc"]==m || (isnothing(c.data["mcc"]) && any([l.data["mcc"] ==m for l in POTleaves(c)])))) for c ∈ n.anc.child])
+                elseif any([(c!=n && (c.data["mcc"]==m ||  any([l.data["mcc"] ==m for l in POTleaves(c)]))) for c ∈ n.anc.child])
                     n.data["shared_branch_constraint"] = true
                 else
                     n.data["shared_branch_constraint"] = false
@@ -232,36 +232,6 @@ function assign_all_mccs!(tree::Tree{TreeTools.MiscData}, len_tree_list::Int, mc
     
 end
 
-
-# function check_merge(n, mcc_set)
-#     if n.data["mcc"][3] ∈ mcc_set
-#         return true
-#     elseif isnothing(n.data["mcc"][3]) && !isempty(n.child)
-#         return all([check_merge(c, mcc_set) for c in n.child])
-#     else
-#         return false
-#     end
-# end
-
-function check_merge(trees, to_be_merged)
-    function get_masked_splitlist(tree, masked_leaves)
-        l = sort(collect(keys(tree.lleaves)))
-        leafmap = Dict(leaf=>i for (i,leaf) in enumerate(l))
-        # Compute mask : leaves that are descendents or `r`
-        mask = zeros(Bool, length(l))
-        set_mask(n) = if n.label ∈ masked_leaves mask[leafmap[n.label]] = true end
-        map!(set_mask, tree.root)
-        return  SplitList(tree.root, l, mask, leafmap)
-    end
-    S3 = get_masked_splitlist(trees[2], to_be_merged)
-    S2 = get_masked_splitlist(trees[1], to_be_merged)
-    if all([TreeKnit.iscompatible(s, S2) for s in S3])
-        return true
-    else
-        return false
-    end
-end
-
 function get_MCC_as_dict(mcc_map::Dict{String, Int})
     MCC_dict = Dict{Int, Vector{String}}()
     for (key, item) in mcc_map
@@ -286,6 +256,35 @@ function get_MCC_as_dict(mcc_map::Dict{String, Vector{Int}}, pos::Int)
     return MCC_dict
 end
 
+function MCC_vector_from_dict(dict_::Dict{Int, Vector{String}})
+    MCCs_new = Vector{String}[]
+    for (num, mcc) in dict_
+        append!(MCCs_new, [sort(mcc)])
+    end
+    MCCs = TreeKnit.sort(MCCs_new, lt=TreeKnit.clt)
+    return MCCs
+end
+
+
+function check_merge(trees, to_be_merged)
+    function get_masked_splitlist(tree, masked_leaves)
+        l = sort(collect(keys(tree.lleaves)))
+        leafmap = Dict(leaf=>i for (i,leaf) in enumerate(l))
+        # Compute mask : leaves that are descendents or `r`
+        mask = zeros(Bool, length(l))
+        set_mask(n) = if n.label ∈ masked_leaves mask[leafmap[n.label]] = true end
+        map!(set_mask, tree.root)
+        return  SplitList(tree.root, l, mask, leafmap)
+    end
+    S3 = get_masked_splitlist(trees[2], to_be_merged)
+    S2 = get_masked_splitlist(trees[1], to_be_merged)
+    if all([TreeKnit.iscompatible(s, S2) for s in S3])
+        return true
+    else
+        return false
+    end
+end
+
 function fix_consist!(MCCs, trees; merge=true, split=true, i=nothing)
 
     @assert length(trees)==2 && length(MCCs)==3
@@ -306,6 +305,7 @@ function fix_consist!(MCCs, trees; merge=true, split=true, i=nothing)
 
     #get dictionary of which mcc each leaf is in
     mcc_map = get_mcc_map([constraint, MCCs[i], MCCs[3]])
+    assign_all_mccs!(tree, 2, mcc_map)
 
     #get dictionary of which leaves are in a mcc
     MCCs3_dict = get_MCC_as_dict(mcc_map, 3)
@@ -352,13 +352,11 @@ function fix_consist!(MCCs, trees; merge=true, split=true, i=nothing)
                     ##split MCCi to make transitivity hold
                     mcc = n.data.dat["mcc"]
                     for x in POTleaves(n)
-                        if mcc_map[x.label][1]==mcc
-                            mcc_map[x.label][1] = next_mcc_joint
+                        if mcc_map[x.label][2]==mcc[2]
                             mcc_map[x.label][2] = next_mcc_i
                         end
                     end
                     next_mcc_i +=1
-                    next_mcc_joint +=1
                 end
             end
         end
@@ -380,6 +378,35 @@ function fix_consist!(MCCs, trees; merge=true, split=true, i=nothing)
         MCCs[3] = TreeKnit.sort(MCCs_new, lt=TreeKnit.clt)
     end
     return MCCs
+end
+
+function fix_consist!(pair_MCCs::MCC_set, trees::Vector{Tree{MiscData}}; rounds=1, verbose=false, merge=false)
+    l_t = pair_MCCs.no_trees
+    not_const = is_degenerate(pair_MCCs)
+    rep = 0
+    while not_const ==true && rep <rounds
+        for i in 1:(l_t-1)
+            for j in (i+1):l_t
+                for x in 1:l_t
+                    if x ∉ Set([i, j]) 
+                        first = get(pair_MCCs, (i, x))
+                        second = get(pair_MCCs, (j, x))
+                        third = get(pair_MCCs, (j, i))
+                        new_MCCs = fix_consist!([first, second, third], [trees[i], trees[j]], merge=merge)
+                        add!(pair_MCCs, new_MCCs[1], (i, x))
+                        add!(pair_MCCs, new_MCCs[2], (j, x))
+                        add!(pair_MCCs, new_MCCs[3], (i, j))
+                    end
+                end
+            end
+        end
+        rep +=1
+        not_const = is_degenerate(pair_MCCs)
+    end
+    if not_const
+        verbose && @info "Cannot find a consistent ARG"
+    end
+    return pair_MCCs
 end
 
 

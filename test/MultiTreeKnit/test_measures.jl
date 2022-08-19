@@ -111,7 +111,7 @@ end
         label!(trees[1], "a")
         label!(trees[2], "b")
         label!(trees[3], "c")
-        iMCCs = TreeKnit.get_infered_MCC_pairs!(trees, consistant = true, order="input", rev=false, constraint_cost=4., force=true, force_rounds=3)
+        iMCCs = TreeKnit.get_infered_MCC_pairs!(trees, consistant = true, order="input", rev=false, constraint_cost=4., force=true)
         @test TreeKnit.is_degenerate(iMCCs) == (TreeKnit.consistency_rate(iMCCs, trees)!=0.0)
         repeat += 1
     end
