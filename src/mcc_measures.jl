@@ -1,8 +1,8 @@
 """
-    resolution_value(t::Tree)
+resolution_value(t::Tree)
 
-    Resolution measure, ranges from 0 to 1, where 1 is a fully resolved tree and 0 is a tree with no internal nodes. 
-    In a fully resolved tree with n leaves, there are (n-1) internal nodes. 
+Resolution measure, ranges from 0 to 1, where 1 is a fully resolved tree and 0 is a tree with no internal nodes. 
+In a fully resolved tree with n leaves, there are (n-1) internal nodes. 
 """
 function resolution_value(t::Tree)
     if length(keys(t.lleaves))==1 # if tree only contains 1 node it is resolved by definition
@@ -13,10 +13,10 @@ function resolution_value(t::Tree)
 end
 
 """
-    RF_distance(t1::Tree, t2::Tree)
+RF_distance(t1::Tree, t2::Tree)
 
-    Compute the Robinson–Foulds metric, or distance between two trees defined as the number of partitions 
-    implied by tree 1 and not tree 2 plus the number of partitions implied by tree 2 and not tree 1
+Compute the Robinson–Foulds metric, or distance between two trees defined as the number of partitions 
+implied by tree 1 and not tree 2 plus the number of partitions implied by tree 2 and not tree 1
 """
 function RF_distance(t1::Tree, t2::Tree)
     s1 = SplitList(t1)
@@ -25,9 +25,9 @@ function RF_distance(t1::Tree, t2::Tree)
 end
 
 """
-    is_MCC_subset(MCC1::Vector{Vector{String}}, MCC2::Vector{Vector{String}})
+is_MCC_subset(MCC1::Vector{Vector{String}}, MCC2::Vector{Vector{String}})
 
-    function to check that every set in MCC1 is a subset of a set in MCC2
+function to check that every set in MCC1 is a subset of a set in MCC2
 """
 function is_MCC_subset(MCC1::Vector{Vector{String}}, MCC2::Vector{Vector{String}})
     for mcc1 in MCC1
@@ -55,7 +55,11 @@ function is_MCC_subset_dict(MCC1::Dict{Int, Set{String}}, MCC2::Dict{String, Int
 end
 
 """
-    MCC degeneracy measure, the 
+is_degenerate(M::MCC_set)
+
+Function to check if consistency holds for all MCC subtriplets in the MCC set.
+This uses only the MCC sets themselves and does not take tree topology into consideration.
+Returns a boolean value.
 """
 function is_degenerate(M::MCC_set)
     k_iters = Combinatorics.combinations(1:M.no_trees, 3)
@@ -80,6 +84,13 @@ function is_degenerate(MCC1::Vector{Vector{String}}, MCC2::Vector{Vector{String}
     end
 end
 
+"""
+find_split(constraint_MCC::Vector{Vector{String}}, MCC::Vector{Vector{String}})
+
+Find the mccs of the `constraint_MCC` that are not a subset of mccs in `MCC` and calculate their intersection with mccs in `MCC`.
+In order for consistency to hold these mccs must be split up. This function returns a dictionary whre each mcc that needs to 
+be split is mapped to its (non empty) intersections with sets in `MCC`.
+"""
 function find_split(constraint_MCC::Vector{Vector{String}}, MCC2::Vector{Vector{String}})
     add_subsets = Dict()
     for mcc1 in constraint_MCC
@@ -98,6 +109,11 @@ function find_split(constraint_MCC::Vector{Vector{String}}, MCC2::Vector{Vector{
     return add_subsets
 end
 
+"""
+find_set_to_split(MCC_to_split::Vector{Vector{String}}, mcc_constraint::Vector{String})
+
+Find and return the mcc in `MCC_to_split` that contains the mcc `mcc_constraint`.
+"""
 function find_set_to_split(MCC_to_split::Vector{Vector{String}}, mcc_constraint::Vector{String})
     for mcc in MCC_to_split
         if issubset(Set{String}(mcc_constraint), Set{String}(mcc))
@@ -114,6 +130,16 @@ function find_set_to_split(MCC_to_split::Dict{Int, Vector{String}}, mcc_constrai
     end
 end
 
+"""
+split_mcc(mcc_to_split::Vector{String}, mcc_constraint::Vector{String}, splits::Vector{Vector{String}}, tree::Tree)
+
+Split the `mcc_to_split` as prescribed in the `splits` vector. `mcc_constraint` is a subset of `mcc_to_split`, 
+The union of all leaves in the `splits` vector should be equal to the `mcc_constraint`, `mcc_to_split` may contain more leaves.
+If there are `k` splits in the `splits` vector, k-1 splits must be introduced into `mcc_to_split`. 
+For each split calculate the lca, make sure the lca does not have any children that are in another split (using `tree`). 
+If this not the case introduce a split "above the lca" by assigning all it's children that are in the `mcc_to_split`
+to a new mcc.
+"""
 function split_mcc(mcc_to_split::Vector{String}, mcc_constraint::Vector{String}, splits::Vector{Vector{String}}, tree::Tree)
     new_mcc_list = Vector{String}[]
     assigned_leaves = Set{String}()
@@ -134,6 +160,19 @@ function split_mcc(mcc_to_split::Vector{String}, mcc_constraint::Vector{String},
     return sort(new_mcc_list, lt=TreeKnit.clt)
 end
 
+"""
+split_MCCs(first, second, third, tree1, tree2)
+
+For each MCC triplet, e.g. MCC_ab, MCC_ac and MCC_bc the transitivity relation should hold that 
+if a branch is in an mcc in MCCab and that branch in an mcc in MCCac that branch shoudl also be in an mcc in MCCbc (consistency). 
+If this relation does not hold the function performs the following:
+
+- calculate the `constraint` of MCCab and MCCac (which branches are shared in both trees defined by `join_sets(MCCab, MCCac)`
+- find the mccs of the `constraint` that are not a subset of mccs in MCCbc and calculate their intersection with mccs in MCCbc `find_split`
+- randomly choose to introduce splits in MCCab or MCCac (this will lead to the constraint having these splits). If MCCac is chosen look at tree c, else look at tree b
+- find which mcc the mccs that need to be split are contained in in MCCac (or MCCab) `find_set_to_split`
+- split these mccs `split_mcc`.
+"""
 function split_MCCs(first, second, third, tree1, tree2)
     constraint = TreeKnit.join_sets([first, second])
     r = rand((1, 2))
@@ -160,8 +199,12 @@ function split_MCCs(first, second, third, tree1, tree2)
         return first, MCC_to_split
     end
 end
+"""
+fix_consist_sets!(pair_MCCs::MCC_set, trees::Vector{Tree{MiscData}})
 
-function fix_consist_sets!(pair_MCCs::MCC_set, trees::Vector{Tree{MiscData}}; rounds = 1)
+Fix inconsistencies in `pair_MCCs` by splitting mccs as in `split_MCCs`.
+"""
+function fix_consist_sets!(pair_MCCs::MCC_set, trees::Vector{Tree{MiscData}})
     l_t = pair_MCCs.no_trees
     rounds = 1+ (l_t-3)*3
     not_const = TreeKnit.is_degenerate(pair_MCCs)
@@ -205,10 +248,10 @@ function consistency_rate(M::MCC_set, trees::Vector{Tree{T}}) where T
 end
 
 """
-    Calculate the average consistency of MCCs of a triplet of trees, each mcc triplet combination is evaluated
-    and the consistency score is averaged. The consistency score for one triplet combination e.g. M12, M13 and M23
-    is calculated as the total number of branches that are inconsistent (i.e. not grouped as would be expected)
-    divided by the total number of branches. 
+Calculate the average consistency of MCCs of a triplet of trees, each mcc triplet combination is evaluated
+and the consistency score is averaged. The consistency score for one triplet combination e.g. M12, M13 and M23
+is calculated as the total number of branches that are inconsistent (i.e. not grouped as would be expected)
+divided by the total number of branches. 
 
 """
 function consistency_rate(M12::Vector{Vector{String}}, M13::Vector{Vector{String}}, M23::Vector{Vector{String}}, trees::Vector{Tree{T}}) where T

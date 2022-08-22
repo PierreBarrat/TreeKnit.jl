@@ -1,4 +1,46 @@
 include("GenerateTrees.jl")
+
+"""
+compute_mcc_pairs(trees; consistant=true, rounds=2, constraint_cost=4, verbose=false)
+
+subfunction to compute tree pair MCCs
+
+"""
+function compute_mcc_pairs(trees; consistant=true, rounds=2, constraint_cost=4, verbose=false)
+    l_t = length(trees)
+    pair_MCCs = MCC_set(l_t, [t.label for t in trees])
+    for r in 1:rounds
+        verbose && @info "ROUND:"*string(r)
+        for i in 1:(l_t-1)
+            for j in (i+1):l_t
+                joint_MCCs = nothing
+                if consistant && (i>1 || r>1)
+                    if r>1
+                        range = filter(e->e∉Set([i,j]), 1:l_t)
+                    else
+                        range = 1:(i-1)
+                    end
+                    for x in range
+                        first = get(pair_MCCs, (i, x))
+                        second = get(pair_MCCs, (j, x))
+                        pre_joint_MCCs = TreeKnit.join_sets([first, second])
+                        if !isnothing(joint_MCCs)
+                            joint_MCCs = TreeKnit.join_sets([joint_MCCs, pre_joint_MCCs])
+                        else
+                            joint_MCCs = pre_joint_MCCs
+                        end
+                    end
+                end
+                TreeKnit.add!(pair_MCCs, TreeKnit.runopt(TreeKnit.OptArgs(;constraint=joint_MCCs, constraint_cost=constraint_cost), trees[i], trees[j]; output = :mccs), (i, j))
+                rS = TreeKnit.resolve!(trees[i], trees[j], get(pair_MCCs, (j, i)))
+                TreeTools.ladderize!(trees[i])
+                TreeKnit.sort_polytomies!(trees[i], trees[j], get(pair_MCCs, trees[i].label, trees[j].label))
+                verbose && @info "found MCCs for trees: "*trees[j].label*" and "*trees[i].label
+            end
+        end
+    end
+    return pair_MCCs
+end
 """
 get_infered_MCC_pairs(trees::Vector{Tree{T}}, store_trees::Bool; consistant = true) where T
 
@@ -20,43 +62,16 @@ function get_infered_MCC_pairs!(trees::Vector{Tree{T}}; consistant = true, order
     ##if desired first change the order of the trees
     order = TreeKnit.get_tree_order(trees ;order=order, rev=rev)
     trees = trees[order]
+    trees = [convert(Tree{TreeTools.MiscData}, t) for t in trees]
 
-    pair_MCCs = MCC_set(l_t, [t.label for t in trees])
-    for r in 1:rounds
-        verbose && @info "ROUND:"*string(r)
-        for i in 1:(l_t-1)
-            for j in (i+1):l_t
-                joint_MCCs = nothing
-                if consistant
-                    for x in 1:l_t
-                        if x ∉ Set([i, j]) && !isnothing(get(pair_MCCs, (i, x))) && !isnothing(get(pair_MCCs, (j, x)))
-                            first = get(pair_MCCs, (i, x))
-                            second = get(pair_MCCs, (j, x))
-                            pre_joint_MCCs = TreeKnit.join_sets([first, second])
-                            if !isnothing(joint_MCCs)
-                                joint_MCCs = TreeKnit.join_sets([joint_MCCs, pre_joint_MCCs])
-                            else
-                                joint_MCCs = pre_joint_MCCs
-                            end
-                        end
-                    end
-                end
-                add!(pair_MCCs, TreeKnit.runopt(TreeKnit.OptArgs(;constraint=joint_MCCs, constraint_cost=constraint_cost), trees[i], trees[j]; output = :mccs), (i, j))
-                rS = TreeKnit.resolve!(trees[i], trees[j], get(pair_MCCs, (j, i)))
-                TreeTools.ladderize!(trees[i])
-		        sort_polytomies!(trees[i], trees[j], get(pair_MCCs, trees[i].label, trees[j].label))
-                verbose && @info "found MCCs for trees: "*trees[j].label*" and "*trees[i].label
-            end
-        end
-    end
+    pair_MCCs = compute_mcc_pairs(trees; consistant=consistant, rounds=rounds, verbose=verbose, constraint_cost=constraint_cost)
+
     if force
         verbose && @info "Fix consistency"
-        trees = [convert(Tree{TreeTools.MiscData}, t) for t in trees]
         pair_MCCs = fix_consist_sets!(pair_MCCs, trees)
     end
     return pair_MCCs
 end
-
 
 
 """

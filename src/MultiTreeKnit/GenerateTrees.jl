@@ -15,14 +15,14 @@ function get_r(ρ, n, N, simtype::Symbol)
 end
 
 """
-    get_trees(no_trees, no_lineages; remove=false, debug=false, c=0.75, ρ = 0.05
-    
-    returns trees as well as true MCCs
-    simulate a total of `no_trees` trees using the ARGTools package, 
-    specifying the `lineage_no` determines the number of nodes in each tree
-    remove - if internal branches should be removed (i.e. if trees should not be fully resolved, see parameter c)
-    c - Parameter to desribe how resolved trees are
-    ρ - Reassortment rate scaled to coalescence rate
+get_trees(no_trees, no_lineages; remove=false, debug=false, c=0.75, ρ = 0.05
+
+returns trees as well as true MCCs
+simulate a total of `no_trees` trees using the ARGTools package, 
+specifying the `lineage_no` determines the number of nodes in each tree
+remove - if internal branches should be removed (i.e. if trees should not be fully resolved, see parameter c)
+c - Parameter to desribe how resolved trees are
+ρ - Reassortment rate scaled to coalescence rate
 
 """
 function get_trees(no_trees, no_lineages; remove=false, debug=false, c=0.75, ρ = 0.05)
