@@ -1,20 +1,21 @@
+using Dagger
 include("GenerateTrees.jl")
 
 """
-compute_mcc_pairs(trees; consistant=true, rounds=2, constraint_cost=4, verbose=false)
+compute_mcc_pairs!(trees, oa)
 
 subfunction to compute tree pair MCCs
 
 """
-function compute_mcc_pairs(trees; consistant=true, rounds=2, constraint_cost=4, verbose=false)
+function compute_mcc_pairs!(trees::Vector{Tree{TreeTools.MiscData}}, oa::OptArgs)
     l_t = length(trees)
     pair_MCCs = MCC_set(l_t, [t.label for t in trees])
-    for r in 1:rounds
-        verbose && @info "ROUND:"*string(r)
+    for r in 1:oa.rounds
+        oa.verbose && @info "ROUND:"*string(r)
         for i in 1:(l_t-1)
             for j in (i+1):l_t
                 joint_MCCs = nothing
-                if consistant && (i>1 || r>1)
+                if oa.consistent && (i>1 || r>1)
                     if r>1
                         range = filter(e->e∉Set([i,j]), 1:l_t)
                     else
@@ -31,23 +32,70 @@ function compute_mcc_pairs(trees; consistant=true, rounds=2, constraint_cost=4, 
                         end
                     end
                 end
-                TreeKnit.add!(pair_MCCs, TreeKnit.runopt(TreeKnit.OptArgs(;constraint=joint_MCCs, constraint_cost=constraint_cost), trees[i], trees[j]; output = :mccs), (i, j))
+                TreeKnit.add!(pair_MCCs, TreeKnit.runopt(TreeKnit.OptArgs(;constraint_cost=oa.constraint_cost), trees[i], trees[j], joint_MCCs; output = :mccs), (i, j))
                 rS = TreeKnit.resolve!(trees[i], trees[j], get(pair_MCCs, (j, i)))
                 TreeTools.ladderize!(trees[i])
                 TreeKnit.sort_polytomies!(trees[i], trees[j], get(pair_MCCs, trees[i].label, trees[j].label))
-                verbose && @info "found MCCs for trees: "*trees[j].label*" and "*trees[i].label
+                oa.verbose && @info "found MCCs for trees: "*trees[j].label*" and "*trees[i].label
             end
         end
     end
     return pair_MCCs
 end
+
+function run_step!(oa::OptArgs, tree1::Tree, tree2::Tree, constraints)
+    if !isnothing(constraints)
+        constraint = fetch(constraints[1])
+        for mcc_con in constraints[2:end]
+            constraint = TreeKnit.join_sets([constraint, fetch(mcc_con)])
+        end
+    else
+        constraint = nothing
+    end
+    MCC = TreeKnit.runopt(oa, tree1, tree2, constraint; output = :mccs)
+    rS = TreeKnit.resolve!(tree1, tree2, MCC)
+    TreeTools.ladderize!(tree1)
+    TreeKnit.sort_polytomies!(tree1, tree2, MCC)
+    oa.verbose && @info "found MCCs for trees: "*trees[j].label*" and "*trees[i].label
+    return MCC
+end
+
+function parallelized_compute_mccs!(trees::Vector{Tree{TreeTools.MiscData}}, oa::OptArgs)
+    l_t = length(trees)
+    parallel_MCCs = Dict()
+    for r in 1:oa.rounds
+        for i in 1:(l_t-1)
+            for j in (i+1):l_t
+                MCC_list = nothing
+                if oa.consistent && (i>1 || r>1)
+                    MCC_list = []
+                    if r>1
+                        range = filter(e->e∉Set([i,j]), 1:l_t)
+                    else
+                        range = 1:(i-1)
+                    end
+                    for x in range
+                        append!(MCC_list, [parallel_MCCs[Set([i, x])], parallel_MCCs[Set([j,x])]])
+                    end
+                end
+                parallel_MCCs[Set([i,j])] = Dagger.@spawn run_step!(oa, trees[i], trees[j], MCC_list)
+            end
+        end
+    end
+    pair_MCCs = MCC_set(l_t, [t.label for t in trees])
+    for (key, mcc) in parallel_MCCs
+        TreeKnit.add!(pair_MCCs, fetch(mcc), Tuple(key))
+    end
+    return pair_MCCs
+end
+
 """
-get_infered_MCC_pairs(trees::Vector{Tree{T}}, store_trees::Bool; consistant = true) where T
+function get_infered_MCC_pairs!(trees::Vector{Tree{T}}, oa::OptArgs=OptArgs()) where T
 
 function to get all MCCs of all tree pairs in tree list `trees` using TreeKnit,
 resolved trees from previous MCC calculations are used as the tree input for the next pair, 
 the order is specified in Combinatorics.combinations(1:length(trees), 2). If MCC pairs should be 
-consistent with previous MCCs the `consistant` flag can be set to true. A `shared_branch_constraint` will then be 
+consistent with previous MCCs the `consistent` flag can be set to true. A `shared_branch_constraint` will then be 
 computed from the previous MCC pairs to prevent nodes from being removed in an inconsistent manner.
 
 For example if node `a` and node `b` are both in the same MCC clade for MCC12 and MCC13 they should also 
@@ -55,22 +103,26 @@ be together in MCC23, otherwise the MCC pairs are inconsistent. Note that incons
 events cannot be viewed together in `ARGPlot`.
 
 """
-function get_infered_MCC_pairs!(trees::Vector{Tree{T}}; consistant = true, order="input", rev=false, constraint_cost=4., rounds=2, force=false, verbose=false) where T
 
-    l_t = length(trees)
+function get_infered_MCC_pairs!(trees::Vector{Tree{T}}, oa::OptArgs) where T
 
-    ##if desired first change the order of the trees
-    order = TreeKnit.get_tree_order(trees ;order=order, rev=rev)
-    trees = trees[order]
     trees = [convert(Tree{TreeTools.MiscData}, t) for t in trees]
 
-    pair_MCCs = compute_mcc_pairs(trees; consistant=consistant, rounds=rounds, verbose=verbose, constraint_cost=constraint_cost)
+    if oa.parallel == true
+        pair_MCCs = parallelized_compute_mccs!(trees, oa)
+    else
+        pair_MCCs = compute_mcc_pairs!(trees, oa)
+    end
 
-    if force
-        verbose && @info "Fix consistency"
+    if oa.force_consist
+        oa.verbose && @info "Fix consistency"
         pair_MCCs = fix_consist_sets!(pair_MCCs, trees)
     end
     return pair_MCCs
+end
+
+function get_infered_MCC_pairs!(trees::Vector{Tree{T}}; kwargs...) where T 
+    return get_infered_MCC_pairs!(trees, OptArgs(;kwargs...))
 end
 
 
@@ -151,7 +203,7 @@ To find recombination events of all tree combinations the individual tree pairs 
 combinations are returned in a MCC_set object `MCC_dict` where the sorted list of tree name combinations is the key, 
 as well as the list of resolved trees `input_trees` in input order. 
 """
-function infer_benchmark_MCCs!(trees::Vector{Tree{TreeTools.MiscData}}; debug=false, consistant=true, order="resolution", rev=false)
+function infer_benchmark_MCCs!(trees::Vector{Tree{TreeTools.MiscData}}; debug=false, consistent=true, order="input", rev=false)
 
     ##if desired first change the order of the trees
     order = get_tree_order(trees ;order=order, rev=rev)
@@ -164,7 +216,7 @@ function infer_benchmark_MCCs!(trees::Vector{Tree{TreeTools.MiscData}}; debug=fa
         end
     end
 
-    MCC_dict = get_infered_MCC_pairs!(trees, consistant=consistant)
+    MCC_dict = get_infered_MCC_pairs!(trees; consistent=consistent)
 
     for k in 3:MCC_dict.no_trees
         k_iters = Combinatorics.combinations(1:MCC_dict.no_trees, k)
@@ -188,9 +240,9 @@ function infer_benchmark_MCCs!(trees::Vector{Tree{TreeTools.MiscData}}; debug=fa
     return MCC_dict
 end
 
-function infer_benchmark_MCCs(no_trees::Int64, lineage_number::Int64; debug=false, consistant=true, remove=false, order="resolution")
+function infer_benchmark_MCCs(no_trees::Int64, lineage_number::Int64; debug=false, consistent=true, remove=false, order="resolution")
     trees, arg = get_trees(no_trees, lineage_number, remove=remove);
-    return infer_benchmark_MCCs!([trees...], debug=debug, consistant=consistant, order=order)
+    return infer_benchmark_MCCs!([trees...], debug=debug, consistent=consistent, order=order)
 end
 
 """

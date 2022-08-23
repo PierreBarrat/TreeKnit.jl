@@ -29,7 +29,7 @@ end
 @testset "fix_consist_sets! always makes MCCs consistent for 3 trees" begin
     for i in range(1,10)
         trees, arg = TreeKnit.get_trees(3, 100, remove=true, c=0.2 + 0.6*rand(), ρ = 0.1);
-        iMCCs = TreeKnit.get_infered_MCC_pairs!(trees, consistant = true, force=true, constraint_cost=4.)
+        iMCCs = TreeKnit.get_infered_MCC_pairs!(trees, consistent = true, force_consist=true, constraint_cost=4.)
         @test sum(TreeKnit.consistency_rate(iMCCs, trees)) == 0
     end
 end
@@ -37,7 +37,7 @@ end
 @testset "fix_consist_sets! always makes MCCs consistent for 4 trees" begin
     for i in range(1,10)
         trees, arg = TreeKnit.get_trees(4, 100, remove=true, c=0.2 + 0.6*rand(), ρ = 0.1);
-        iMCCs = TreeKnit.get_infered_MCC_pairs!(trees, consistant = true, force=true, constraint_cost=4.)
+        iMCCs = TreeKnit.get_infered_MCC_pairs!(trees, consistent = true, force_consist=true, constraint_cost=4.)
         @test sum(TreeKnit.consistency_rate(iMCCs, trees)) == 0
     end
 end

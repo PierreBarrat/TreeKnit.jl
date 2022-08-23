@@ -11,6 +11,9 @@ using Setfield
 # Personal modules
 using TreeTools
 
+include("objects.jl")
+export OptArgs
+
 include("mcc_base.jl")
 export naive_mccs
 
@@ -33,9 +36,6 @@ export resolve!
 
 include("SplitGraph/SplitGraph.jl")
 using TreeKnit.SplitGraph
-
-include("objects.jl")
-export OptArgs
 
 include("main.jl")
 export computeMCCs, inferARG

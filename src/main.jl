@@ -59,13 +59,15 @@ end
 		runopt(oa::OptArgs, trees::Dict{<:Any,<:Tree})
 
 Run optimization at constant γ. See `?Optargs` for arguments. In the first form, keyword
-  arguments are given to `OptArgs`. If `oa.constraint` (in the form of an MCC where nodes that should 
+  arguments are given to `OptArgs`. If `constraint` (in the form of an MCC where nodes that should 
   be together are in the same cluster) is given this will be used as `shared_branch_constraint` while performing 
   simulated annealing, preventing nodes that should be in the same MCC from being split from each other.
 """
-runopt(t1::Tree, t2::Tree; kwargs...) = runopt(OptArgs(;kwargs...), t1, t2)
+runopt(t1::Tree, t2::Tree, constraint::Union{Nothing, Vector{Vector{String}}}; kwargs...) = runopt(OptArgs(;kwargs...), t1, t2, constraint)
+runopt(t1::Tree, t2::Tree; kwargs...) = runopt(OptArgs(;kwargs...), t1, t2, nothing)
+runopt(oa::OptArgs, t1::Tree, t2::Tree; output = :mccs) = runopt(oa, t1, t2, nothing; output=output)
 
-function runopt(oa::OptArgs, t1::Tree, t2::Tree; output = :mccs)
+function runopt(oa::OptArgs, t1::Tree, t2::Tree, constraint::Union{Nothing, Vector{Vector{String}}}; output = :mccs)
 	# Copying input trees for optimization
 	ot1 = copy(convert(Tree{TreeTools.MiscData}, t1))
 	ot2 = copy(convert(Tree{TreeTools.MiscData}, t2))
@@ -73,8 +75,8 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree; output = :mccs)
 	# Resolve
 	oa.resolve && resolve!(ot1, ot2)
 
-	format_constraint!(oa.constraint, t1)
-	mark_shared_branches!(oa.constraint, ot1, ot2)
+	format_constraint!(constraint, t1)
+	mark_shared_branches!(constraint, ot1, ot2)
 
 	iMCCs = naive_mccs(ot1, ot2)
 	oa.verbose && @info "Initial state: $(length(iMCCs)) naive MCCs"

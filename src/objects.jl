@@ -38,8 +38,12 @@ Storing parameters for `SplitGraph.runopt` function.
 	Trange = get_cooling_schedule(Tmin, Tmax, nT, type=cooling_schedule)
 	sa_rep::Int64 = 1
 	# Cost of breaking a constraint (nodes that should be connected)
-	constraint_cost::Float64 = γ
+	consistent::Bool = true ##if constraints should be added to enforce consistency
+	constraint_cost::Float64 = 2*γ
 	constraint::Union{Nothing, Vector{Vector{String}}} = nothing
+	rounds::Int=2
+	force_consist::Bool=false
+	parallel::Bool = false
 	# Verbosity
 	verbose::Bool = false
 	vv::Bool = false

@@ -17,24 +17,28 @@ treeknit
 - `--naive`: Naive inference (overrides `-g`).
 - `--no-likelihood`: Do not use branch length likelihood test to sort between different MCCs
 - `--no-resolve`: Do not attempt to resolve trees before inferring MCCs.
+- `--force-consistent`: Force output MCCs to be consistent with each other by potentially further splitting MCCs
+- `--parallel`: Run sequential multiTK with parallelization (only for 4 or more trees) 
 - `-v, --verbose`: verbosity
 """
 @main function treeknit(
+	nwk_file1::AbstractString, nwk_file2::AbstractString,
 	nwk_files::AbstractString...;
 	# options
 	outdir::AbstractString = "treeknit_results",
 	gamma::Float64 = 2.,
-	seq_lengths::AbstractString = join([string(i) for i in repeat([1], length(nwk_files))], " "),
+	seq_lengths::AbstractString = join([string(i) for i in repeat([1], 2+ length(nwk_files))], " "),
 	n_mcmc_it::Int = 25,
 	# flags
 	naive::Bool = false,
 	no_likelihood::Bool = false,
 	no_resolve::Bool = false,
 	verbose::Bool = false,
+	force_consistent::Bool = false,
+	parallel::Bool = false,
 )
 
-	@assert length(nwk_files) >=2 "TreeKnit needs at least 2 trees"
-	#@assert no_trees== length(nwk_files) "Vector of trees is not of expected size"
+	nwk_files = [nwk_file1, nwk_file2, nwk_files...]
 	println("Treeknit: ")
 	println("Input trees:")
 	println(join(["$nwk \t" for nwk in nwk_files]))
@@ -81,6 +85,11 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 		error(err)
 	end
 
+	##only parallelize if there are 4 or more trees
+	if length(trees)<=3
+		parallel = false
+	end
+
 	# Setting up OptArgs
 	oa = OptArgs(;
 		γ = gamma,
@@ -89,13 +98,15 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 		nMCMC = n_mcmc_it,
 		seq_lengths = sl,
 		verbose=true,
+		force_consist=force_consistent,
+		parallel=parallel,
 	)
 
 	#
 	@info "Parameters: $oa"
 
 	@info "Inferring MCCs...\n"
-	out = @timed get_infered_MCC_pairs!(trees; verbose=oa.verbose)
+	out = @timed get_infered_MCC_pairs!(trees, oa)
 	MCCs = out[1]
 	l = [length(m) for (key,m) in MCCs.mccs]
 	@info "Found $l MCCs (runtime $(out[2]))\n"
@@ -104,21 +115,12 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 	if length(trees) ==2
 		t1 = trees[1]
 		t2 = trees[2]
-		@info "Resolving trees based on found MCCs..."
-		rS = resolve!(t1, t2, get(MCCs, t1.label, t2.label))
-		TreeTools.ladderize!(t1)
-		sort_polytomies!(t1, t2, get(MCCs, t1.label, t2.label))
-		@info "Resolved $(length(rS[1])) splits in $(nwk_files[1]) and $(length(rS[1])) splits in $(nwk_files[2])\n"
-
-		verbose && println()
-
 		@info "Building ARG from trees and MCCs..."
 		arg, rlm, lm1, lm2 = SRG.arg_from_trees(t1, t2, get(MCCs, t1.label, t2.label))
 		@info "Found $(length(arg.hybrids)) reassortments in the ARG.\n"
 		trees[1] = t1
 		trees[2] = t2
 	else
-		##add resolution info here
 		##write the ARG for 2+ trees
 	end
 
@@ -139,6 +141,7 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 
 	println()
 end
+
 
 function write_rlm(filename, rlm)
 	open(filename, "w") do io
@@ -182,6 +185,4 @@ function get_tree_names(nwk_files)
 	@assert unique(fn) == fn "Input trees must be identifiable by file name"
 	return fn
 end
-
-
 

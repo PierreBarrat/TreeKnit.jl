@@ -39,7 +39,7 @@ end
     t2 = node2tree(TreeTools.parse_newick(nwk2, node_data_type=TreeTools.MiscData), label= "b")
     t3 = node2tree(TreeTools.parse_newick(nwk3, node_data_type=TreeTools.MiscData), label= "c")
     input_trees = [copy(t1), copy(t2), copy(t3)]
-    MCC_dict = TreeKnit.infer_benchmark_MCCs!(input_trees, consistant=true)
+    MCC_dict = TreeKnit.infer_benchmark_MCCs!(input_trees, consistent=true)
     c = TreeKnit.consistency_rate(MCC_dict, input_trees)
     cfull = TreeKnit.consistency_rate(TreeKnit.iter_pairs(MCC_dict)[2]..., input_trees)
     @test c == 0
@@ -98,7 +98,7 @@ end
         label!(trees[1], "a")
         label!(trees[2], "b")
         label!(trees[3], "c")
-        iMCCs = TreeKnit.get_infered_MCC_pairs!(trees, consistant = true, order="input", rev=false, constraint_cost=4.)
+        iMCCs = TreeKnit.get_infered_MCC_pairs!(trees, consistent = true, constraint_cost=4.)
         @test TreeKnit.is_degenerate(iMCCs) == (TreeKnit.consistency_rate(iMCCs, trees)!=0.0)
         repeat += 1
     end
@@ -111,7 +111,7 @@ end
         label!(trees[1], "a")
         label!(trees[2], "b")
         label!(trees[3], "c")
-        iMCCs = TreeKnit.get_infered_MCC_pairs!(trees, consistant = true, order="input", rev=false, constraint_cost=4., force=true)
+        iMCCs = TreeKnit.get_infered_MCC_pairs!(trees, consistent = true, constraint_cost=4., force_consist=true)
         @test TreeKnit.is_degenerate(iMCCs) == (TreeKnit.consistency_rate(iMCCs, trees)!=0.0)
         repeat += 1
     end

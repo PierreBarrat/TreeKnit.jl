@@ -18,19 +18,19 @@ solutions = [   [["A"], ["B", "C"]],
 
 @testset "benchmark with input trees" begin
     input_trees = [copy(t1), copy(t2), copy(t3)]
-    MCC_dict = TreeKnit.infer_benchmark_MCCs!(input_trees, consistant=false)
+    MCC_dict = TreeKnit.infer_benchmark_MCCs!(input_trees, consistent=false)
     @test get(MCC_dict,("a", "c")) == [["A", "B", "C"]]
     @test in(get(MCC_dict, ("a", "b")), solutions)
 	@test SplitList(t1) == SplitList(input_trees[3])
 
     input_trees = [copy(t2), copy(t1), copy(t3)]
-    MCC_dict = TreeKnit.infer_benchmark_MCCs!(input_trees, consistant=false)
+    MCC_dict = TreeKnit.infer_benchmark_MCCs!(input_trees, consistent=false)
     @test get(MCC_dict, ("b", "c")) == [["A", "B", "C"]]
     @test in(get(MCC_dict, ("a", "b")), solutions)
 	@test SplitList(t2) == SplitList(input_trees[3])
 
     input_trees = [copy(t3), copy(t1), copy(t2)]
-    MCC_dict = TreeKnit.infer_benchmark_MCCs!(input_trees, order="input", consistant=false)
+    MCC_dict = TreeKnit.infer_benchmark_MCCs!(input_trees, consistent=false)
     @test get(MCC_dict,("a", "c")) == [["A", "B", "C"]]
     @test in(get(MCC_dict,("a", "b")), solutions)
 	@test SplitList(t1) == SplitList(input_trees[1])
@@ -51,7 +51,7 @@ end
 
     input_trees = [copy(t1), copy(t2), copy(t3)]
     for constraint in solutions
-        mccs = TreeKnit.runopt(TreeKnit.OptArgs(;constraint=constraint), input_trees[1], input_trees[2]; output = :mccs)
+        mccs = TreeKnit.runopt(TreeKnit.OptArgs(), input_trees[1], input_trees[2], constraint; output = :mccs)
         @test mccs == constraint
     end
 
@@ -59,18 +59,18 @@ end
 
 @testset "consistent benchmark" begin
     input_trees = [copy(t1), copy(t2), copy(t3)]
-    MCC_dict = TreeKnit.infer_benchmark_MCCs!(input_trees, consistant=true)
+    MCC_dict = TreeKnit.infer_benchmark_MCCs!(input_trees, consistent=true)
     @test get(MCC_dict,("a", "c")) == [["A", "B", "C"]]
     @test get(MCC_dict, ("a", "b")) == get(MCC_dict, ("b", "c"))
     @test SplitList(t1) == SplitList(input_trees[3])
     @test 0.0 == TreeKnit.consistency_rate(MCC_dict, input_trees)
 
     input_trees = [copy(t2), copy(t1), copy(t3)]
-    MCC_dict = TreeKnit.infer_benchmark_MCCs!(input_trees, consistant=true)
+    MCC_dict = TreeKnit.infer_benchmark_MCCs!(input_trees, consistent=true)
     @test 0.0 == TreeKnit.consistency_rate(MCC_dict, input_trees)
 
     input_trees = [copy(t3), copy(t1), copy(t2)]
-    MCC_dict = TreeKnit.infer_benchmark_MCCs!(input_trees, order="input", consistant=true)
+    MCC_dict = TreeKnit.infer_benchmark_MCCs!(input_trees, consistent=true)
     @test 0.0 == TreeKnit.consistency_rate(MCC_dict, input_trees)
 end
 
