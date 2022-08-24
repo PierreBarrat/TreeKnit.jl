@@ -1,12 +1,12 @@
 
 
 function draw_ARG(trees:: Vector{Tree{TreeTools.MiscData}}, MCCs_dict::MCC_set;
-    label_nodes = true, draw_connections = false) 
+    label_nodes = true, draw_connections = false, save=false, filename="arg_plot.png") 
     
     first_tree = trees[1]
     tree_list = trees[2:end]
     rec_sites_dict = prepare_trees!(first_tree, tree_list, MCCs_dict)
-    draw_ARG(first_tree, tree_list, rec_sites_dict; label_nodes=label_nodes, draw_connections = draw_connections)
+    draw_ARG(first_tree, tree_list, rec_sites_dict; label_nodes=label_nodes, draw_connections = draw_connections, save=save, filename=filename)
 end
 
 function prepare_trees!(first_tree::Tree{TreeTools.MiscData}, tree_list::Vector{Tree{TreeTools.MiscData}}, 
@@ -25,16 +25,27 @@ end
 function draw_ARG(
     first_tree::Tree{TreeTools.MiscData}, tree_list::Union{Nothing, Vector{Tree{TreeTools.MiscData}}},
     recombination_sites::Union{Nothing, Vector{Dict{Int, Tuple{TreeNode, TreeNode}}}}; label_nodes = true,
-    draw_connections = false)
+    draw_connections = false, save=false, filename="arg_plot.png", font_size=10)
 
     @assert isnothing(recombination_sites) && isnothing(tree_list) || !isnothing(recombination_sites) && !isnothing(tree_list)
     if !isnothing(tree_list)
         @assert haskey(first_tree.root.data.dat, "mcc") && all([haskey(tree.root.data.dat, "mcc") for tree in tree_list])
+        axis = true
+        grid = true
+        ticks = true
+        border = true
+        title="ARG Projection"
     else
         tree_list = []
+        axis = nothing
+        grid = nothing
+        ticks = nothing
+        border = :none
+        title=""
         recombination_sites = Dict()
     end
-    gr(size=(1200,1000), xtickfontsize=13, ytickfontsize=13, xguidefontsize=16, yguidefontsize=16, legendfontsize=10, dpi=100, grid=(:y, :gray, :solid, 1, 0.4));
+
+    gr(size=(1200,1000), xtickfontsize=13, ytickfontsize=13, xguidefontsize=16, yguidefontsize=16, legendfontsize=font_size, dpi=100, grid=(:y, :gray, :solid, 1, 0.4));
 
     tree = first_tree
     colors = [:red, :blue, :brown, :green]
@@ -89,7 +100,7 @@ function draw_ARG(
 
     # Add margins around the tree to prevent overlapping the axes
     xmax = maximum(values(x_posns))
-    p = plot(xlims=(-0.05 * xmax, 1.25 * xmax), ylims=(0.2, (maximum(values(y_posns)) + 0.8)), ylabel="taxa", xlabel="branch length", label="", legend = :bottomright, title="Dendrogram of ARG")
+    p = plot(xlims=(-0.05 * xmax, 1.25 * xmax), ylims=(0.2, (maximum(values(y_posns)) + 0.8)), ylabel="taxa", xlabel="branch length", label="", legend = :bottomright, title=title, axis=axis, grid=grid, ticks=ticks, border= border)
 
 
     function get_x_positions_recombination(recombination_sites)
@@ -125,7 +136,7 @@ function draw_ARG(
             plot!([coord[1]],[coord[2]], markershape=:x,
                 markercolor=colors[pos], markersize=5, markerstrokewidth = 3, label="")
             if label_nodes
-                annotate!((coord[1],coord[2],text(coord[3], 10, :bottom, :left, colors[pos])))
+                annotate!((coord[1],coord[2],text(coord[3], font_size, :bottom, :left, colors[pos])))
             end
         end
     end
@@ -174,7 +185,7 @@ function draw_ARG(
             for mcc in keys(recombination_sites_coord_list[pos])
                 plot!([recom_labels[mcc][1]], [recom_labels[mcc][2]], markershape=:x,
                 markercolor=colors[pos], markersize=5, markerstrokewidth = 3, label="")
-                annotate!((recom_labels[mcc][1],recom_labels[mcc][2],text(recom_labels[mcc][3], 10, :bottom, :left, colors[pos])))
+                annotate!((recom_labels[mcc][1],recom_labels[mcc][2],text(recom_labels[mcc][3], font_size, :bottom, :left, colors[pos])))
                 plot!([recom_labels[mcc][1], recombination_sites_coord_list[pos][mcc][1]], [recom_labels[mcc][2], recombination_sites_coord_list[pos][mcc][2]], color=colors[pos], linestyle=:dash, label="")
                 
             end
@@ -227,7 +238,7 @@ function draw_ARG(
         if !recombination
             label = string(clade.label)
             if !isnothing(label) && label_nodes && isleaf(clade)
-                annotate!((x_here,y_here,text(label, 10, :center, :left, :black)))
+                annotate!((x_here,y_here,text(label, font_size, :center, :left, :black)))
             end
         end
         if !isempty(clade.child)
@@ -294,7 +305,11 @@ function draw_ARG(
             draw_clade(recombination_sites[pos][mcc][1], x_recom[pos][mcc], 2, x_posns, y_posns, recombination=true, pos=pos)
         end
     end
+    
+    if save== true
+        savefig(p, filename)
+    end
+
     return p
-    savefig("arg_plot.png")
 
 end
