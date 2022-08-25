@@ -7,8 +7,9 @@ Node of an Ancestral Reassortment Graph representing two genes / segments.
 
 ## Fields:
 ```
-	anc :: Vector{Union{Nothing, AbstractARGNode}} = [nothing, nothing] # Always of length 2
-	color :: Vector{Bool} = [false, false]
+	no_trees :: Int = 2
+	anc :: Vector{Union{Nothing, AbstractARGNode}} = fill(nothing, no_trees)# Always of length 2
+	color :: Vector{Bool} = fill(false, no_trees)
 	tau :: Vector{Union{Missing, Float64}} = [missing, missing]
 	children :: Vector{ARGNode} = ARGNode[]
 	label :: String = make_random_label()
@@ -16,8 +17,9 @@ Node of an Ancestral Reassortment Graph representing two genes / segments.
 ```
 """
 @with_kw_noshow mutable struct ARGNode <: AbstractARGNode
-	anc :: Vector{Union{Nothing, AbstractARGNode}} = [nothing, nothing] # Always of length 2
-	color :: Vector{Bool} = [false, false]
+	no_trees :: Int = 2
+	anc :: Vector{Union{Nothing, AbstractARGNode}} = fill(nothing, no_trees)# Always of length 2
+	color :: Vector{Bool} = fill(false, no_trees)
 	tau :: Vector{Union{Missing, Float64}} = [missing, missing]
 	children :: Vector{ARGNode} = ARGNode[]
 	label :: String = make_random_label()

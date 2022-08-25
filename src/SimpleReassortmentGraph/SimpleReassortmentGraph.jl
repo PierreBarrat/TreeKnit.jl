@@ -17,5 +17,6 @@ include("prunegraft.jl")
 include("construct.jl")
 include("trees.jl")
 include("IO.jl")
+include("construct_multi.jl")
 
 end # module
