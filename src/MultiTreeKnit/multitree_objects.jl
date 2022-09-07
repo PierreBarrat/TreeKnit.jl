@@ -70,3 +70,8 @@ function Base.print(M::MCC_set)
         println(value)
     end
 end
+
+function Base.copy(M::MCC_set)
+    copy_M = MCC_set(M.no_trees, deepcopy(M.order_trees); mccs =deepcopy(M.mccs))
+    return copy_M
+end

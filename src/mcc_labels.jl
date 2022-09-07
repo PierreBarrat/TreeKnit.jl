@@ -366,14 +366,14 @@ function fix_consist!(MCCs, trees; merge=true, split=true, i=nothing)
         MCCsi_dict = get_MCC_as_dict(mcc_map, 2)
         MCCs_new = Vector{String}[]
         for (num, mcc) in MCCsi_dict
-            append!(MCCs_new, [TreeKnit.sort(mcc, lt=TreeKnit.clt)])
+            append!(MCCs_new, [sort(mcc)])
         end
         MCCs[i] = TreeKnit.sort(MCCs_new, lt=TreeKnit.clt)
     end
     if next_mcc_3 > length(MCCs[3]) + 1
         MCCs_new = Vector{String}[]
         for (num, mcc) in MCCs3_dict
-            append!(MCCs_new, [TreeKnit.sort(mcc, lt=TreeKnit.clt)])
+            append!(MCCs_new, [sort(mcc)])
         end
         MCCs[3] = TreeKnit.sort(MCCs_new, lt=TreeKnit.clt)
     end

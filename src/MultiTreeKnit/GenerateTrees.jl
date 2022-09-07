@@ -25,11 +25,11 @@ c - Parameter to desribe how resolved trees are
 ρ - Reassortment rate scaled to coalescence rate
 
 """
-function get_trees(no_trees, no_lineages; remove=false, debug=false, c=0.75, ρ = 0.05)
+function get_trees(no_trees, no_lineages; remove=false, c=0.75, ρ = 0.05, N = 10_000)
     # Parameters of the ARG simulation
-    N = 10_000 # pop size
+    N = N # pop size
     n = no_lineages # Number of lineages
-    simtype = :kingman
+    simtype = :flu
     r = get_r(ρ, n, N, simtype) # Absolute reassortment rate
 
     # Simulating the ARG
@@ -37,27 +37,33 @@ function get_trees(no_trees, no_lineages; remove=false, debug=false, c=0.75, ρ 
     # The trees for the 2 segments
     trees = ARGTools.trees_from_ARG(arg; node_data = TreeTools.MiscData);
     if remove
-        for i in range(1, no_trees)
-            tree = trees[i]
-            delete_list = String[]
-            for node in internals(tree)
-                if !node.isroot
-                    Pr = exp(-node.tau/(c*N))
-                    if rand() <= Pr
-                        push!(delete_list, node.label)
-                    end
-                end
-            end
-            for node_label in delete_list
-                delete_node!(trees[i], node_label, ptau=true)
-                if debug
-                    println("removing node: "* node_label)
+        trees = remove_branches(trees; c=c, N = N)
+    else
+        trees = [convert(TreeTools.Tree{TreeTools.MiscData}, t) for t in trees]
+    end
+    return trees, arg
+end
+
+function remove_branches(input_trees; c=0.75, N = 10_000)
+    trees = [copy(t) for t in input_trees]
+    no_trees = length(trees)
+    for i in range(1, no_trees)
+        tree = trees[i]
+        delete_list = String[]
+        for node in internals(tree)
+            if !node.isroot
+                Pr = exp(-node.tau/(c*N))
+                if rand() <= Pr
+                    push!(delete_list, node.label)
                 end
             end
         end
+        for node_label in delete_list
+            delete_node!(trees[i], node_label, ptau=true)
+        end
     end
     trees = [convert(TreeTools.Tree{TreeTools.MiscData}, t) for t in trees]
-    return trees, arg
+    return trees
 end
 
 function get_real_MCCs(no_trees, arg)
