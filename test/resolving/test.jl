@@ -75,6 +75,26 @@ println(t)
 	@test TreeTools.iscompatible(Smapped[2], S)
 end
 
+@testset "strict `map_split_to_tree` functions" begin
+	MCCs = TreeKnit.sort([["A", "B", "C"], ["D", "E"]], lt=TreeKnit.clt)
+	nwk1 = "((A,B,C,D),E)"
+	t1 = node2tree(TreeTools.parse_newick(nwk1))
+	nwk2 = "(((A,B),C),(D,E))"
+	t2 = node2tree(TreeTools.parse_newick(nwk2))
+	t1 = convert(Tree{TreeTools.MiscData}, t1)
+	t2 = convert(Tree{TreeTools.MiscData}, t2)
+	MCC_splits_strict = TreeKnit.map_splits_to_tree(TreeKnit.splits_in_mccs(MCCs, t2), t1; strict=true, MCCs=MCCs)
+
+	MCCs = TreeKnit.sort([["A", "B", "C"], ["D"], ["E"]], lt=TreeKnit.clt)
+	nwk1 = "((A,B,C,D),E)"
+	t1 = node2tree(TreeTools.parse_newick(nwk1))
+	nwk2 = "(((A,B),C),(D,E))"
+	t2 = node2tree(TreeTools.parse_newick(nwk2))
+	t1 = convert(Tree{TreeTools.MiscData}, t1)
+	t2 = convert(Tree{TreeTools.MiscData}, t2)
+	MCC_splits_strict = TreeKnit.map_splits_to_tree(TreeKnit.splits_in_mccs(MCCs, t2), t1; strict=true, MCCs=MCCs)
+end
+
 
 
 # println("##### Resolve using MCC inference #####")

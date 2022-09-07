@@ -71,7 +71,7 @@ function new_splits(tref::Tree, MCCs, t::Tree)
     # Splits in `tref`
     S_ref = SplitList(tref)
     # Splits corresponding to each mcc in tree `t`
-    MCC_splits = map_splits_to_tree(splits_in_mccs(MCCs, t), tref)
+    MCC_splits = map_splits_to_tree(splits_in_mccs(MCCs, t), tref; MCCs)
     # Take the new ones only
     _new_splits!(MCC_splits, S_ref)
     # Map them onto leaves of `tref`
@@ -93,7 +93,7 @@ end
 Call `map_splits_to_tree(S::SplitList, t::Tree)` for all elements of `S`.
 Return a single `SplitList`.
 """
-function map_splits_to_tree(S_array::Array{SplitList{T},1}, t::Tree) where T
+function map_splits_to_tree(S_array::Array{SplitList{T},1}, t::Tree; strict=false, MCCs=nothing) where T
        out = SplitList(
                sort(collect(keys(t.lleaves))),
                Array{Split,1}(undef,0),
@@ -101,7 +101,7 @@ function map_splits_to_tree(S_array::Array{SplitList{T},1}, t::Tree) where T
        )
        treesplits = SplitList(t)
        for S in S_array
-               mS = map_splits_to_tree(S, t, treesplits)
+               mS = map_splits_to_tree(S, t, treesplits; strict=strict, MCCs=MCCs)
                for s in mS
                        push!(out.splits, s)
                end
@@ -119,11 +119,11 @@ Map splits `S` from another tree to `t`:
 
 Useful for resolving a tree with splits of another.
 """
-function map_splits_to_tree(S::SplitList, t::Tree)
+function map_splits_to_tree(S::SplitList, t::Tree; strict=false, MCCs=nothing)
 	treesplits = SplitList(t)
-	return map_splits_to_tree(S, t, treesplits)
+	return map_splits_to_tree(S, t, treesplits; strict=strict, MCCs=MCCs)
 end
-function map_splits_to_tree(S::SplitList, tree::Tree, treesplits::SplitList)
+function map_splits_to_tree(S::SplitList, tree::Tree, treesplits::SplitList; strict=false, MCCs=nothing)
 	mS = SplitList(
 		S.leaves,
 		Array{Split,1}(undef,0),
@@ -131,7 +131,7 @@ function map_splits_to_tree(S::SplitList, tree::Tree, treesplits::SplitList)
 		Dict{eltype(S.leaves), Split}()
 	)
 	for i in 1:length(S)
-		ms = _map_split_to_tree(S, i, tree, treesplits)
+		ms = _map_split_to_tree(S, i, tree, treesplits; strict=strict, MCCs=MCCs)
 		push!(mS.splits, ms)
 	end
 	return mS
@@ -141,10 +141,20 @@ end
 #=
 Map split `S[i]` to `t`.
 =#
-function _map_split_to_tree(S::SplitList, i::Integer, t::Tree, treesplits::SplitList)
-	# Not lca in case lca(t, leaves(S,i)) contains extra leaves not in S[i]
-	roots = TreeTools.blca([t.lleaves[x] for x in leaves(S,i)]...)
+function _map_split_to_tree(S::SplitList, i::Integer, t::Tree, treesplits::SplitList; strict=false, MCCs=nothing)
+
 	ms = Split(0)
+    if strict == true && !isnothing(MCCs)
+        sisters = TreeTools.lca([t.lleaves[x] for x in leaves(S,i)]...).child
+        mcc_map = leaf_mcc_map(MCCs)
+        assign_mccs!(mcc_map, t) 
+        if any([(isnothing(r) || r.data.dat["mcc"]> i) && (r.isroot || r.anc.data.dat["mcc"]!=r.data.dat["mcc"]) for r in sisters])
+            return ms
+        end
+    end
+    
+    # Not lca in case lca(t, leaves(S,i)) contains extra leaves not in S[i]
+    roots = TreeTools.blca([t.lleaves[x] for x in leaves(S,i)]...)
 	for r in roots
 		if r.isleaf # `treesplits.splitmap` (probably) does not contain leaf-splits
 			TreeTools.joinsplits!(ms, Split([findfirst(==(r.label), S.leaves)]))
