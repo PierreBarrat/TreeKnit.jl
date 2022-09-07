@@ -116,7 +116,7 @@ function get_infered_MCC_pairs!(trees::Vector{Tree{T}}, oa::OptArgs) where T
 
     if oa.force_consist
         oa.verbose && @info "Fix consistency"
-        pair_MCCs = fix_consist_sets!(pair_MCCs, trees)
+        pair_MCCs = fix_consist_sets!(pair_MCCs, trees; topo=oa.force_topo_consist)
     end
     return pair_MCCs
 end
