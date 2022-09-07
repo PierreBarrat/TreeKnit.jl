@@ -55,6 +55,28 @@ mccs = read_mccs("$(dirname(pathof(TreeKnit)))/..//test/resolving/mccs34.dat")
 	@test rS[2] == [["E", "F", "G"]]
 end
 
+##### map_split_to_tree functions
+
+nwk1 = "(((A1,A2),(B1,B2),(C1,C2)),D,E)"
+t = node2tree(TreeTools.parse_newick(nwk1)) #
+S = SplitList(t)
+
+# Let's pretend we found (A1,A2,B1,B2) and (C1,C2,D) to be MCCs
+Smcc = SplitList(S.leaves)
+append!(Smcc.splits, [Split([1,2,3,4]), Split([5,6,7])])
+
+println(t)
+
+@testset "`map_split_to_tree` functions" begin
+	Smapped = TreeKnit.map_splits_to_tree(Smcc, t)
+	@test leaves(Smapped, 1) == ["A1", "A2", "B1", "B2"]
+	@test leaves(Smapped, 2) == ["A1", "A2", "B1", "B2", "C1", "C2", "D"]
+	@test TreeTools.iscompatible(Smapped[1], S)
+	@test TreeTools.iscompatible(Smapped[2], S)
+end
+
+
+
 # println("##### Resolve using MCC inference #####")
 
 # # ╔═╡ 93ccb338-8e0d-11eb-0f36-49bebaf5570b

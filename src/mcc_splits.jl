@@ -71,11 +71,11 @@ function new_splits(tref::Tree, MCCs, t::Tree)
     # Splits in `tref`
     S_ref = SplitList(tref)
     # Splits corresponding to each mcc in tree `t`
-    MCC_splits = TreeTools.map_splits_to_tree(splits_in_mccs(MCCs, t), tref)
+    MCC_splits = map_splits_to_tree(splits_in_mccs(MCCs, t), tref)
     # Take the new ones only
     _new_splits!(MCC_splits, S_ref)
     # Map them onto leaves of `tref`
-    return unique(TreeTools.map_splits_to_tree(MCC_splits, tref), usemask=false)
+    return unique(map_splits_to_tree(MCC_splits, tref), usemask=false)
 end
 
 function _new_splits!(MCC_splits::SplitList, tree_splits::SplitList)
@@ -86,6 +86,74 @@ function _new_splits!(MCC_splits::SplitList, tree_splits::SplitList)
     deleteat!(MCC_splits.splits, idx)
 end
 
+
+"""
+       map_splits_to_tree(S_array::Array{<:SplitList,1}, t::Tree)
+
+Call `map_splits_to_tree(S::SplitList, t::Tree)` for all elements of `S`.
+Return a single `SplitList`.
+"""
+function map_splits_to_tree(S_array::Array{SplitList{T},1}, t::Tree) where T
+       out = SplitList(
+               sort(collect(keys(t.lleaves))),
+               Array{Split,1}(undef,0),
+               ones(Bool, length(t.lleaves)), Dict{T, Split}(),
+       )
+       treesplits = SplitList(t)
+       for S in S_array
+               mS = map_splits_to_tree(S, t, treesplits)
+               for s in mS
+                       push!(out.splits, s)
+               end
+       end
+       return out
+end
+
+"""
+	map_splits_to_tree(S::SplitList, t::Tree)
+
+Map splits `S` from another tree to `t`:
+- restrain each split of `S` to `S.mask`
+- find the corresponding internal node in `t`
+- compute the split in `t` defined by this internal node.
+
+Useful for resolving a tree with splits of another.
+"""
+function map_splits_to_tree(S::SplitList, t::Tree)
+	treesplits = SplitList(t)
+	return map_splits_to_tree(S, t, treesplits)
+end
+function map_splits_to_tree(S::SplitList, tree::Tree, treesplits::SplitList)
+	mS = SplitList(
+		S.leaves,
+		Array{Split,1}(undef,0),
+		ones(Bool, length(treesplits.leaves)),
+		Dict{eltype(S.leaves), Split}()
+	)
+	for i in 1:length(S)
+		ms = _map_split_to_tree(S, i, tree, treesplits)
+		push!(mS.splits, ms)
+	end
+	return mS
+end
+
+
+#=
+Map split `S[i]` to `t`.
+=#
+function _map_split_to_tree(S::SplitList, i::Integer, t::Tree, treesplits::SplitList)
+	# Not lca in case lca(t, leaves(S,i)) contains extra leaves not in S[i]
+	roots = TreeTools.blca([t.lleaves[x] for x in leaves(S,i)]...)
+	ms = Split(0)
+	for r in roots
+		if r.isleaf # `treesplits.splitmap` (probably) does not contain leaf-splits
+			TreeTools.joinsplits!(ms, Split([findfirst(==(r.label), S.leaves)]))
+		else
+			TreeTools.joinsplits!(ms, treesplits.splitmap[r.label])
+		end
+	end
+	return ms
+end
 
 #=
 To move to `artificialdata.jl`?
