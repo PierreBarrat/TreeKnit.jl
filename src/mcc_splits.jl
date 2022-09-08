@@ -144,17 +144,20 @@ Map split `S[i]` to `t`.
 function _map_split_to_tree(S::SplitList, i::Integer, t::Tree, treesplits::SplitList; strict=false, MCCs=nothing)
 
 	ms = Split(0)
+    # Not lca in case lca(t, leaves(S,i)) contains extra leaves not in S[i]
+    roots = TreeTools.blca([t.lleaves[x] for x in leaves(S,i)]...)
     if strict == true && !isnothing(MCCs)
-        sisters = TreeTools.lca([t.lleaves[x] for x in leaves(S,i)]...).child
         mcc_map = leaf_mcc_map(MCCs)
         assign_mccs!(mcc_map, t) 
-        if any([(isnothing(r) || r.data.dat["mcc"]> i) && (r.isroot || r.anc.data.dat["mcc"]!=r.data.dat["mcc"]) for r in sisters])
+        mcc_ = [r.data.dat["mcc"] for r in roots][1]
+        @assert !isnothing(mcc_)
+        children = TreeTools.lca([t.lleaves[x] for x in leaves(S,i)]...).child
+        sisters = children[children .∉ Ref(roots)]
+        if any([(r.isroot || !(r.anc.data.dat["mcc"]==r.data.dat["mcc"] || r.data.dat["mcc"] == mcc_)) for r in sisters])
             return ms
         end
     end
     
-    # Not lca in case lca(t, leaves(S,i)) contains extra leaves not in S[i]
-    roots = TreeTools.blca([t.lleaves[x] for x in leaves(S,i)]...)
 	for r in roots
 		if r.isleaf # `treesplits.splitmap` (probably) does not contain leaf-splits
 			TreeTools.joinsplits!(ms, Split([findfirst(==(r.label), S.leaves)]))
