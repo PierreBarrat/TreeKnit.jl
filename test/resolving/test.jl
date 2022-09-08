@@ -75,24 +75,57 @@ println(t)
 	@test TreeTools.iscompatible(Smapped[2], S)
 end
 
-@testset "strict `map_split_to_tree` functions" begin
-	MCCs = TreeKnit.sort([["A", "B", "C"], ["D", "E"]], lt=TreeKnit.clt)
-	nwk1 = "((A,B,C,D),E)"
-	t1 = node2tree(TreeTools.parse_newick(nwk1))
-	nwk2 = "(((A,B),C),(D,E))"
-	t2 = node2tree(TreeTools.parse_newick(nwk2))
-	t1 = convert(Tree{TreeTools.MiscData}, t1)
-	t2 = convert(Tree{TreeTools.MiscData}, t2)
-	MCC_splits_strict = TreeKnit.map_splits_to_tree(TreeKnit.splits_in_mccs(MCCs, t2), t1; strict=true, MCCs=MCCs)
 
+nwk1 = "((A,B,C,D),E)"
+nwk2 = "(((A,B),C),(D,E))"
+input_t1 = node2tree(TreeTools.parse_newick(nwk1; node_data_type=TreeTools.MiscData))
+input_t2 = node2tree(TreeTools.parse_newick(nwk2; node_data_type=TreeTools.MiscData))
+
+@testset "strict `map_split_to_tree` functions, Example 1" begin
+	t1 = copy(input_t1)
+	t2 = copy(input_t2)
+	MCCs = TreeKnit.sort([["A", "B", "C"], ["D", "E"]], lt=TreeKnit.clt)
+	new_splits = TreeKnit.new_splits(t1, MCCs, t2; strict=false)
+	new_splits_strict = TreeKnit.new_splits(t1, MCCs, t2; strict=true)
+	@test new_splits_strict ==[["A", "B"], ["A", "B", "C"]]
+	@test new_splits == new_splits_strict
+
+	t1 = copy(input_t1)
+	t2 = copy(input_t2)
 	MCCs = TreeKnit.sort([["A", "B", "C"], ["D"], ["E"]], lt=TreeKnit.clt)
-	nwk1 = "((A,B,C,D),E)"
-	t1 = node2tree(TreeTools.parse_newick(nwk1))
-	nwk2 = "(((A,B),C),(D,E))"
-	t2 = node2tree(TreeTools.parse_newick(nwk2))
-	t1 = convert(Tree{TreeTools.MiscData}, t1)
-	t2 = convert(Tree{TreeTools.MiscData}, t2)
-	MCC_splits_strict = TreeKnit.map_splits_to_tree(TreeKnit.splits_in_mccs(MCCs, t2), t1; strict=true, MCCs=MCCs)
+	new_splits = TreeKnit.new_splits(t1, MCCs, t2; strict=false)
+	new_splits_strict = TreeKnit.new_splits(t1, MCCs, t2; strict=true)
+	@test isempty(new_splits_strict)
+	@test new_splits ==[["A", "B"], ["A", "B", "C"]]
+end
+
+##assume true trees
+true_nwk1 = "((((A,B),(C,D)),E),F)"
+true_nwk2 = "((((A,B),(C,D)),E),F)"
+true_t2 = node2tree(TreeTools.parse_newick(true_nwk2; node_data_type=TreeTools.MiscData))
+MCCs = TreeKnit.sort([["A", "B", "E", "F"], ["C", "D"]], lt=TreeKnit.clt)
+
+@testset "strict `map_split_to_tree` functions, Example 2" begin
+	unresolved_nwk1 = "((((A,B),C,D),E),F)"
+	unresolved_t1 = node2tree(TreeTools.parse_newick(unresolved_nwk1; node_data_type=TreeTools.MiscData))
+	new_splits = TreeKnit.new_splits(unresolved_t1, MCCs, true_t2; strict=false)
+	new_splits_strict = TreeKnit.new_splits(unresolved_t1, MCCs, true_t2; strict=true)
+	@test new_splits_strict ==[["C", "D"]]
+	@test new_splits ==[["C", "D"]]
+
+	unresolved_nwk1 = "(((A,B),C,D,E),F)"
+	unresolved_t1 = node2tree(TreeTools.parse_newick(unresolved_nwk1; node_data_type=TreeTools.MiscData))
+	new_splits = TreeKnit.new_splits(unresolved_t1, MCCs, true_t2; strict=false)
+	new_splits_strict = TreeKnit.new_splits(unresolved_t1, MCCs, true_t2; strict=true)
+	@test new_splits_strict ==[["C", "D"]]
+	@test new_splits ==[["C", "D"], ["A", "B", "E"]]
+
+	unresolved_nwk1 = "((A,B),C,D,E,F)"
+	unresolved_t1 = node2tree(TreeTools.parse_newick(unresolved_nwk1; node_data_type=TreeTools.MiscData))
+	new_splits = TreeKnit.new_splits(unresolved_t1, MCCs, true_t2; strict=false)
+	new_splits_strict = TreeKnit.new_splits(unresolved_t1, MCCs, true_t2; strict=true)
+	@test isempty(new_splits_strict)
+	@test new_splits  ==[["C", "D"], ["A", "B", "E"], ["A", "B", "E", "F"]]
 end
 
 

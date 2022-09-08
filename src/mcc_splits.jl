@@ -53,10 +53,10 @@ Return an array `S` of `SplitList` objects, with `S[i][m]` corresponding to new 
 
 *Note*: Resulting splits are not always unique once constrained to leaves of MCCs!
 """
-function new_splits(MCCs, t1::Tree, t2::Tree)
+function new_splits(MCCs, t1::Tree, t2::Tree; strict=false)
     nS = [
-    	new_splits(t1, MCCs, t2), # Using each tree as a reference in turn
-    	new_splits(t2, MCCs, t1),
+    	new_splits(t1, MCCs, t2; strict=strict), # Using each tree as a reference in turn
+    	new_splits(t2, MCCs, t1; strict=strict),
     ]
     return nS
 end
@@ -67,11 +67,11 @@ end
 What are the splits introduced in `tref` from `t` using consistent clades `MCCs`?
 Return a single `SplitList` object, with unique splits mapped onto the leaves of `tref`.
 """
-function new_splits(tref::Tree, MCCs, t::Tree)
+function new_splits(tref::Tree, MCCs, t::Tree; strict=false)
     # Splits in `tref`
     S_ref = SplitList(tref)
     # Splits corresponding to each mcc in tree `t`
-    MCC_splits = map_splits_to_tree(splits_in_mccs(MCCs, t), tref; MCCs)
+    MCC_splits = map_splits_to_tree(splits_in_mccs(MCCs, t), tref; MCCs=MCCs, strict=strict)
     # Take the new ones only
     _new_splits!(MCC_splits, S_ref)
     # Map them onto leaves of `tref`
@@ -81,6 +81,10 @@ end
 function _new_splits!(MCC_splits::SplitList, tree_splits::SplitList)
     idx = Int64[]
     for (i,s) in enumerate(MCC_splits)
+        if isempty(s)
+            push!(idx,i)
+            continue
+        end
         in(s, tree_splits, MCC_splits.mask) && push!(idx,i)
     end
     deleteat!(MCC_splits.splits, idx)
