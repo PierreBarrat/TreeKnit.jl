@@ -153,7 +153,8 @@ function _map_split_to_tree(S::SplitList, i::Integer, t::Tree, treesplits::Split
     if strict == true && !isnothing(MCCs)
         mcc_map = leaf_mcc_map(MCCs)
         assign_mccs!(mcc_map, t) 
-        mcc_ = [r.data.dat["mcc"] for r in roots][1]
+        mcc_ = [r.data.dat["mcc"] for r in roots]
+        mcc_ =  mcc_[mcc_.!=nothing]
         @assert !isnothing(mcc_)
         children = TreeTools.lca([t.lleaves[x] for x in leaves(S,i)]...).child
         sisters = children[children .∉ Ref(roots)]
