@@ -89,7 +89,7 @@ function PRT!(t::Tree)
 end
 
 """
-function assign_mccs!(mcc_map::Dict{String, Int}, t::Vector{Tree{TreeTools.MiscData}}) 
+	assign_mccs!(mcc_map::Dict{String, Int}, t::Vector{Tree{TreeTools.MiscData}})
 
 Assign each node, (leaf and internal) node to the MCC that they are a part, takes dictionary `mcc_map` 
 (leaf => MCC) as input and a tree `t`, if there is a conflict or it is unknown which MCC a node is part of 
@@ -118,5 +118,4 @@ function assign_mccs!(mcc_map::Dict{String, Int}, tree::Tree{TreeTools.MiscData}
     end
 
     PRT!(tree)
-
 end
