@@ -68,7 +68,7 @@ append!(Smcc.splits, [Split([1,2,3,4]), Split([5,6,7])])
 println(t)
 
 @testset "`map_split_to_tree` functions" begin
-	Smapped = TreeKnit.map_splits_to_tree(Smcc, t)
+	Smapped = TreeKnit.map_splits_to_tree!(Smcc, t)
 	@test leaves(Smapped, 1) == ["A1", "A2", "B1", "B2"]
 	@test leaves(Smapped, 2) == ["A1", "A2", "B1", "B2", "C1", "C2", "D"]
 	@test TreeTools.iscompatible(Smapped[1], S)

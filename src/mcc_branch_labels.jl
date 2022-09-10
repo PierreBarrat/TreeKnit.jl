@@ -21,8 +21,8 @@ Assign `mcc`s to branches (i.e. their child node) by a Pre-order traversal start
 """
 function assign_mccs_PR!(n::TreeNode)
     if isroot(n)
-        if !isempty(n.data["child_mccs"]) && length(n.data["child_mccs"])==1
-            n.data["mcc"] = pop!(n.data["child_mccs"])
+        if length(n.data["child_mccs"])==1
+            n.data["mcc"] = collect(n.data["child_mccs"])[1]
         else
             n.data["mcc"] = nothing
         end
@@ -30,7 +30,7 @@ function assign_mccs_PR!(n::TreeNode)
         if n.anc.data["mcc"] in n.data["child_mccs"] # parent MCC part of children -> that is the MCC
             n.data["mcc"] = n.anc.data["mcc"]
         elseif length(n.data["child_mccs"])==1  # child is an MCC
-            n.data["mcc"] = pop!(n.data["child_mccs"])
+            n.data["mcc"] = collect(n.data["child_mccs"])[1]
         else # no unique child MCC and no match with parent -> not part of an MCCs
             n.data["mcc"] = nothing
         end
@@ -50,7 +50,7 @@ function assign_mccs_PR!(t::Tree)
 end
 
 """
-	assign_mccs!(mcc_map::Dict{String, Int}, t::Vector{Tree{TreeTools.MiscData}})
+	assign_mccs!(t::Vector{Tree{TreeTools.MiscData}}, mcc_map::Dict{String, Int})
 
 Assign each node, (leaf and internal) node to the MCC that they are a part, takes dictionary `mcc_map` 
 (leaf => MCC) as input and a tree `t`, if there is a conflict or it is unknown which MCC a node is part of 
@@ -58,7 +58,7 @@ this is labeled as None, this is a distinction to `mcc_map` which will throw an 
 between nodes, meaning that it cannot be called on unresolved trees. 
 
 """
-function assign_mccs!(mcc_map::Dict{String, Int}, tree::Tree{TreeTools.MiscData}) 
+function assign_mccs!(tree::Tree{TreeTools.MiscData}, mcc_map::Dict{String, Int}) 
 	
 	# assign MCCs to leaves
     for leaf in tree.lleaves
