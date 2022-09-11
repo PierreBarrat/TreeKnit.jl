@@ -7,7 +7,7 @@ compute_mcc_pairs!(trees, oa)
 subfunction to compute tree pair MCCs
 
 """
-function compute_mcc_pairs!(trees::Vector{Tree{TreeTools.MiscData}}, oa::OptArgs)
+function compute_mcc_pairs!(trees::Vector{Tree{TreeTools.MiscData}}, oa::OptArgs; strict=false)
     l_t = length(trees)
     pair_MCCs = MCC_set(l_t, [t.label for t in trees])
     for r in 1:oa.rounds
@@ -33,9 +33,11 @@ function compute_mcc_pairs!(trees::Vector{Tree{TreeTools.MiscData}}, oa::OptArgs
                     end
                 end
                 TreeKnit.add!(pair_MCCs, TreeKnit.runopt(TreeKnit.OptArgs(;constraint_cost=oa.constraint_cost), trees[i], trees[j], joint_MCCs; output = :mccs), (i, j))
-                rS = TreeKnit.resolve!(trees[i], trees[j], get(pair_MCCs, (j, i)))
+                rS = TreeKnit.resolve!(trees[i], trees[j], get(pair_MCCs, (j, i)); strict=strict)
                 TreeTools.ladderize!(trees[i])
-                TreeKnit.sort_polytomies!(trees[i], trees[j], get(pair_MCCs, trees[i].label, trees[j].label))
+                if strict == false
+                    TreeKnit.sort_polytomies!(trees[i], trees[j], get(pair_MCCs, trees[i].label, trees[j].label))
+                end
                 oa.verbose && @info "found MCCs for trees: "*trees[j].label*" and "*trees[i].label
             end
         end
@@ -43,7 +45,7 @@ function compute_mcc_pairs!(trees::Vector{Tree{TreeTools.MiscData}}, oa::OptArgs
     return pair_MCCs
 end
 
-function run_step!(oa::OptArgs, tree1::Tree, tree2::Tree, constraints)
+function run_step!(oa::OptArgs, tree1::Tree, tree2::Tree, constraints, strict)
     if !isnothing(constraints)
         constraint = fetch(constraints[1])
         for mcc_con in constraints[2:end]
@@ -53,14 +55,16 @@ function run_step!(oa::OptArgs, tree1::Tree, tree2::Tree, constraints)
         constraint = nothing
     end
     MCC = TreeKnit.runopt(oa, tree1, tree2, constraint; output = :mccs)
-    rS = TreeKnit.resolve!(tree1, tree2, MCC)
+    rS = TreeKnit.resolve!(tree1, tree2, MCC; strict=strict)
     TreeTools.ladderize!(tree1)
-    TreeKnit.sort_polytomies!(tree1, tree2, MCC)
+    if strict==false
+        TreeKnit.sort_polytomies!(tree1, tree2, MCC)
+    end
     oa.verbose && @info "found MCCs for trees: "*trees[j].label*" and "*trees[i].label
     return MCC
 end
 
-function parallelized_compute_mccs!(trees::Vector{Tree{TreeTools.MiscData}}, oa::OptArgs)
+function parallelized_compute_mccs!(trees::Vector{Tree{TreeTools.MiscData}}, oa::OptArgs; strict=false)
     l_t = length(trees)
     parallel_MCCs = Dict()
     for r in 1:oa.rounds
@@ -78,7 +82,7 @@ function parallelized_compute_mccs!(trees::Vector{Tree{TreeTools.MiscData}}, oa:
                         append!(MCC_list, [parallel_MCCs[Set([i, x])], parallel_MCCs[Set([j,x])]])
                     end
                 end
-                parallel_MCCs[Set([i,j])] = Dagger.@spawn run_step!(oa, trees[i], trees[j], MCC_list)
+                parallel_MCCs[Set([i,j])] = Dagger.@spawn run_step!(oa, trees[i], trees[j], MCC_list, strict=strict)
             end
         end
     end
@@ -104,14 +108,14 @@ events cannot be viewed together in `ARGPlot`.
 
 """
 
-function get_infered_MCC_pairs!(trees::Vector{Tree{T}}, oa::OptArgs) where T
+function get_infered_MCC_pairs!(trees::Vector{Tree{T}}, oa::OptArgs; strict=false) where T
 
     trees = [convert(Tree{TreeTools.MiscData}, t) for t in trees]
 
     if oa.parallel == true
-        pair_MCCs = parallelized_compute_mccs!(trees, oa)
+        pair_MCCs = parallelized_compute_mccs!(trees, oa; strict=strict)
     else
-        pair_MCCs = compute_mcc_pairs!(trees, oa)
+        pair_MCCs = compute_mcc_pairs!(trees, oa; strict=strict)
     end
 
     if oa.force_consist
