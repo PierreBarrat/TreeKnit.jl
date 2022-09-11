@@ -128,6 +128,22 @@ MCCs = TreeKnit.sort([["A", "B", "E", "F"], ["C", "D"]], lt=TreeKnit.clt)
 	@test new_splits  ==[["C", "D"], ["A", "B", "E"], ["A", "B", "E", "F"]]
 end
 
+##assume true trees
+true_nwk1 = "(((3,2),(1,7)),(5,(4,6)))"
+true_nwk2 = "((((3,2),(4,6)),(7,1)),5)"
+unresolved_nwk2 = "(((3,2),(4,6)),(7,1),5)"
+true_t1 = node2tree(TreeTools.parse_newick(true_nwk1; node_data_type=TreeTools.MiscData))
+MCCs = TreeKnit.sort([["5"],["4"],["6"],["1", "2", "3", "7"]], lt=TreeKnit.clt)
+
+@testset "strict `map_split_to_tree` functions, sister.mcc==nothing and anc.mcc==nothing" begin
+	unres_t2 = node2tree(TreeTools.parse_newick(unresolved_nwk2; node_data_type=TreeTools.MiscData))
+	new_splits_strict = TreeKnit.new_splits(unres_t2, MCCs, true_t1; strict=true)
+	@test isempty(new_splits_strict) 
+end
+
+
+
+
 
 
 # println("##### Resolve using MCC inference #####")
