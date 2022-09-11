@@ -17,10 +17,10 @@ TreeKnit.draw_ARG(
         nothing
 )
 
-mcc_map = TreeKnit.get_mcc_map([[["A"], ["B", "C"]]])
+mcc_map = TreeKnit.leaf_mcc_map([[["A"], ["B", "C"]]])
 ot1 = copy(t1)
 ot2 = copy(t2)
-TreeKnit.assign_mccs!(TreeKnit.get_mcc_map([["A"], ["B", "C"]]), [ot2])
+TreeKnit.assign_mccs!([ot2], TreeKnit.leaf_mcc_map([["A"], ["B", "C"]]))
 TreeKnit.assign_all_mccs!(ot1, 1, mcc_map)
 rec_dict = TreeKnit.get_recombination_sites(ot1,[ot2], MCC_set(2, ["a", "b"], Dict(Set(["a", "b"]) =>[["A"], ["B", "C"]])))
 

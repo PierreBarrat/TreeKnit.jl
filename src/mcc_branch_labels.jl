@@ -1,12 +1,12 @@
 using Plots
 
 """
-get_mcc_map(MCCs::Vector{Vector{String}}, get_cluster_no =true)
+leaf_mcc_map(MCCs::Vector{Vector{String}}, get_cluster_no =true)
 
 Returns a dictionary of which MCC each leaf is in, if `get_cluster_no = true` returns a list of 
 which MCCs contain more than one leaf. 
 """
-function get_mcc_map(MCCs::Vector{Vector{String}}; get_cluster_no =false)
+function leaf_mcc_map(MCCs::Vector{Vector{String}}; get_cluster_no =false)
     if get_cluster_no
         mcc_map = Dict{String, Int}()
         cluster_no = Int[]
@@ -30,7 +30,7 @@ function get_mcc_map(MCCs::Vector{Vector{String}}; get_cluster_no =false)
     end
 end
 
-function get_mcc_map(MCCs::Vector{Vector{Vector{String}}})
+function leaf_mcc_map(MCCs::Vector{Vector{Vector{String}}})
     sets = [union([Set([m... ]) for m in mcc]...) for mcc in MCCs]
     @assert union(sets...) == sets[1] ## make sure labels are the same in all trees
     mcc_map = Dict{String, Vector{Int}}()
@@ -50,11 +50,11 @@ end
 
 
 """
-PRT!(n::TreeNode)
+assign_mccs_PR!(n::TreeNode)
 
 Assign `mcc`s to branches (i.e. their child node) by a Pre-order traversal starting at the root node `n`.
 """
-function PRT!(n::TreeNode, k::Int)
+function assign_mccs_PR!(n::TreeNode, k::Int)
 	
     if isroot(n)
         n.data["mcc"] = []
@@ -82,21 +82,27 @@ function PRT!(n::TreeNode, k::Int)
 
 	if !isempty(n.child)
 		for c in n.child
-			PRT!(c, k)
+			assign_mccs_PR!(c, k)
 		end
 	end
 
 
 end
 
-function PRT!(t::Tree, k::Int)
-	PRT!(t.root, k)
+function assign_mccs_PR!(t::Tree, k::Int)
+	assign_mccs_PR!(t.root, k)
 end
 
-function PRT!(n::TreeNode)
+
+"""
+assign_mccs_PR!(n::TreeNode)
+
+Assign `mcc`s to branches (i.e. their child node) by a Pre-order traversal starting at the root node `n`.
+"""
+function assign_mccs_PR!(n::TreeNode)
     if isroot(n)
-        if !isempty(n.data["child_mccs"]) && length(n.data["child_mccs"])==1
-            n.data["mcc"] = pop!(n.data["child_mccs"])
+        if length(n.data["child_mccs"])==1
+            n.data["mcc"] = collect(n.data["child_mccs"])[1]
         else
             n.data["mcc"] = nothing
         end
@@ -104,7 +110,7 @@ function PRT!(n::TreeNode)
         if n.anc.data["mcc"] in n.data["child_mccs"] # parent MCC part of children -> that is the MCC
             n.data["mcc"] = n.anc.data["mcc"]
         elseif length(n.data["child_mccs"])==1  # child is an MCC
-            n.data["mcc"] = pop!(n.data["child_mccs"])
+            n.data["mcc"] = collect(n.data["child_mccs"])[1]
         else # no unique child MCC and no match with parent -> not part of an MCCs
             n.data["mcc"] = nothing
         end
@@ -113,15 +119,17 @@ function PRT!(n::TreeNode)
 
     if !isempty(n.child)
         for c in n.child
-            PRT!(c)
+            assign_mccs_PR!(c)
         end
     end
 
 end
 
-function PRT!(t::Tree)
-	PRT!(t.root)
+function assign_mccs_PR!(t::Tree)
+	assign_mccs_PR!(t.root)
 end
+
+
 
 """
 mark_shared_branches!(filter::Union{Nothing, Vector{Vector{String}}}, t::Vararg{Tree})
@@ -140,10 +148,10 @@ function mark_shared_branches!(constraint::Union{Nothing, Vector{Vector{String}}
 		return "here"
 	end
 
-	mcc_map, cluster_no = get_mcc_map(constraint, get_cluster_no =true)
+	mcc_map, cluster_no = leaf_mcc_map(constraint, get_cluster_no =true)
 	# assign MCCs to leaves
     for tree in t
-	    assign_mccs!(mcc_map, tree)
+	    assign_mccs!(tree, mcc_map)
 
 		for n in POT(tree)
 			if n.data["mcc"] in cluster_no 
@@ -162,34 +170,34 @@ function mark_shared_branches!(constraint::Union{Nothing, Vector{Vector{String}}
 	end
 end
 
-function assign_mccs!(mcc_map::Dict{String, Int}, t::Vector{Tree{TreeTools.MiscData}}) 
+function assign_mccs!(tree_list::Vector{Tree{TreeTools.MiscData}}, mcc_map::Dict{String, Int}) 
 	
 	# assign MCCs to leaves
-	for tree in t
-		for leaf in tree.lleaves
-			leaf.second.data["child_mccs"] = Set([mcc_map[leaf.second.label]])
-			leaf.second.data["mcc"] = mcc_map[leaf.second.label]
-		end
-
-		# reconstruct MCCs with Fitch algorithm
-		for n in POT(tree)
-			if !n.isleaf
-				common_mccs = intersect([c.data["child_mccs"] for c in n.child]...)
-				if !isempty(common_mccs)
-					n.data["child_mccs"] = common_mccs
-				else
-					n.data["child_mccs"] = union([c.data["child_mccs"] for c in n.child]...)
-				end
-			end
-		end
-
-		PRT!(tree)
+	for tree in tree_list
+		# assign MCCs to leaves
+        for leaf in tree.lleaves
+            leaf.second.data["child_mccs"] = Set([mcc_map[leaf.second.label]])
+            leaf.second.data["mcc"] = mcc_map[leaf.second.label]
+        end
+    
+        # reconstruct MCCs with Fitch algorithm
+        for n in POT(tree)
+            if !n.isleaf
+                common_mccs = intersect([c.data["child_mccs"] for c in n.child]...)
+                if !isempty(common_mccs)
+                    n.data["child_mccs"] = common_mccs
+                else
+                    n.data["child_mccs"] = union([c.data["child_mccs"] for c in n.child]...)
+                end
+            end
+        end
+        assign_mccs_PR!(tree)
 
 	end
 end
 
-function assign_mccs!(mcc_map::Dict{String, Int}, t::Tree{TreeTools.MiscData}) 
-    return  assign_mccs!(mcc_map, [t]) 
+function assign_mccs!(tree::Tree{TreeTools.MiscData}, mcc_map::Dict{String, Int}) 
+    return  assign_mccs!([tree], mcc_map) 
 end
 
 function assign_all_mccs!(tree::Tree{TreeTools.MiscData}, tree_list::Vector{Tree{TreeTools.MiscData}}, 
@@ -200,7 +208,7 @@ function assign_all_mccs!(tree::Tree{TreeTools.MiscData}, tree_list::Vector{Tree
     for t in tree_list
         append!(MCCs_list, [get(MCCs_dict,(tree.label, t.label))])
     end
-    mcc_map = get_mcc_map(MCCs_list)
+    mcc_map = leaf_mcc_map(MCCs_list)
     
     assign_all_mccs!(tree, len_tree_list, mcc_map)
     
@@ -228,7 +236,7 @@ function assign_all_mccs!(tree::Tree{TreeTools.MiscData}, len_tree_list::Int, mc
         end
     end
 
-	PRT!(tree, len_tree_list)
+	assign_mccs_PR!(tree, len_tree_list)
     
 end
 
@@ -304,7 +312,7 @@ function fix_consist!(MCCs, trees; merge=true, split=true, i=nothing)
     next_mcc_3 = length(MCCs[3]) + 1
 
     #get dictionary of which mcc each leaf is in
-    mcc_map = get_mcc_map([constraint, MCCs[i], MCCs[3]])
+    mcc_map = leaf_mcc_map([constraint, MCCs[i], MCCs[3]])
     assign_all_mccs!(tree, 2, mcc_map)
 
     #get dictionary of which leaves are in a mcc

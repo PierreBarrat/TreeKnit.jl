@@ -75,9 +75,9 @@ function is_degenerate(M::MCC_set)
 end
 
 function is_degenerate(MCC1::Vector{Vector{String}}, MCC2::Vector{Vector{String}}, MCC3::Vector{Vector{String}})
-    if (!is_MCC_subset_dict(join_sets_to_dict([MCC1, MCC2]), get_mcc_map(MCC3)) || 
-        !is_MCC_subset_dict(join_sets_to_dict([MCC1, MCC3]), get_mcc_map(MCC2)) ||
-        !is_MCC_subset_dict(join_sets_to_dict([MCC3, MCC2]), get_mcc_map(MCC1)))
+    if (!is_MCC_subset_dict(join_sets_to_dict([MCC1, MCC2]), leaf_mcc_map(MCC3)) || 
+        !is_MCC_subset_dict(join_sets_to_dict([MCC1, MCC3]), leaf_mcc_map(MCC2)) ||
+        !is_MCC_subset_dict(join_sets_to_dict([MCC3, MCC2]), leaf_mcc_map(MCC1)))
         return true
     else
         return false
@@ -232,7 +232,7 @@ function fix_topologically_degenerate(MCC1::Vector{Vector{String}}, MCC2::Vector
     end
     TreeKnit.mark_shared_branches!(MCC3, tree2)
     TreeKnit.mark_shared_branches!(MCC3, tree3)
-    mcc_map = get_mcc_map(MCC3)
+    mcc_map = leaf_mcc_map(MCC3)
     next_i = length(MCC3) +1 
     for (key, n) in needed_splits_12
         for s in n
@@ -423,7 +423,7 @@ function split_MCCs(first, second, third, tree1, tree2)
     tree = [tree1, tree2][r]
     constraint_split_dict = find_split(constraint, third)
     if !isempty(constraint_split_dict)
-        MCC_to_split_dict = TreeKnit.get_MCC_as_dict(TreeKnit.get_mcc_map(MCC_to_split))
+        MCC_to_split_dict = TreeKnit.get_MCC_as_dict(TreeKnit.leaf_mcc_map(MCC_to_split))
         next_mcc = length(MCC_to_split) + 1
         for mcc_constraint in keys(constraint_split_dict)
             mcc_to_split_key = find_set_to_split(MCC_to_split_dict, mcc_constraint)

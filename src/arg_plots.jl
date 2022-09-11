@@ -14,7 +14,7 @@ function prepare_trees!(first_tree::Tree{TreeTools.MiscData}, tree_list::Vector{
 
     for tree in tree_list
         mcc = get(MCCs_dict, (tree.label, first_tree.label))
-        TreeKnit.assign_mccs!(TreeKnit.get_mcc_map(mcc), tree)
+        TreeKnit.assign_mccs!(tree, TreeKnit.leaf_mcc_map(mcc))
     end
     assign_all_mccs!(first_tree, tree_list, MCCs_dict)
     recombination_sites = TreeKnit.get_recombination_sites(first_tree, tree_list, MCCs_dict)

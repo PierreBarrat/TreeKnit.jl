@@ -1,5 +1,5 @@
-/home/pierrebc/.julia/packages/TreeKnit/uNaef/src/cli.jl:64 [Info] Input Newick files: tree_h3n2_ha.nwk 	 tree_h3n2_na.nwk. Reading trees...
-/home/pierrebc/.julia/packages/TreeKnit/uNaef/src/cli.jl:83 [Info] Parameters: OptArgs
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/cli.jl:64 [Info] Input Newick files: tree_h3n2_ha.nwk 	 tree_h3n2_na.nwk. Reading trees...
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/cli.jl:93 [Info] Parameters: OptArgs
   γ: Float64 2.0
   itmax: Int64 15
   likelihood_sort: Bool true
@@ -7,44 +7,67 @@
   seq_lengths: Array{Int64}((2,)) [1, 1]
   nMCMC: Int64 25
   Tmin: Float64 0.05
-  Tmax: Float64 0.8
-  nT: Int64 3000
-  cooling_schedule: Symbol linear
-  Trange: Array{Float64}((3000,)) [0.8, 0.7997499166388796, 0.7994998332777592, 0.7992497499166389, 0.7989996665555185, 0.7987495831943981, 0.7984994998332777, 0.7982494164721574, 0.797999333111037, 0.7977492497499167  …  0.05225075025008336, 0.05200066688896299, 0.05175058352784261, 0.05150050016672224, 0.05125041680560187, 0.051000333444481495, 0.05075025008336112, 0.050500166722240745, 0.05025008336112037, 0.05]
+  Tmax: Float64 1.0
+  nT: Int64 100
+  cooling_schedule: Symbol geometric
+  Trange: Array{Float64}((101,)) [1.0, 0.9704869503929601, 0.9418449208830277, 0.9140482050108684, 0.8870718549931568, 0.8608916593317348, 0.8354841210835904, 0.8108264367721563, 0.7868964759210002, 0.7636727611915388  …  0.06547306980281228, 0.0635407598457967, 0.061665478248398686, 0.059845541929811855, 0.05807931748207713, 0.05636521970408557, 0.05470171017884718, 0.053087295892748944, 0.05152052789556264, 0.05000000000000002]
   sa_rep: Int64 1
   verbose: Bool true
   vv: Bool false
 
-/home/pierrebc/.julia/packages/TreeKnit/uNaef/src/cli.jl:85 [Info] Inferring MCCs...
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/cli.jl:95 [Info] Inferring MCCs...
 
-/home/pierrebc/.julia/packages/TreeKnit/uNaef/src/main.jl:75 [Info] Initial state: 41 naive MCCs
-/home/pierrebc/.julia/packages/TreeKnit/uNaef/src/main.jl:82 [Info] --- Iteration 1 (max. 15) - 100 leaves remaining ---
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/main.jl:75 [Info] Initial state: 41 naive MCCs
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/main.jl:82 [Info] --- Iteration 1 (max. 15) - 100 leaves remaining ---
 
-/home/pierrebc/.julia/packages/TreeKnit/uNaef/src/main.jl:85 [Info] Running optimization to find MCCs...
-/home/pierrebc/.julia/packages/TreeKnit/uNaef/src/SplitGraph/SplitGraph.jl:70 [Info] Sorting 2 topologically equivalent configurations.
-/home/pierrebc/.julia/packages/TreeKnit/uNaef/src/SplitGraph/SplitGraph.jl:101 [Info] Comparing 2 configurations using likelihood
-/home/pierrebc/.julia/packages/TreeKnit/uNaef/src/main.jl:94 [Info] Found 10 new mccs.
-/home/pierrebc/.julia/packages/TreeKnit/uNaef/src/main.jl:98 [Info] Proceeding based on newly found MCCs...
-/home/pierrebc/.julia/packages/TreeKnit/uNaef/src/main.jl:151 [Info] Found mccs do not cover all leaves. Pruning them from trees.
-/home/pierrebc/.julia/packages/TreeKnit/uNaef/src/main.jl:173 [Info] Resulting trees have incompatibilities (11 naive mccs left). Continuing.
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/main.jl:85 [Info] Running optimization to find MCCs...
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/main.jl:86 [Info] Cooling schedule: geometric / Temperature values: 101 / Total of MCMC steps: 2500
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/SplitGraph/SplitGraph.jl:70 [Info] Sorting 2 topologically equivalent configurations.
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/SplitGraph/SplitGraph.jl:101 [Info] Comparing 2 configurations using likelihood
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/main.jl:95 [Info] Found 9 new mccs.
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/main.jl:99 [Info] Proceeding based on newly found MCCs...
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/main.jl:152 [Info] Found mccs do not cover all leaves. Pruning them from trees.
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/main.jl:174 [Info] Resulting trees have incompatibilities (14 naive mccs left). Continuing.
 
 
-/home/pierrebc/.julia/packages/TreeKnit/uNaef/src/main.jl:82 [Info] --- Iteration 2 (max. 15) - 70 leaves remaining ---
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/main.jl:82 [Info] --- Iteration 2 (max. 15) - 73 leaves remaining ---
 
-/home/pierrebc/.julia/packages/TreeKnit/uNaef/src/main.jl:85 [Info] Running optimization to find MCCs...
-/home/pierrebc/.julia/packages/TreeKnit/uNaef/src/SplitGraph/SplitGraph.jl:70 [Info] Sorting 3 topologically equivalent configurations.
-/home/pierrebc/.julia/packages/TreeKnit/uNaef/src/SplitGraph/SplitGraph.jl:101 [Info] Comparing 3 configurations using likelihood
-/home/pierrebc/.julia/packages/TreeKnit/uNaef/src/main.jl:94 [Info] Found 4 new mccs.
-/home/pierrebc/.julia/packages/TreeKnit/uNaef/src/main.jl:98 [Info] Proceeding based on newly found MCCs...
-/home/pierrebc/.julia/packages/TreeKnit/uNaef/src/main.jl:151 [Info] Found mccs do not cover all leaves. Pruning them from trees.
-/home/pierrebc/.julia/packages/TreeKnit/uNaef/src/main.jl:162 [Info] Resulting trees are compatible: final decomposition found. Stopping.
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/main.jl:85 [Info] Running optimization to find MCCs...
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/main.jl:86 [Info] Cooling schedule: geometric / Temperature values: 101 / Total of MCMC steps: 1825
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/SplitGraph/SplitGraph.jl:70 [Info] Sorting 3 topologically equivalent configurations.
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/SplitGraph/SplitGraph.jl:101 [Info] Comparing 2 configurations using likelihood
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/main.jl:95 [Info] Found 1 new mccs.
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/main.jl:99 [Info] Proceeding based on newly found MCCs...
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/main.jl:152 [Info] Found mccs do not cover all leaves. Pruning them from trees.
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/main.jl:174 [Info] Resulting trees have incompatibilities (13 naive mccs left). Continuing.
 
-/home/pierrebc/.julia/packages/TreeKnit/uNaef/src/cli.jl:88 [Info] Found 15 MCCs (runtime 7.76305588)
 
-/home/pierrebc/.julia/packages/TreeKnit/uNaef/src/cli.jl:92 [Info] Resolving trees based on found MCCs...
-/home/pierrebc/.julia/packages/TreeKnit/uNaef/src/cli.jl:96 [Info] Resolved 14 splits in tree_h3n2_ha.nwk and 14 splits in tree_h3n2_na.nwk
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/main.jl:82 [Info] --- Iteration 3 (max. 15) - 72 leaves remaining ---
 
-/home/pierrebc/.julia/packages/TreeKnit/uNaef/src/cli.jl:100 [Info] Building ARG from trees and MCCs...
-/home/pierrebc/.julia/packages/TreeKnit/uNaef/src/cli.jl:102 [Info] Found 14 reassortments in the ARG.
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/main.jl:85 [Info] Running optimization to find MCCs...
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/main.jl:86 [Info] Cooling schedule: geometric / Temperature values: 101 / Total of MCMC steps: 1800
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/SplitGraph/SplitGraph.jl:70 [Info] Sorting 2 topologically equivalent configurations.
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/main.jl:95 [Info] Found 2 new mccs.
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/main.jl:99 [Info] Proceeding based on newly found MCCs...
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/main.jl:152 [Info] Found mccs do not cover all leaves. Pruning them from trees.
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/main.jl:174 [Info] Resulting trees have incompatibilities (10 naive mccs left). Continuing.
 
-/home/pierrebc/.julia/packages/TreeKnit/uNaef/src/cli.jl:107 [Info] Writing results in treeknit_results
+
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/main.jl:82 [Info] --- Iteration 4 (max. 15) - 67 leaves remaining ---
+
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/main.jl:85 [Info] Running optimization to find MCCs...
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/main.jl:86 [Info] Cooling schedule: geometric / Temperature values: 101 / Total of MCMC steps: 1675
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/main.jl:95 [Info] Found 3 new mccs.
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/main.jl:99 [Info] Proceeding based on newly found MCCs...
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/main.jl:152 [Info] Found mccs do not cover all leaves. Pruning them from trees.
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/main.jl:163 [Info] Resulting trees are compatible: final decomposition found. Stopping.
+
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/cli.jl:98 [Info] Found 16 MCCs (runtime 4.046723909)
+
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/cli.jl:102 [Info] Resolving trees based on found MCCs...
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/cli.jl:106 [Info] Resolved 13 splits in tree_h3n2_ha.nwk and 13 splits in tree_h3n2_na.nwk
+
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/cli.jl:110 [Info] Building ARG from trees and MCCs...
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/cli.jl:112 [Info] Found 15 reassortments in the ARG.
+
+/home/pierrebc/Documents/julia/dev/TreeKnit/src/cli.jl:117 [Info] Writing results in treeknit_results
