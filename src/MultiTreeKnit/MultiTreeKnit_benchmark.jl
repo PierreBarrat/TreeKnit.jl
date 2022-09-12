@@ -82,7 +82,7 @@ function parallelized_compute_mccs!(trees::Vector{Tree{TreeTools.MiscData}}, oa:
                         append!(MCC_list, [parallel_MCCs[Set([i, x])], parallel_MCCs[Set([j,x])]])
                     end
                 end
-                parallel_MCCs[Set([i,j])] = Dagger.@spawn run_step!(oa, trees[i], trees[j], MCC_list, strict=strict)
+                parallel_MCCs[Set([i,j])] = Dagger.@spawn run_step!(oa, trees[i], trees[j], MCC_list, strict)
             end
         end
     end
