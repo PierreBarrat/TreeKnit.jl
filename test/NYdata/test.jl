@@ -16,9 +16,58 @@ t2 = read_tree("$(dirname(pathof(TreeKnit)))/../test/NYdata/tree_na.nwk")
 
 MCCs = computeMCCs(t1, t2)
 
-@testset "NY" begin
+@testset "computeMCCs on NY data" begin
 	@test MCCs[1:end-1] == MCCs_ref
 end
 if MCCs[1:end-1] != MCCs_ref
 	@warn "Found different MCCs for the NewYork data. Could indicate a problem..."
 end
+
+"""
+	function check_sort_polytomies(t1, t2, MCCs)
+		
+Check that leaves in the same MCC are in the same order in tree1 and tree2 after 
+calling ladderize and sort_polytomies on the resolved trees. This will make sure that 
+lines between nodes in an MCC do not cross when The two trees are visualized as a dendrogram.
+"""
+function check_sort_polytomies(t1, t2, MCCs) 
+	t1, t2, rS_strict = TreeKnit.resolve_strict(t1, t2, MCCs; tau = 0.)
+	TreeTools.ladderize!(t1)
+	TreeKnit.sort_polytomies_strict!(t1, t2, MCCs)
+	leaf_map = TreeKnit.leaf_mcc_map(MCCs)
+	pos_in_mcc_t1 = Dict()
+	pos = 1
+	for leaf in POTleaves(t1)
+		if haskey(pos_in_mcc_t1, leaf_map[leaf.label])
+			append!(pos_in_mcc_t1[leaf_map[leaf.label]], pos)
+		else
+			pos_in_mcc_t1[leaf_map[leaf.label]] = [pos]
+		end
+		pos +=1 
+	end
+
+	pos_in_mcc_t2 = Dict()
+	pos = 1
+	for leaf in POTleaves(t2)
+		if haskey(pos_in_mcc_t2, leaf_map[leaf.label])
+			append!(pos_in_mcc_t2[leaf_map[leaf.label]], pos)
+		else
+			pos_in_mcc_t2[leaf_map[leaf.label]] = [pos]
+		end
+		pos +=1 
+	end
+
+	sorted = true
+	for mcc in 1:length(MCCs)
+		if (sort(pos_in_mcc_t1[mcc]) !=  pos_in_mcc_t1[mcc]) || (sort(pos_in_mcc_t2[mcc]) !=  pos_in_mcc_t2[mcc])
+			sorted = false
+			break
+		end
+	end
+	return sorted
+end
+
+@testset "sort_polytomies_strict! on resolve_strict! NY trees" begin
+	@test check_sort_polytomies(t1, t2, MCCs)
+end
+
