@@ -427,6 +427,8 @@ function split_MCCs(first, second, third, tree1, tree2)
         next_mcc = length(MCC_to_split) + 1
         for mcc_constraint in keys(constraint_split_dict)
             mcc_to_split_key = find_set_to_split(MCC_to_split_dict, mcc_constraint)
+            @assert !isnothing(mcc_to_split_key)
+            @assert !isnothing(mcc_constraint)
             new_mccs = split_mcc(MCC_to_split_dict[mcc_to_split_key], mcc_constraint, constraint_split_dict[mcc_constraint], tree)
             MCC_to_split_dict[mcc_to_split_key] = new_mccs[1]
             for new_m in new_mccs[2:end]
