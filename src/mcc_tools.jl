@@ -113,6 +113,47 @@ function sort_polytomies!(t1::Tree, t2::Tree, MCCs)
 	node2tree!(t2, t2.root)
 	return nothing
 end
+
+function sort_polytomies_strict!(t1::Tree{TreeTools.MiscData}, t2::Tree{TreeTools.MiscData}, MCCs)
+	mcc_order = get_leaves_order(t1, MCCs)
+	TreeKnit.assign_mccs!(t2, TreeKnit.leaf_mcc_map(MCCs)) 
+	sort_polytomies_strict!(t2.root, MCCs, mcc_order)
+	node2tree!(t2, t2.root)
+	return nothing
+end
+
+function sort_polytomies_strict!(n::TreeNode{TreeTools.MiscData}, MCCs, mcc_order)
+	if n.isleaf
+		i = n.data["mcc"] # in MCCs[i]
+		return mcc_order[i][n.label], 1 # rank in the polytomy, number of nodes in clade
+	else
+		i = n.data["mcc"] # Id of the current MCC (can be `nothing`)
+
+		# Construct ranking or children
+		# positive if they are in same MCC as current node, negative otherwise
+		# r = 1
+		rank = Array{Any}(undef, length(n.child))
+		for (k, c) in enumerate(n.child)
+			if c.data["mcc"] == i
+				# child is in mcc. we know its rank in the MCC
+				rank[k] = sort_polytomies_strict!(c, MCCs, mcc_order)
+			else
+				# child is not in mcc: only count its ladder rank
+				_trash, rladder = sort_polytomies_strict!(c, MCCs, mcc_order)
+				rank[k] = (nothing, rladder)
+				# r += 1
+			end
+		end
+
+		# # Sort children
+		_sort_children!(n, rank)
+
+		# # Return minimum value of the rank of nodes in the MCC.
+		# # Will be used by parent to rank the current node
+		return findmin(r -> isnothing(r[1]) ? Inf : r[1], rank)[1], sum(x[2] for x in rank)
+	end
+end
+
 function sort_polytomies!(n::TreeNode, MCCs, mcc_map, mcc_order)
 	if n.isleaf
 		i = mcc_map[n.label] # in MCCs[i]
