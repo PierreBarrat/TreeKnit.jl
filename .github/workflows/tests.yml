@@ -11,6 +11,6 @@ jobs:
         with:
           version: '1.6'
       - name: Install dependencies
-        run: julia --project=. -e 'using Pkg; Pkg.add(url="https://github.com/PierreBarrat/TreeTools#master"); Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
+        run: julia --project=. -e 'using Pkg; Pkg.add(url="https://github.com/PierreBarrat/TreeTools#master")'
       - name: run tests
         run: julia --project=. test/runtests.jl
