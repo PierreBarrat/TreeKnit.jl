@@ -20,6 +20,8 @@ include("mcc_splits.jl")
 
 include("mcc_tools.jl")
 
+include("mcc_branch_labels.jl")
+
 include("mcc_IO.jl")
 export read_mccs, write_mccs
 

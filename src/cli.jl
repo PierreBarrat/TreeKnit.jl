@@ -100,9 +100,9 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 	verbose && println()
 
 	@info "Resolving trees based on found MCCs..."
-	rS = resolve!(t1, t2, MCCs)
+	t1, t2, rS = resolve_strict(t1, t2, MCCs)
 	TreeTools.ladderize!(t1)
-	sort_polytomies!(t1, t2, MCCs)
+	sort_polytomies_strict!(t1, t2, MCCs)
 	@info "Resolved $(length(rS[1])) splits in $(nwk1) and $(length(rS[1])) splits in $(nwk2)\n"
 
 	verbose && println()
