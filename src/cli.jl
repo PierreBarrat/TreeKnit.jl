@@ -19,6 +19,7 @@ treeknit
 - `--no-likelihood`: Do not use branch length likelihood test to sort between different MCCs
 - `--no-resolve`: Do not attempt to resolve trees before inferring MCCs.
 - `-v, --verbose`: verbosity
+- `--auspice-view`: return ouput files for auspice
 """
 @main function treeknit(
 	nwk1::AbstractString, nwk2::AbstractString;
@@ -32,6 +33,7 @@ treeknit
 	no_likelihood::Bool = false,
 	no_resolve::Bool = false,
 	verbose::Bool = false,
+	auspice_view::Bool = false
 )
 
 	println("Treeknit: ")
@@ -121,6 +123,10 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 	write_newick(outdir * "/" * out_nwk2, t2)
 	write(outdir * "/" * "arg.nwk", arg)
 	write_rlm(outdir * "/" * "nodes.dat", rlm)
+
+	if auspice_view
+		write_auspice_json(outdir * "/", t1, t2, MCCs)
+	end
 
 	close(io)
 
