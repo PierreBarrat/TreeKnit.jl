@@ -16,6 +16,7 @@ Documenter.makedocs(;
 			"Overview" => "overview.md",
 			"MCCs" => "mccs.md",
 			"Important options" => "options.md",
+			"Visualizing MCCs" => "visualization.md",
 		],
 		"Under the hood" => [
 			"`opttrees`" => "opttrees.md",

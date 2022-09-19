@@ -38,10 +38,12 @@ The directory will contain:
 
 ### Options
 
-The main options that you can play with are:  
+The main options for simulated annealing that you can play with are:  
 - the parsimony parameter $\gamma$, `--gamma` or `-g`.   
 - naive inference `--naive`. Using this flag is equivalent to setting $\gamma \rightarrow \infty$.  
 - Length of sequences used to infer trees: `--seq-lengths`. These are used for likelihood test to break degeneracy between topologically equivalent MCCs.  
+
+Furthermore, adding the argument `--auspice-view` will create files that can be used to view a tanglegram of the two trees with colored maximally compatible clades in [auspice](https://docs.nextstrain.org/projects/auspice/en/stable/advanced-functionality/second-trees.html). For more information see [Visualization of MCCs in a tanglegram](@ref view_auspice).  
 
 More details in the [options section](@ref options).
 

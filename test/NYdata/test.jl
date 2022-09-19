@@ -28,7 +28,7 @@ end
 		
 Check that leaves in the same MCC are in the same order in tree1 and tree2 after 
 calling ladderize and sort_polytomies on the resolved trees. This will make sure that 
-lines between nodes in an MCC do not cross when The two trees are visualized as a dendrogram.
+lines between nodes in an MCC do not cross when the two trees are visualized as a tanglegram.
 """
 function check_sort_polytomies(t1, t2, MCCs) 
 	t1, t2, rS_strict = TreeKnit.resolve_strict(t1, t2, MCCs; tau = 0.)

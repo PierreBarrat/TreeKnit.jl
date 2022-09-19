@@ -10,6 +10,6 @@ else
 fi;
 conda install --yes nextstrain-cli
 
-augur export v2 -t "$1.resolved.nwk" --node-data "branch_lengths_$1.json" --output "$1.json"
-augur export v2 -t "$2.resolved.nwk" --node-data "branch_lengths_$2.json" --output "$2.json"
+augur export v2 -t "$1.resolved.nwk" --node-data "branch_lengths_$1.json" --output "tree_$1.json"
+augur export v2 -t "$2.resolved.nwk" --node-data "branch_lengths_$2.json" --output "tree_$2.json"
 auspice view --datasetDir $PWD
