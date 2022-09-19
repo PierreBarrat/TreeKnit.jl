@@ -14,5 +14,7 @@ jobs:
         run: julia --project=. -e 'using Pkg; Pkg.add(url="https://github.com/PierreBarrat/TreeTools#master")'
       - name: Build TreeKnit
         run: julia --project=. -e 'using Pkg; Pkg.build()'
+      - name: Run TreeKnit CLI tests
+        run: bash test/treeknit_tests.sh
       - name: run tests
         run: julia --project=. test/runtests.jl
