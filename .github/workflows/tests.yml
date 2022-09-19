@@ -12,5 +12,7 @@ jobs:
           version: '1.7'
       - name: Install dependencies
         run: julia --project=. -e 'using Pkg; Pkg.add(url="https://github.com/PierreBarrat/TreeTools#master")'
+      - name: Build TreeKnit
+        run: julia --project=. -e 'using Pkg; Pkg.build()'
       - name: run tests
         run: julia --project=. test/runtests.jl
