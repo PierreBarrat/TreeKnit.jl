@@ -10,3 +10,4 @@ include("$(dirname(pathof(TreeKnit)))/..//test/MultiTreeKnit/test_topo_inconsist
 include("$(dirname(pathof(TreeKnit)))/..//test/MultiTreeKnit/test_constraints.jl")
 include("$(dirname(pathof(TreeKnit)))/..//test/MultiTreeKnit/test_benchmark.jl")
 include("$(dirname(pathof(TreeKnit)))/..//test/MultiTreeKnit/test_measures.jl")
+include("$(dirname(pathof(TreeKnit)))/..//test/MultiTreeKnit/test_parallelTK.jl")
