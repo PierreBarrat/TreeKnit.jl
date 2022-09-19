@@ -102,25 +102,30 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 	verbose && println()
 
 	@info "Resolving trees based on found MCCs..."
-	t1, t2, rS = resolve_strict(t1, t2, MCCs)
-	TreeTools.ladderize!(t1)
-	sort_polytomies_strict!(t1, t2, MCCs)
+	t1_strict, t2_strict, rS = resolve_strict(t1, t2, MCCs)
+	TreeTools.ladderize!(t1_strict)
+	sort_polytomies_strict!(t1_strict, t2_strict, MCCs)
 	@info "Resolved $(length(rS[1])) splits in $(nwk1) and $(length(rS[1])) splits in $(nwk2)\n"
 
 	verbose && println()
 
-	@info "Building ARG from trees and MCCs..."
-	arg, rlm, lm1, lm2 = SRG.arg_from_trees(t1, t2, MCCs)
-	@info "Found $(length(arg.hybrids)) reassortments in the ARG.\n"
-
-	verbose && println()
-
-	# Write output
+	# Write tree output
 	@info "Writing results in $(outdir)"
 	write_mccs(outdir * "/" * "MCCs.dat", MCCs)
 	out_nwk1, out_nwk2 = make_output_tree_names(nwk1, nwk2)
-	write_newick(outdir * "/" * out_nwk1, t1)
-	write_newick(outdir * "/" * out_nwk2, t2)
+	write_newick(outdir * "/" * out_nwk1, t1_strict)
+	write_newick(outdir * "/" * out_nwk2, t2_strict)
+
+	verbose && println()
+
+	@info "Building ARG from trees and MCCs..."
+	rS = resolve!(t1, t2, MCCs)
+	TreeTools.ladderize!(t1)
+	sort_polytomies!(t1, t2, MCCs)
+	arg, rlm, lm1, lm2 = SRG.arg_from_trees(t1, t2, MCCs)
+	@info "Found $(length(arg.hybrids)) reassortments in the ARG.\n"
+
+	# Write arg output
 	write(outdir * "/" * "arg.nwk", arg)
 	write_rlm(outdir * "/" * "nodes.dat", rlm)
 
