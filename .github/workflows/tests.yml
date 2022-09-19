@@ -12,8 +12,6 @@ jobs:
           version: '1.6'
       - name: Install dependencies
         run: julia --project=docs/ -e 'using Pkg; Pkg.add(url="https://github.com/PierreBarrat/TreeTools#master"); Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
-      - name: Build TreeKnit
-        run: julia --project=docs/ -e 'using Pkg; Pkg.build()'
       - uses: julia-actions/julia-runtest@v1
         with:
           annotate: true
