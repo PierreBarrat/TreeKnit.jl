@@ -4,23 +4,14 @@ on: [push, pull_request]
 
 jobs:
   test:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        julia-version: ['1.0', '1', 'nightly']
-        julia-arch: [x64, x86]
-        os: [ubuntu-latest, windows-latest, macOS-latest]
-        exclude:
-          - os: macOS-latest
-            julia-arch: x86
-
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1
         with:
           version: ${{ matrix.julia-version }}
           arch: ${{ matrix.julia-arch }}
-      - uses: julia-actions/julia-buildpkg@v1
-      - uses: julia-actions/julia-runtest@v1
+      - name: Install dependencies
+        run: julia --project=docs/ -e 'using Pkg; Pkg.add(url="https://github.com/PierreBarrat/TreeTools#master"); Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
       - name: Run CLI tests
         run: bash test/treeknit_tests.sh
