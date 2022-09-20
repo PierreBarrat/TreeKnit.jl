@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-julia --project=. deps/build.jl
+julia --project=. deps/build2.jl
 OUT=$?
 if [ "$OUT" != 0 ]; then
     echo build fail
