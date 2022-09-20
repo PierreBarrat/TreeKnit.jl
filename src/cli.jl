@@ -64,8 +64,9 @@ treeknit
 
 	# Reading trees
 	@info "Input Newick files: $nwk1 \t $nwk2. Reading trees..."
-	t1 = read_tree(nwk1)
-	t2 = read_tree(nwk2)
+	t1_label, t2_label = make_tree_labels(nwk1, nwk2)
+	t1 = read_tree(nwk1, label=t1_label)
+	t2 = read_tree(nwk2, label=t2_label)
 	if !TreeTools.share_labels(t1, t2)
 		error("Trees must share leaves")
 	end
@@ -116,6 +117,10 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 	write_newick(outdir * "/" * out_nwk1, t1_strict)
 	write_newick(outdir * "/" * out_nwk2, t2_strict)
 
+	if auspice_view
+		write_auspice_json(outdir * "/", t1_strict, t2_strict, MCCs)
+	end
+
 	verbose && println()
 
 	@info "Building ARG from trees and MCCs..."
@@ -128,10 +133,6 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 	# Write arg output
 	write(outdir * "/" * "arg.nwk", arg)
 	write_rlm(outdir * "/" * "nodes.dat", rlm)
-
-	if auspice_view
-		write_auspice_json(outdir * "/", t1, t2, MCCs)
-	end
 
 	close(io)
 
@@ -179,6 +180,27 @@ function make_output_tree_names(nwk1, nwk2)
 		f1, ext1 = splitext(fn[1])
 		f2, ext2 = splitext(fn[2])
 		f1 * ".resolved" * ext1, f2 * ".resolved" * ext2
+	end
+
+	return name1, name2
+end
+
+function make_tree_labels(nwk1, nwk2)
+	fn = [basename(nwk) for nwk in (nwk1, nwk2)]
+	name1, name2 = if fn[1] == fn[2]
+		name, ext = splitext(fn[1])
+		d1 = split(dirname(nwk1), '/')[end]
+		d2 = split(dirname(nwk2), '/')[end]
+		name1, name2 = if d1 == d2
+			name * "_1", name * "_2"
+		else
+			name * "_$(d1)", name * "_$(d2)"
+		end
+		name1, name2
+	else
+		f1, ext1 = splitext(fn[1])
+		f2, ext2 = splitext(fn[2])
+		f1, f2
 	end
 
 	return name1, name2
