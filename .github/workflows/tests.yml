@@ -1,0 +1,18 @@
+name: Run tests
+
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: julia-actions/setup-julia@latest
+        with:
+          version: '1.7'
+      - name: Install dependencies
+        run: julia --project=. -e 'using Pkg; Pkg.add(url="https://github.com/PierreBarrat/TreeTools#master")'
+      - name: Build and Run TreeKnit CLI tests
+        run: bash test/command_line_tests.sh
+      - name: Run TreeKnit function tests
+        run: julia --project=. test/runtests.jl
