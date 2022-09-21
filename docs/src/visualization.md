@@ -9,9 +9,9 @@ Tanglegrams are an excellent way to view recombination events between trees. In 
 In order to view these files [auspice](https://docs.nextstrain.org/projects/auspice/en/stable/index.html) must be installed, this can either be done by following the documentation on their [website](https://docs.nextstrain.org/projects/auspice/en/stable/introduction/install.html) or by running the bash script `auspice_visualization.sh` on the CLI (this requires conda to be installed on your local machine). The commands for running this visualization for the NY dataset in the test folder are as follows:
 
 ```bash
-treeknit test/tree_ha.nwk test/tree_na.wk --auspice-view --o treeknit_results
-cd treeknit_results ##migrate to folder with simulation results
-bash ../auspice_visualization.sh tree_ha tree_na ##run the bash scripts with two arguments for the tree names
+treeknit test/NYdata/tree_ha.nwk test/NYdata/tree_na.nwk --auspice-view --o treeknit_results
+cd test/treeknit_results ##migrate to folder with simulation results
+bash ../../auspice_visualization.sh tree_ha tree_na ##run the bash scripts with two arguments for the tree names
 ```
 If you have installed auspice manually, run the commands below in your results directory. For more information see the auspice [documentation](https://docs.nextstrain.org/projects/auspice/en/stable/advanced-functionality/second-trees.html) on viewing two trees side by side.
 
