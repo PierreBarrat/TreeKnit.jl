@@ -32,7 +32,7 @@ function compute_mcc_pairs!(trees::Vector{Tree{TreeTools.MiscData}}, oa::OptArgs
                         end
                     end
                 end
-                TreeKnit.add!(pair_MCCs, TreeKnit.runopt(TreeKnit.OptArgs(;constraint_cost=oa.constraint_cost), trees[i], trees[j], joint_MCCs; output = :mccs), (i, j))
+                TreeKnit.add!(pair_MCCs, TreeKnit.runopt(oa, trees[i], trees[j], joint_MCCs; output = :mccs), (i, j))
                 if strict==false || (r==oa.rounds && oa.force_consist==true)
                     rS = TreeKnit.resolve!(trees[i], trees[j], get(pair_MCCs, (j, i)))
                     TreeTools.ladderize!(trees[i])
