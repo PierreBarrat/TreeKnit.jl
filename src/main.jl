@@ -96,7 +96,7 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree, constraint::Union{Nothing, Vect
 		mccs, Efinal, Ffinal, lk = SplitGraph.opttrees(
 			ot1, ot2;
 			γ=oa.γ, seq_lengths = oa.seq_lengths, M=M, Trange=oa.Trange, likelihood_sort=oa.likelihood_sort, 
-			resolve=oa.resolve, sa_rep=oa.sa_rep, constraint_cost=oa.constraint_cost, oa.verbose
+			resolve=oa.resolve, sa_rep=oa.sa_rep, consistent =oa.consistent, constraint_cost=oa.constraint_cost, oa.verbose
 		)
 		!isempty(mccs) && append!(MCCs, mccs)
 		oa.verbose && @info "Found $(length(mccs)) new mccs."

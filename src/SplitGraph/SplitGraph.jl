@@ -39,6 +39,7 @@ function opttrees(t...;
 	likelihood_sort=true,
 	resolve=true,
 	sa_rep = 1,
+	consistent =true,
 	constraint_cost= γ,
 	verbose=false
 )
@@ -50,7 +51,7 @@ end
 
 function opttrees!(
 	γ, Trange, M, seq_lengths, t::Vararg{Tree}; 
-	likelihood_sort=true, resolve=true, sa_rep=1, constraint_cost= γ, verbose=false
+	likelihood_sort=true, resolve=true, sa_rep=1, consistent =true, constraint_cost= γ, verbose=false
 )
 	set_verbose(verbose)
 
@@ -64,7 +65,11 @@ function opttrees!(
 		TreeKnit.reduce_to_mcc!(t, mcc)
 	end
 	g = trees2graph(treelist)
-	mask = get_consistency_mask(g, treelist[1])
+	if consistent
+		mask = get_consistency_mask(g, treelist[1])
+	else
+		mask =  []
+	end
 
 	# SA - Optimization
 	oconfs, F, nfound = sa_opt(g, γ=γ, Trange=Trange, M=M, rep=sa_rep, resolve=resolve, mask=mask, constraint_cost=constraint_cost)

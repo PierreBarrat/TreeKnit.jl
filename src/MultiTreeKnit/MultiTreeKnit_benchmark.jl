@@ -100,6 +100,7 @@ function parallelized_compute_mccs!(trees::Vector{Tree{TreeTools.MiscData}}, oa:
     end
     return pair_MCCs
 end
+parallelized_compute_mccs!(trees::Vector{Tree{TreeTools.MiscData}}, oa::OptArgs) = parallelized_compute_mccs!(trees::Vector{Tree{TreeTools.MiscData}}, oa::OptArgs, true)
 
 """
 function get_infered_MCC_pairs!(trees::Vector{Tree{T}}, oa::OptArgs=OptArgs()) where T
