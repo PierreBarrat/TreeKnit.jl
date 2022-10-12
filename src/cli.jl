@@ -111,30 +111,33 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 	@info "Found $l MCCs (runtime $(out[2]))\n"
 	verbose && println()
 
-	if length(trees) ==2
-		t1 = trees[1]
-		t2 = trees[2]
-		@info "Building ARG from trees and MCCs..."
-		arg, rlm, lm1, lm2 = SRG.arg_from_trees(t1, t2, get(MCCs, t1.label, t2.label))
-		@info "Found $(length(arg.hybrids)) reassortments in the ARG.\n"
-		trees[1] = t1
-		trees[2] = t2
-	else
-		##write the ARG for 2+ trees
-	end
+	@info "Resolving trees based on found MCCs..."
+	t1_strict, t2_strict, rS = resolve_strict(t1, t2, MCCs)
+	TreeTools.ladderize!(t1_strict)
+	sort_polytomies_strict!(t1_strict, t2_strict, MCCs)
+	@info "Resolved $(length(rS[1])) splits in $(nwk1) and $(length(rS[1])) splits in $(nwk2)\n"
 
 	verbose && println()
-	# Write output
+
+	# Write tree output
 	@info "Writing results in $(outdir)"
-	write_mccs(outdir * "/" * "MCCs.json", MCCs)
-	out_nwk = make_output_tree_names(fn)
-	for i in 1:MCCs.no_trees
-		write_newick(outdir * "/" * out_nwk[i], trees[i])
-	end
-	if length(trees)==2
-		write(outdir * "/" * "arg.nwk", arg)
-		write_rlm(outdir * "/" * "nodes.dat", rlm)
-	end
+	write_mccs(outdir * "/" * "MCCs.dat", MCCs)
+	out_nwk1, out_nwk2 = make_output_tree_names(nwk1, nwk2)
+	write_newick(outdir * "/" * out_nwk1, t1_strict)
+	write_newick(outdir * "/" * out_nwk2, t2_strict)
+
+	verbose && println()
+
+	@info "Building ARG from trees and MCCs..."
+	rS = resolve!(t1, t2, MCCs)
+	TreeTools.ladderize!(t1)
+	sort_polytomies!(t1, t2, MCCs)
+	arg, rlm, lm1, lm2 = SRG.arg_from_trees(t1, t2, MCCs)
+	@info "Found $(length(arg.hybrids)) reassortments in the ARG.\n"
+
+	# Write arg output
+	write(outdir * "/" * "arg.nwk", arg)
+	write_rlm(outdir * "/" * "nodes.dat", rlm)
 
 	close(io)
 

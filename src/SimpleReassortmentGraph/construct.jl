@@ -470,8 +470,6 @@ function fix_shared_singletons!(t1, t2, X1, X2, mcc::Vector{String})
 			a2 = n2.anc
 			f1 = (X1[a1.label][1] == :shared_singleton)
 			f2 = (X2[a2.label][1] == :shared_singleton)
-			# println("$(n1.label) - $(n1.tau) - $(a1.label)")
-			# println("$(n2.label) - $(n2.tau) - $(a2.label)")
 			if f1
 				if f2
 					# Both are shared.
@@ -511,8 +509,8 @@ function fix_shared_singletons!(t1, t2, X1, X2, mcc::Vector{String})
 end
 
 function introduce_singleton!(n, a, sref, τ, X, Xref)
-	# println("Trying $(n.label) < $(sref.label) < $(a.label)")
-	s = TreeTools.add_internal_singleton!(n, a, τ, make_random_label("Singleton"))
+	_τ = ismissing(n.tau) ? missing : τ # Happens if one tree has times and the other not
+	s = TreeTools.add_internal_singleton!(n, a, _τ, make_random_label("Singleton"))
 	X[s.label] = (:shared, sref.label, false, X[n.label][4])
 	Xref[sref.label] = (:shared, s.label, false, Xref[sref.label][4])
 

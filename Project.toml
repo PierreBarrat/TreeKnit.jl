@@ -20,10 +20,10 @@ StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 TreeTools = "62f0eae3-8c0e-4032-a621-7756092209e5"
 
 [compat]
-Comonicon = ">=0.12"
+Comonicon = "0.12, 1"
 LoggingExtras = "0.4"
 Parameters = "0.12"
 ProgressMeter = "1.7"
-Setfield = ">=0.8"
+Setfield = "0.8, 1"
 TreeTools = "0.4.9"
 julia = "1.7"
