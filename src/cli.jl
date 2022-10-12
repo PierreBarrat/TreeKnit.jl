@@ -3,7 +3,7 @@ treeknit
 
 # Arguments
 
-- `nwk_files`: Newick files (requires 2 or more trees)
+- `nwk_files`: Newick files (requires 2 or more trees - note an ARG cannot be created for more than 2 trees)
 
 # Options
 
@@ -17,7 +17,6 @@ treeknit
 - `--naive`: Naive inference (overrides `-g`).
 - `--no-likelihood`: Do not use branch length likelihood test to sort between different MCCs
 - `--no-resolve`: Do not attempt to resolve trees before inferring MCCs.
-- `--force-consistent`: Force output MCCs to be consistent with each other by potentially further splitting MCCs (only relevant for 3 or more trees)
 - `--parallel`: Run sequential multitree-TreeKnit with parallelization (only relevant for 4 or more trees) 
 - `-v, --verbose`: verbosity
 """
