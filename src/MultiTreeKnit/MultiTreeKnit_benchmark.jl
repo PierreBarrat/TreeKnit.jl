@@ -292,4 +292,79 @@ function get_tree_order(trees ;order="resolution", rev=false)
     return permvec
 end
 
+"""
+is_full_topo_compatible(t1::Tree{T}, t2::Tree{T}, mcc::Vector{String}) where T
+
+Check if the MCC `mcc` is fully compatible (up to resolution) with the topology of `t1` and `t2`.
+After 1 standard round of TreeKnit this will always be the case, but for sequential TreeKnit on multiple trees,
+where trees are additionally resolved during each pair-wise iteration this may not always be the case.
+"""
+function is_full_topo_compatible(t1::Tree{T}, t2::Tree{T}, mcc::Vector{String}) where T
+	mask = [leaf in mcc for leaf in sort(collect(keys(t1.lleaves)))]
+	S1 = TreeTools.unique(TreeTools.SplitList(t1, mask))
+	mask = [leaf in mcc for leaf in sort(collect(keys(t2.lleaves)))]
+	S2 = TreeTools.unique(TreeTools.SplitList(t2, mask))
+    filtered_values = filter(i->mask[i], 1:length(mask))
+	for s1 in S1.splits
+        if length(filter(x->x in filtered_values, s1.dat))> 1
+            found = false
+            for s2 in S2.splits
+                if TreeTools.isequal(s1, s2, mask)
+                    found = true
+                    break
+                end
+            end
+            if !found
+                return false
+            end
+        end
+	end
+	return true
+end
+
+"""
+is_topo_compatible(t1::Tree{T}, t2::Tree{T}, mcc::Vector{String}) where T
+
+Check if the MCC `mcc` is compatible (with additional - yet not performed- resolution) with the topology of `t1` and `t2`.
+After 1 standard round of TreeKnit this will always be the case, but for sequential TreeKnit on multiple trees,
+where trees are additionally resolved during each pair-wise iteration this may not always be the case.
+"""
+function is_topo_compatible(t1::Tree{T}, t2::Tree{T}, mcc::Vector{String}) where T
+	mask = [leaf in mcc for leaf in sort(collect(keys(t1.lleaves)))]
+	S1 = TreeTools.SplitList(t1, mask)
+	mask = [leaf in mcc for leaf in sort(collect(keys(t2.lleaves)))]
+	S2 = TreeTools.SplitList(t2, mask)
+	for s1 in S1.splits
+		for s2 in S2.splits
+			if !arecompatible(s1, s2, S2.mask)
+				return false
+			end
+		end
+	end
+	return true
+end
+
+function topo_fix_mccs(t1::Tree{T}, t2::Tree{T}, MCCs::Vector{Vector{String}}; resolve=false) where T 
+    mcc_to_replace = []
+    if resolve
+        for mcc in MCCs
+            ##for small mccs: length == 1 or 2 they are clearly compatible when the tree is masked
+            if !((length(mcc)<3) || TreeKnit.is_topo_compatible(t1, t2, mcc))
+                append!(mcc_to_replace, naive_mccs(t1, t2, mcc; resolve=true))
+            else
+                append!(mcc_to_replace, [mcc])
+            end
+        end
+    else
+        for mcc in MCCs
+            if !((length(mcc)<3) || TreeKnit.is_full_topo_compatible(t1, t2, mcc))
+                append!(mcc_to_replace, naive_mccs(t1, t2, mcc))
+            else
+                append!(mcc_to_replace, [mcc])
+            end
+        end
+    end
+    return sort(mcc_to_replace, lt = clt)
+end
+
 
