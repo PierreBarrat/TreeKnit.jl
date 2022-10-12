@@ -548,3 +548,74 @@ function consistent_mcc_triplets(MCCs, trees; masked=false)
     @assert (masked && s!=0 && TreeKnit.is_MCC_subset(TreeKnit.join_sets([MCCs[1], MCCs[2]]), MCCs[3])) == false "Error: Should be consistent" 
     return  Z == 0 ? 0.0 : s / Z
 end
+
+function get_shared_leaves_vector(MCCs::Vector{Vector{String}})
+    leaves = sort(collect(union([Set([m... ]) for m in MCCs]...)))
+    mcc_map = leaf_mcc_map(MCCs)
+    leaf_pairs = combinations(leaves,  2)
+    shared_vector = Vector{Int}()
+    for l in leaf_pairs
+        if mcc_map[l[1]] == mcc_map[l[2]]
+            append!(shared_vector, 1)
+        else
+            append!(shared_vector, 0)
+        end
+    end
+    return shared_vector
+end
+
+function accuracy_shared_leaves(iMCCs, rMCCs)
+    rMCCs_vector = get_shared_leaves_vector(rMCCs)
+    iMCCs_vector = get_shared_leaves_vector(iMCCs)
+    return sum((rMCCs_vector - iMCCs_vector).*(rMCCs_vector - iMCCs_vector))/length(rMCCs_vector)
+end
+
+
+function accuracy_shared_branches(tree, true_tree, MCC, rMCC)
+    true_positive = 0
+    false_positive = 0
+    true_negative = 0
+    false_negative = 0
+    ##note the true tree should be fully resolved
+    TreeKnit.mark_shared_branches!(MCC, tree)
+    TreeKnit.mark_shared_branches!(rMCC, true_tree)
+    true_splits = SplitList(true_tree)
+    true_splits_dict = Dict()
+    for n in nodes(true_tree)
+        if !isleaf(n) && !isroot(n)
+            split = true_splits.splitmap[n.label]
+            true_splits_dict[split] = n
+        end
+    end
+    s1 = SplitList(tree)
+    for n in nodes(tree)
+        node_in_true_tree = nothing
+        if !isleaf(n) && !isroot(n)
+            split = s1.splitmap[n.label]
+            if split ∈ SplitList(true_tree)
+                ##true split, branch exists in true tree
+                node_in_true_tree = true_splits_dict[split]
+            end
+        end
+        if isleaf(n)
+            node_in_true_tree = true_tree.lnodes[n.label]
+        end
+        if !isnothing(node_in_true_tree)
+            if n.data["shared_branch_constraint"] 
+                if node_in_true_tree.data["shared_branch_constraint"]
+                    true_positive += 1
+                else
+                    false_positive += 1
+                end
+            else
+                if node_in_true_tree.data["shared_branch_constraint"]
+                    false_negative += 1
+                else
+                    true_negative += 1
+                end
+            end
+        end
+    end
+    return true_positive, false_positive, false_negative, true_negative
+end
+
