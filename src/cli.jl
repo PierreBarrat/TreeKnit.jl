@@ -3,7 +3,7 @@ treeknit
 
 # Arguments
 
-- `nwk_files`: Newick files (requires 2 or more trees - note an ARG cannot be created for more than 2 trees)
+- `nwk_files`: Newick files (requires 2 or more trees - note an ARG currently cannot be created for more than 2 trees)
 
 # Options
 
@@ -17,6 +17,7 @@ treeknit
 - `--naive`: Naive inference (overrides `-g`).
 - `--no-likelihood`: Do not use branch length likelihood test to sort between different MCCs
 - `--no-resolve`: Do not attempt to resolve trees before inferring MCCs.
+- `--loose-resolve`: Resolve output trees as much as possible using inferred MCCs, adding splits when order of coalescence and reassortment is unclear (coalescence is put prior to reassortment)
 - `--parallel`: Run sequential multitree-TreeKnit with parallelization (only relevant for 4 or more trees) 
 - `-v, --verbose`: verbosity
 """
@@ -32,8 +33,9 @@ treeknit
 	naive::Bool = false,
 	no_likelihood::Bool = false,
 	no_resolve::Bool = false,
+	loose_resolve::Bool = false,
 	verbose::Bool = false,
-	force_consistent::Bool = false,
+	consistency_constraint::Bool = false,
 	parallel::Bool = false,
 )
 
@@ -97,7 +99,7 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 		nMCMC = n_mcmc_it,
 		seq_lengths = sl,
 		verbose=true,
-		force_consist=force_consistent,
+		consistent=consistency_constraint,
 		parallel=parallel,
 	)
 
@@ -105,39 +107,32 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 	@info "Parameters: $oa"
 
 	@info "Inferring MCCs...\n"
-	out = @timed get_infered_MCC_pairs!(trees, oa)
+	out = @timed get_infered_MCC_pairs!(trees, oa; strict=!loose_resolve, naive=naive)
 	MCCs = out[1]
 	l = [length(m) for (key,m) in MCCs.mccs]
 	@info "Found $l MCCs (runtime $(out[2]))\n"
 	verbose && println()
-
-	@info "Resolving trees based on found MCCs..."
-	t1_strict, t2_strict, rS = resolve_strict(t1, t2, MCCs)
-	TreeTools.ladderize!(t1_strict)
-	sort_polytomies_strict!(t1_strict, t2_strict, MCCs)
-	@info "Resolved $(length(rS[1])) splits in $(nwk1) and $(length(rS[1])) splits in $(nwk2)\n"
-
-	verbose && println()
-
-	# Write tree output
+	
+	# Write output
 	@info "Writing results in $(outdir)"
-	write_mccs(outdir * "/" * "MCCs.dat", MCCs)
-	out_nwk1, out_nwk2 = make_output_tree_names(nwk1, nwk2)
-	write_newick(outdir * "/" * out_nwk1, t1_strict)
-	write_newick(outdir * "/" * out_nwk2, t2_strict)
-
+	write_mccs(outdir * "/" * "MCCs.json", MCCs)
+	out_nwk = make_output_tree_names(fn)
+	for i in 1:MCCs.no_trees
+		write_newick(outdir * "/" * out_nwk[i], trees[i])
+	end
 	verbose && println()
 
-	@info "Building ARG from trees and MCCs..."
-	rS = resolve!(t1, t2, MCCs)
-	TreeTools.ladderize!(t1)
-	sort_polytomies!(t1, t2, MCCs)
-	arg, rlm, lm1, lm2 = SRG.arg_from_trees(t1, t2, MCCs)
-	@info "Found $(length(arg.hybrids)) reassortments in the ARG.\n"
-
-	# Write arg output
-	write(outdir * "/" * "arg.nwk", arg)
-	write_rlm(outdir * "/" * "nodes.dat", rlm)
+	if length(trees) ==2
+		t1 = trees[1]
+		t2 = trees[2]
+		@info "Building ARG from trees and MCCs..."
+		arg, rlm, lm1, lm2 = SRG.arg_from_trees(t1, t2, get(MCCs, t1.label, t2.label))
+		@info "Found $(length(arg.hybrids)) reassortments in the ARG.\n"
+		trees[1] = t1
+		trees[2] = t2
+		write(outdir * "/" * "arg.nwk", arg)
+		write_rlm(outdir * "/" * "nodes.dat", rlm)
+	end
 
 	close(io)
 

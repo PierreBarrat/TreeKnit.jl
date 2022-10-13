@@ -84,407 +84,6 @@ function is_degenerate(MCC1::Vector{Vector{String}}, MCC2::Vector{Vector{String}
     end
 end
 
-function is_topologically_degenerate(M::MCC_set, trees::Vector{Tree{T}}) where T 
-    k_iters = Combinatorics.combinations(1:M.no_trees, 3)
-    for comb in k_iters
-        MCC1 = get(M, comb[1], comb[2])
-        MCC2 = get(M, comb[1], comb[3])
-        MCC3 = get(M, comb[2], comb[3])
-        if (is_topologically_degenerate(MCC1, MCC2, MCC3, trees[comb[2]], trees[comb[3]]) ||
-            is_topologically_degenerate(MCC1, MCC3, MCC2, trees[comb[1]], trees[comb[3]]) ||
-            is_topologically_degenerate(MCC2, MCC3, MCC1, trees[comb[1]], trees[comb[2]]))
-            return true
-        end
-    end
-    return false
-end
-
-function is_topologically_degenerate(MCC1::Vector{Vector{String}}, MCC2::Vector{Vector{String}}, MCC3::Vector{Vector{String}}, tree2::Tree{T}, tree3::Tree{T}) where T
-    ##if mcc12 is a strictly smaller (not equal) subset of mcc13 this means that there must be a recombination event above mcc12 in mcc23 as well (and that this can be drawn onto tree 2)
-    needed_splits_12 = Dict()
-    needed_splits_13 = Dict()
-    for mcc1 in MCC1
-        for mcc2 in MCC2
-            if issubset(Set{String}(mcc1), Set{String}(mcc2)) && !isempty(setdiff(Set{String}(mcc2), Set{String}(mcc1))) #check if mcc1 is a notequal subset of mcc2
-                if haskey(needed_splits_12, mcc2)
-                    append!(needed_splits_12[mcc2], [mcc1])
-                else
-                    needed_splits_12[mcc2] = [mcc1]
-                end
-            elseif issubset(Set{String}(mcc2), Set{String}(mcc1)) && !isempty(setdiff(Set{String}(mcc1), Set{String}(mcc2))) #check if mcc1 is a notequal subset of mcc2
-                if haskey(needed_splits_13, mcc1)
-                    append!(needed_splits_13[mcc1], [mcc2])
-                else
-                    needed_splits_13[mcc1] = [mcc2]
-                end
-            end
-        end
-    end
-    if isempty(needed_splits_12) && isempty(needed_splits_13)
-        return false
-    end
-    TreeKnit.mark_shared_branches!(MCC3, tree2)
-    for (key, n) in needed_splits_12
-        # split_needed = [!isroot(TreeTools.lca(tree2, s...)) && TreeTools.lca(tree2, s...).data.dat["shared_branch_constraint"]==true for s in n]
-        # no_split_needed = count(x->x==true,split_needed)
-        # if no_split_needed >1 && union([Set(l) for l in n]...) == Set(key)
-        #     return true
-        # elseif no_split_needed >0 && union([Set(l) for l in n]...) != Set(key)
-        #     return true
-        # end
-
-        for s in n
-            if !isroot(TreeTools.lca(tree2, s...)) && TreeTools.lca(tree2, s...).data.dat["shared_branch_constraint"]==true
-            ##need to split
-            return true
-            end
-        end
-
-    end
-    TreeKnit.mark_shared_branches!(MCC3, tree3)
-    for (key, n) in needed_splits_13
-        # split_needed = [!isroot(TreeTools.lca(tree3, s...)) && TreeTools.lca(tree3, s...).data.dat["shared_branch_constraint"]==true for s in n]
-        # no_split_needed = count(x->x==true,split_needed)
-        # if no_split_needed >1 && union([Set(l) for l in n]...) == Set(key)
-        #     return true
-        # elseif no_split_needed >0 && union([Set(l) for l in n]...) != Set(key)
-        #     return true
-        # end
-
-        for s in n
-            if !isroot(TreeTools.lca(tree3, s...)) && TreeTools.lca(tree3, s...).data.dat["shared_branch_constraint"]==true
-            ##need to split
-            return true
-            end
-        end
-    end
-    return false
-end
-
-function count_new_splits_for_topo_degeneracy(M::MCC_set, trees::Vector{Tree{T}}) where T 
-    count = 0
-    k_iters = Combinatorics.combinations(1:M.no_trees, 3)
-    for comb in k_iters
-        MCC1 = get(M, comb[1], comb[2])
-        MCC2 = get(M, comb[1], comb[3])
-        MCC3 = get(M, comb[2], comb[3])
-        count += count_new_splits_for_topo_degeneracy(MCC1, MCC2, MCC3, trees[comb[2]], trees[comb[3]])
-        count += count_new_splits_for_topo_degeneracy(MCC1, MCC3, MCC2, trees[comb[1]], trees[comb[3]])
-        count += count_new_splits_for_topo_degeneracy(MCC2, MCC3, MCC1, trees[comb[1]], trees[comb[2]])
-    end
-    return count
-end
-
-function count_new_splits_for_topo_degeneracy(MCC1::Vector{Vector{String}}, MCC2::Vector{Vector{String}}, MCC3::Vector{Vector{String}}, tree2::Tree{T}, tree3::Tree{T}) where T
-    ##if mcc12 is a strictly smaller (not equal) subset of mcc13 this means that there must be a recombination event above mcc12 in mcc23 as well (and that this can be drawn onto tree 2)
-    needed_splits_12 = []
-    needed_splits_13 = []
-    for mcc1 in MCC1
-        for mcc2 in MCC2
-            if issubset(Set{String}(mcc1), Set{String}(mcc2)) && !isempty(setdiff(Set{String}(mcc2), Set{String}(mcc1))) #check if mcc1 is a notequal subset of mcc2
-                append!(needed_splits_12, [mcc1])
-            elseif issubset(Set{String}(mcc2), Set{String}(mcc1)) && !isempty(setdiff(Set{String}(mcc1), Set{String}(mcc2))) #check if mcc1 is a notequal subset of mcc2
-                append!(needed_splits_13, [mcc2])
-            end
-        end
-    end
-    if isempty(needed_splits_12) && isempty(needed_splits_13)
-        return 0
-    end
-    count = 0
-    TreeKnit.mark_shared_branches!(MCC3, tree2)
-    for n in needed_splits_12
-        if !isroot(TreeTools.lca(tree2, n...)) && TreeTools.lca(tree2, n...).data.dat["shared_branch_constraint"]==true
-            ##need to split
-            count +=1 
-        end
-    end
-    TreeKnit.mark_shared_branches!(MCC3, tree3)
-    for n in needed_splits_13
-        if !isroot(TreeTools.lca(tree3, n...)) && TreeTools.lca(tree3, n...).data.dat["shared_branch_constraint"]==true
-            ##need to split
-            count +=1 
-        end
-    end
-    return count
-end
-
-function fix_topologically_degenerate(MCC1::Vector{Vector{String}}, MCC2::Vector{Vector{String}}, MCC3::Vector{Vector{String}}, tree2::Tree{T}, tree3::Tree{T}) where T
-    ##if mcc12 is a strictly smaller (not equal) subset of mcc13 this means that there must be a recombination event above mcc12 in mcc23 as well (and that this can be drawn onto tree 2)
-    needed_splits_12 = Dict()
-    needed_splits_13 = Dict()
-    for mcc1 in MCC1
-        for mcc2 in MCC2
-            if issubset(Set{String}(mcc1), Set{String}(mcc2)) && !isempty(setdiff(Set{String}(mcc2), Set{String}(mcc1))) #check if mcc1 is a notequal subset of mcc2
-                if haskey(needed_splits_12, mcc2)
-                    append!(needed_splits_12[mcc2], [mcc1])
-                else
-                    needed_splits_12[mcc2] = [mcc1]
-                end
-            elseif issubset(Set{String}(mcc2), Set{String}(mcc1)) && !isempty(setdiff(Set{String}(mcc1), Set{String}(mcc2))) #check if mcc1 is a notequal subset of mcc2
-                if haskey(needed_splits_13, mcc1)
-                    append!(needed_splits_13[mcc1], [mcc2])
-                else
-                    needed_splits_13[mcc1] = [mcc2]
-                end
-            end
-        end
-    end
-    TreeKnit.mark_shared_branches!(MCC3, tree2)
-    TreeKnit.mark_shared_branches!(MCC3, tree3)
-    mcc_map = leaf_mcc_map(MCC3)
-    next_i = length(MCC3) +1 
-    for (key, n) in needed_splits_12
-        for s in n
-            if !isroot(TreeTools.lca(tree2, s...)) && TreeTools.lca(tree2, s...).data.dat["shared_branch_constraint"]==true
-                node = TreeTools.lca(tree2, s...)
-                ##there should be a split here but there is not one -> need to split
-                mcc = node.data.dat["mcc"]
-                for l in POT(node)
-                    if l.data.dat["mcc"] == mcc
-                        l.data.dat["mcc"] = next_i
-                        if isleaf(l)
-                            mcc_map[l.label] = next_i
-                        end
-                    end
-                end
-                next_i +=1 
-            end
-        end
-        # split_needed = [!isroot(TreeTools.lca(tree2, s...)) && TreeTools.lca(tree2, s...).data.dat["shared_branch_constraint"]==true for s in n]
-        # no_split_needed = count(x->x==true,split_needed)
-        # if union([Set(l) for l in n]...) != Set(key)
-        #     no_split_needed +=1 
-        # end
-        # i = 1
-        # while no_split_needed > 1
-        #     if split_needed[i] == true
-        #         node = TreeTools.lca(tree2, n[i]...)
-        #         ##there should be a split here but there is not one -> need to split
-        #         mcc = node.data.dat["mcc"]
-        #         for l in POT(node)
-        #             if l.data.dat["mcc"] == mcc
-        #                 l.data.dat["mcc"] = next_i
-        #                 if isleaf(l)
-        #                     mcc_map[l.label] = next_i
-        #                 end
-        #             end
-        #         end
-        #         next_i +=1 
-        #         no_split_needed -=1
-        #         ## else there is a split here, nothing needed
-        #     else
-        #         i +=1
-        #     end
-        # end
-    end
-    for (key, n) in needed_splits_13
-        for s in n
-            if !isroot(TreeTools.lca(tree3, s...)) && TreeTools.lca(tree3, s...).data.dat["shared_branch_constraint"]==true
-                node = TreeTools.lca(tree3, s...)
-                ##there should be a split here but there is not one -> need to split
-                mcc = node.data.dat["mcc"]
-                for l in POT(node)
-                    if l.data.dat["mcc"] == mcc
-                        l.data.dat["mcc"] = next_i
-                        if isleaf(l)
-                            mcc_map[l.label] = next_i
-                        end
-                    end
-                end
-                next_i +=1 
-            end
-        end
-
-        # split_needed = [!isroot(TreeTools.lca(tree3, s...)) && TreeTools.lca(tree3, s...).data.dat["shared_branch_constraint"]==true for s in n]
-        # no_split_needed = count(x->x==true,split_needed)
-        # if union([Set(l) for l in n]...) != Set(key)
-        #     no_split_needed +=1 
-        # end
-        # i = 1
-        # while no_split_needed > 1
-        #     if split_needed[i] == true
-        #         node = TreeTools.lca(tree3, n[1]...)
-        #         ##there should be a split here but there is not one -> need to split
-        #         mcc = node.data.dat["mcc"]
-        #         for l in POT(node)
-        #             if l.data.dat["mcc"] == mcc
-        #                 l.data.dat["mcc"] = next_i
-        #                 if isleaf(l)
-        #                     mcc_map[l.label] = next_i
-        #                 end
-        #             end
-        #         end
-        #         next_i +=1 
-        #         no_split_needed -=1
-        #         ## else there is a split here, nothing needed
-        #     else
-        #         i +=1
-        #     end
-        # end
-    end
-    MCC3_new = MCC_vector_from_dict(get_MCC_as_dict(mcc_map))
-    return MCC3_new
-end
-
-"""
-find_split(constraint_MCC::Vector{Vector{String}}, MCC::Vector{Vector{String}})
-
-Find the mccs of the `constraint_MCC` that are not a subset of mccs in `MCC` and calculate their intersection with mccs in `MCC`.
-In order for consistency to hold these mccs must be split up. This function returns a dictionary whre each mcc that needs to 
-be split is mapped to its (non empty) intersections with sets in `MCC`.
-"""
-function find_split(constraint_MCC::Vector{Vector{String}}, MCC2::Vector{Vector{String}})
-    add_subsets = Dict()
-    for mcc1 in constraint_MCC
-        for mcc2 in MCC2
-            if issubset(Set{String}(mcc1), Set{String}(mcc2))
-                break
-            elseif !isempty(intersect(Set{String}(mcc2), Set{String}(mcc1)))
-                if haskey(add_subsets, mcc1)
-                    append!(add_subsets[mcc1], [intersect(mcc2, mcc1)])
-                else
-                    add_subsets[mcc1] = [intersect(mcc2, mcc1)]
-                end
-            end
-        end
-    end
-    return add_subsets
-end
-
-"""
-find_set_to_split(MCC_to_split::Vector{Vector{String}}, mcc_constraint::Vector{String})
-
-Find and return the mcc in `MCC_to_split` that contains the mcc `mcc_constraint`.
-"""
-function find_set_to_split(MCC_to_split::Vector{Vector{String}}, mcc_constraint::Vector{String})
-    for mcc in MCC_to_split
-        if issubset(Set{String}(mcc_constraint), Set{String}(mcc))
-            return mcc
-        end
-    end
-end
-
-function find_set_to_split(MCC_to_split::Dict{Int, Vector{String}}, mcc_constraint::Vector{String})
-    for (key, mcc) in MCC_to_split
-        if issubset(Set{String}(mcc_constraint), Set{String}(mcc))
-            return key
-        end
-    end
-end
-
-"""
-split_mcc(mcc_to_split::Vector{String}, mcc_constraint::Vector{String}, splits::Vector{Vector{String}}, tree::Tree)
-
-Split the `mcc_to_split` as prescribed in the `splits` vector. `mcc_constraint` is a subset of `mcc_to_split`, 
-The union of all leaves in the `splits` vector should be equal to the `mcc_constraint`, `mcc_to_split` may contain more leaves.
-If there are `k` splits in the `splits` vector, k-1 splits must be introduced into `mcc_to_split`. 
-For each split calculate the lca, make sure the lca does not have any children that are in another split (using `tree`). 
-If this not the case introduce a split "above the lca" by assigning all it's children that are in the `mcc_to_split`
-to a new mcc.
-"""
-function split_mcc(mcc_to_split::Vector{String}, mcc_constraint::Vector{String}, splits::Vector{Vector{String}}, tree::Tree)
-    new_mcc_list = Vector{String}[]
-    assigned_leaves = Set{String}()
-    count = length(splits) - 1
-    for s in splits
-        lca_ = TreeTools.lca(tree, s...)
-        if Set{String}([x.label for x in POTleaves(lca_) if x.label ∈ mcc_constraint]) == Set{String}(s) && count >0
-            new_mcc = [x.label for x in POTleaves(lca_) if x.label ∈ mcc_to_split]
-            append!(new_mcc_list, [sort(new_mcc, lt=TreeKnit.clt)])
-            union!(assigned_leaves, Set{String}(new_mcc))
-            count -=1
-        end
-    end
-    if count >0
-        print("there is an issue in the split_mcc function")
-    end
-    append!(new_mcc_list, [sort(collect(setdiff(Set{String}(mcc_to_split), assigned_leaves)), lt=TreeKnit.clt)])
-    return sort(new_mcc_list, lt=TreeKnit.clt)
-end
-
-"""
-split_MCCs(first, second, third, tree1, tree2)
-
-For each MCC triplet, e.g. MCC_ab, MCC_ac and MCC_bc the transitivity relation should hold that 
-if a branch is in an mcc in MCCab and that branch in an mcc in MCCac that branch shoudl also be in an mcc in MCCbc (consistency). 
-If this relation does not hold the function performs the following:
-
-- calculate the `constraint` of MCCab and MCCac (which branches are shared in both trees defined by `join_sets(MCCab, MCCac)`
-- find the mccs of the `constraint` that are not a subset of mccs in MCCbc and calculate their intersection with mccs in MCCbc `find_split`
-- randomly choose to introduce splits in MCCab or MCCac (this will lead to the constraint having these splits). If MCCac is chosen look at tree c, else look at tree b
-- find which mcc the mccs that need to be split are contained in in MCCac (or MCCab) `find_set_to_split`
-- split these mccs `split_mcc`.
-"""
-function split_MCCs(first, second, third, tree1, tree2)
-    constraint = TreeKnit.join_sets([first, second])
-    r = rand((1, 2))
-    MCC_to_split = [first, second][r]
-    tree = [tree1, tree2][r]
-    constraint_split_dict = find_split(constraint, third)
-    if !isempty(constraint_split_dict)
-        MCC_to_split_dict = TreeKnit.get_MCC_as_dict(TreeKnit.leaf_mcc_map(MCC_to_split))
-        next_mcc = length(MCC_to_split) + 1
-        for mcc_constraint in keys(constraint_split_dict)
-            mcc_to_split_key = find_set_to_split(MCC_to_split_dict, mcc_constraint)
-            @assert !isnothing(mcc_to_split_key)
-            @assert !isnothing(mcc_constraint)
-            new_mccs = split_mcc(MCC_to_split_dict[mcc_to_split_key], mcc_constraint, constraint_split_dict[mcc_constraint], tree)
-            MCC_to_split_dict[mcc_to_split_key] = new_mccs[1]
-            for new_m in new_mccs[2:end]
-                MCC_to_split_dict[next_mcc] = new_m
-                next_mcc +=1
-            end
-        end
-        MCC_to_split = MCC_vector_from_dict(MCC_to_split_dict)
-    end
-    if r==1
-        return MCC_to_split, second
-    else
-        return first, MCC_to_split
-    end
-end
-"""
-fix_consist_sets!(pair_MCCs::MCC_set, trees::Vector{Tree{MiscData}})
-
-Fix inconsistencies in `pair_MCCs` by splitting mccs as in `split_MCCs`.
-"""
-function fix_consist_sets!(pair_MCCs::MCC_set, trees::Vector{Tree{MiscData}}; topo=false)
-    l_t = pair_MCCs.no_trees
-    rounds = 1+ (l_t-3)*3
-    not_const = TreeKnit.is_degenerate(pair_MCCs)
-    if topo == true
-        not_topo_const = is_topologically_degenerate(pair_MCCs, trees)
-    else
-        not_topo_const = false
-    end
-    r = 0
-    while (not_const ==true || not_topo_const == true) && r < rounds
-        for i in 1:(l_t-1)
-            for j in (i+1):l_t
-                for x in 1:l_t
-                    if x ∉ Set([i, j]) 
-                        if topo == true
-                            third = fix_topologically_degenerate( get(pair_MCCs, (i, x)), get(pair_MCCs, (j, x)), get(pair_MCCs, (j, i)), trees[i], trees[j])
-                            TreeKnit.add!(pair_MCCs, third, (i, j))
-                        end
-                        first, second, third = get(pair_MCCs, (i, x)), get(pair_MCCs, (j, x)), get(pair_MCCs, (j, i))
-                        first, second = split_MCCs(first, second, third, trees[i], trees[j])
-                        TreeKnit.add!(pair_MCCs, first, (i, x))
-                        TreeKnit.add!(pair_MCCs, second, (j, x))
-                    end
-                end
-            end
-        end
-        not_const = TreeKnit.is_degenerate(pair_MCCs)
-        r +=1
-    end
-    if not_const
-        @info "Cannot find a consistent ARG"
-    end
-    return pair_MCCs
-end
-
 
 function consistency_rate(M::MCC_set, trees::Vector{Tree{T}}) where T
     @assert M.order_trees == [t.label for t in trees]
@@ -549,27 +148,6 @@ function consistent_mcc_triplets(MCCs, trees; masked=false)
     return  Z == 0 ? 0.0 : s / Z
 end
 
-function get_shared_leaves_vector(MCCs::Vector{Vector{String}})
-    leaves = sort(collect(union([Set([m... ]) for m in MCCs]...)))
-    mcc_map = leaf_mcc_map(MCCs)
-    leaf_pairs = combinations(leaves,  2)
-    shared_vector = Vector{Int}()
-    for l in leaf_pairs
-        if mcc_map[l[1]] == mcc_map[l[2]]
-            append!(shared_vector, 1)
-        else
-            append!(shared_vector, 0)
-        end
-    end
-    return shared_vector
-end
-
-function accuracy_shared_leaves(iMCCs, rMCCs)
-    rMCCs_vector = get_shared_leaves_vector(rMCCs)
-    iMCCs_vector = get_shared_leaves_vector(iMCCs)
-    return sum((rMCCs_vector - iMCCs_vector).*(rMCCs_vector - iMCCs_vector))/length(rMCCs_vector)
-end
-
 
 function accuracy_shared_branches(tree, true_tree, MCC, rMCC)
     true_positive = 0
@@ -618,4 +196,60 @@ function accuracy_shared_branches(tree, true_tree, MCC, rMCC)
     end
     return true_positive, false_positive, false_negative, true_negative
 end
+
+
+"""
+is_full_topo_compatible(t1::Tree{T}, t2::Tree{T}, mcc::Vector{String}) where T
+
+Check if the MCC `mcc` is fully compatible (up to resolution) with the topology of `t1` and `t2`.
+After 1 standard round of TreeKnit this will always be the case, but for sequential TreeKnit on multiple trees,
+where trees are additionally resolved during each pair-wise iteration this may not always be the case.
+"""
+function is_full_topo_compatible(t1::Tree{T}, t2::Tree{T}, mcc::Vector{String}) where T
+	mask = [leaf in mcc for leaf in sort(collect(keys(t1.lleaves)))]
+	S1 = TreeTools.unique(TreeTools.SplitList(t1, mask))
+	mask = [leaf in mcc for leaf in sort(collect(keys(t2.lleaves)))]
+	S2 = TreeTools.unique(TreeTools.SplitList(t2, mask))
+    filtered_values = filter(i->mask[i], 1:length(mask))
+	for s1 in S1.splits
+        if length(filter(x->x in filtered_values, s1.dat))> 1
+            found = false
+            for s2 in S2.splits
+                if TreeTools.isequal(s1, s2, mask)
+                    found = true
+                    break
+                end
+            end
+            if !found
+                return false
+            end
+        end
+	end
+	return true
+end
+
+"""
+is_topo_compatible(t1::Tree{T}, t2::Tree{T}, mcc::Vector{String}) where T
+
+Check if the MCC `mcc` is compatible (with additional - yet not performed- resolution) with the topology of `t1` and `t2`.
+After 1 standard round of TreeKnit this will always be the case, but for sequential TreeKnit on multiple trees,
+where trees are additionally resolved during each pair-wise iteration this may not always be the case.
+"""
+function is_topo_compatible(t1::Tree{T}, t2::Tree{T}, mcc::Vector{String}) where T
+	mask = [leaf in mcc for leaf in sort(collect(keys(t1.lleaves)))]
+	S1 = TreeTools.SplitList(t1, mask)
+	mask = [leaf in mcc for leaf in sort(collect(keys(t2.lleaves)))]
+	S2 = TreeTools.SplitList(t2, mask)
+	for s1 in S1.splits
+		for s2 in S2.splits
+			if !arecompatible(s1, s2, S2.mask)
+				return false
+			end
+		end
+	end
+	return true
+end
+
+
+
 

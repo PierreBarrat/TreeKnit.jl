@@ -39,19 +39,20 @@ function opttrees(t...;
 	likelihood_sort=true,
 	resolve=true,
 	sa_rep = 1,
-	consistent =true,
+	consistent =false,
 	constraint_cost= γ,
 	verbose=false
 )
 	opttrees!(
 		γ, Trange, M, seq_lengths, [copy(convert(Tree{TreeTools.MiscData}, x)) for x in t]...;
-		likelihood_sort, resolve, sa_rep, constraint_cost, verbose
+		likelihood_sort=likelihood_sort, resolve=resolve, sa_rep=sa_rep, consistent=consistent, 
+		constraint_cost=constraint_cost, verbose=verbose
 	)
 end
 
 function opttrees!(
 	γ, Trange, M, seq_lengths, t::Vararg{Tree}; 
-	likelihood_sort=true, resolve=true, sa_rep=1, consistent =true, constraint_cost= γ, verbose=false
+	likelihood_sort=true, resolve=true, sa_rep=1, consistent =false, constraint_cost= γ, verbose=false
 )
 	set_verbose(verbose)
 

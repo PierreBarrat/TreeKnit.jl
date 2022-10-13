@@ -1,6 +1,6 @@
 # [MultiTreeKnit] (@id multitreeknit)
 
-`TreeKnit` can be used to infer recombination events between multiple tree pairs. When recombination events between three or more trees should be inferred `TreeKnit` uses a recursive inference strategy to return consistent results which we call `MultiTreeKnit`. The following example illustrates the benefits of this inference strategy over running `TreeKnit` individually on all tree pairs. 
+`TreeKnit` can be used to infer recombination events between multiple tree pairs. When recombination events between three or more trees should be inferred `TreeKnit` uses a recursive inference strategy to return consistently resolved trees which we call `MultiTreeKnit`. The following example illustrates the benefits of this inference strategy over running `TreeKnit` individually on all tree pairs. 
 
 As we shall show this recursive strategy makes sure that:
 - Trees are resolved in a consistent manner and cannot be resolved differently between different tree pairs. This allows us to use all recombination event information together.

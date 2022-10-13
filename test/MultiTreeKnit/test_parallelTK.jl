@@ -1,10 +1,9 @@
-using Dagger, BenchmarkTools, StatsBase
-using Plots, Test
+using Test, Dagger
 using TreeKnit, TreeTools
 print_time = false
 
 if print_time == true
-    using Dagger, BenchmarkTools, StatsBase
+    using BenchmarkTools, StatsBase
 end
 
 println("#### test parallelized recursive MultiTreeKnit ###")
@@ -204,33 +203,5 @@ end
     @test SplitList(trees[2]) == SplitList(trees[1])
     @test SplitList(trees[3])== split_list_final_t3
     @test SplitList(trees[4])== split_list_final_t4
-end
-
-function check_parallelized_TK()
-    for i in 1:100
-        true_trees, arg = TreeKnit.get_trees(8, 15; ρ=(10^-0.1))
-        labels = [t.label for t in true_trees]
-        rMCCs = TreeKnit.convert_MCC_list_to_set(8, labels, TreeKnit.get_real_MCCs(8, arg))
-        for no_trees in 2:8
-            rand_order = sample(1:8, no_trees, replace = false)
-            unresolved_trees = [copy(t) for t in true_trees[rand_order]]
-            unresolved_trees = TreeKnit.remove_branches(unresolved_trees; c=0.75)
-
-            i_trees = [copy(t) for t in unresolved_trees]
-            try
-                fc_i_MCCs = TreeKnit.get_infered_MCC_pairs!(i_trees, TreeKnit.OptArgs(consistent = true, force_consist=false, force_topo_consist=false, parallel=true))
-            catch e
-                print("n: "*string(no_trees))
-                for t in true_trees
-                    print_tree_ascii(" ", t)
-                end
-                throw(error())
-            end
-        end
-    end
-end
-
-if print_time == true
-    check_parallelized_TK()
 end
 

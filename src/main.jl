@@ -26,9 +26,6 @@ version resolves the input trees with newly found splits.
 ### `oa::OptArgs`
 Controls parameters of the MCC inference (unless `naive=true`). See `?OptArgs` for details.
 
-In general, this should be set to `true` if more than two trees are used, and to `false`
-  for only two trees (for speed).
-
 ### `naive = false`
 - If `true`, use a naive estimation for MCCs, *i.e.* find all clades that have an exactly
   matching topology in all trees.

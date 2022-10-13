@@ -2,7 +2,7 @@ using Test
 using TreeTools
 using TreeKnit
 
-println("##### measures #####")
+println("##### MultiTreeKnit measures #####")
 
 nwk1 = "((A,B),C);"
 nwk2 = "(A,(B,C));"
@@ -39,7 +39,7 @@ end
     t2 = node2tree(TreeTools.parse_newick(nwk2, node_data_type=TreeTools.MiscData), label= "b")
     t3 = node2tree(TreeTools.parse_newick(nwk3, node_data_type=TreeTools.MiscData), label= "c")
     input_trees = [copy(t1), copy(t2), copy(t3)]
-    MCC_dict = TreeKnit.infer_benchmark_MCCs!(input_trees, consistent=true)
+    MCC_dict = TreeKnit.get_infered_MCC_pairs!(input_trees, consistent=true)
     c = TreeKnit.consistency_rate(MCC_dict, input_trees)
     cfull = TreeKnit.consistency_rate(TreeKnit.iter_pairs(MCC_dict)[2]..., input_trees)
     @test c == 0
@@ -89,30 +89,4 @@ end
     c = TreeKnit.consistency_rate(iMCC_dict, [t_a, t_b, t_c])
     @test c != 0
     @test TreeKnit.is_degenerate(iMCC_dict) == true
-end
-
-@testset "check is_degenerate(MCCs) == (consistency_rate!=0.0) holds" begin
-    repeat = 0
-    while repeat < 10
-        trees, arg = TreeKnit.get_trees(3, 50, remove=true, c=0.75);
-        label!(trees[1], "a")
-        label!(trees[2], "b")
-        label!(trees[3], "c")
-        iMCCs = TreeKnit.get_infered_MCC_pairs!(trees, consistent = true, constraint_cost=4.)
-        @test TreeKnit.is_degenerate(iMCCs) == (TreeKnit.consistency_rate(iMCCs, trees)!=0.0)
-        repeat += 1
-    end
-end
-
-@testset "check is_degenerate(MCCs) == (consistency_rate!=0.0) holds after fix_consist!" begin
-    repeat = 0
-    while repeat < 10
-        trees, arg = TreeKnit.get_trees(3, 50, remove=true, c=0.75);
-        label!(trees[1], "a")
-        label!(trees[2], "b")
-        label!(trees[3], "c")
-        iMCCs = TreeKnit.get_infered_MCC_pairs!(trees, consistent = true, constraint_cost=4., force_consist=true)
-        @test TreeKnit.is_degenerate(iMCCs) == (TreeKnit.consistency_rate(iMCCs, trees)!=0.0)
-        repeat += 1
-    end
 end

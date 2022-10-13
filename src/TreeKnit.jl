@@ -22,7 +22,7 @@ include("mcc_splits.jl")
 include("mcc_tools.jl")
 
 include("MultiTreeKnit/multitree_objects.jl")
-include("MultiTreeKnit/MultiTreeKnit_benchmark.jl")
+include("MultiTreeKnit/MultiTreeKnit.jl")
 
 include("mcc_measures.jl")
 
@@ -46,9 +46,6 @@ import TreeKnit.SimpleReassortmentGraph: SRG
 export SRG
 
 include("cli.jl")
-
-include("arg_plots.jl")
-export draw_ARG
 
 # TreeTools re-exports for docs
 import TreeTools: node2tree, parse_newick

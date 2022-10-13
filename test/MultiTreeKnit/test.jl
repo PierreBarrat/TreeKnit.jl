@@ -3,11 +3,14 @@ using TreeKnit.SplitGraph
 using Test
 using TreeTools
 
-println("##### MultiTreeKnit benchmark #####")
+println("##### MultiTreeKnit #####")
 
-include("$(dirname(pathof(TreeKnit)))/..//test/MultiTreeKnit/test_fix_consist_sets.jl")
-include("$(dirname(pathof(TreeKnit)))/..//test/MultiTreeKnit/test_topo_inconsistent.jl")
 include("$(dirname(pathof(TreeKnit)))/..//test/MultiTreeKnit/test_constraints.jl")
-include("$(dirname(pathof(TreeKnit)))/..//test/MultiTreeKnit/test_benchmark.jl")
+include("$(dirname(pathof(TreeKnit)))/..//test/MultiTreeKnit/test_infer_tree_pairs.jl")
 include("$(dirname(pathof(TreeKnit)))/..//test/MultiTreeKnit/test_measures.jl")
 include("$(dirname(pathof(TreeKnit)))/..//test/MultiTreeKnit/test_parallelTK.jl")
+
+using Pkg
+if "ARGTools" in keys(Pkg.project().dependencies)
+    include("$(dirname(pathof(TreeKnit)))/..//test/MultiTreeKnit/test_random_multitrees.jl")
+end

@@ -13,8 +13,6 @@ MCCs_ref = [
 
 t1 = read_tree("$(dirname(pathof(TreeKnit)))/../test/NYdata/tree_ha.nwk")
 t2 = read_tree("$(dirname(pathof(TreeKnit)))/../test/NYdata/tree_na.nwk")
-t1 = copy(convert(Tree{TreeTools.MiscData}, t1))
-t2 = copy(convert(Tree{TreeTools.MiscData}, t2))
 
 MCCs = computeMCCs(t1, t2)
 

@@ -1,7 +1,7 @@
 using ARGTools
-using TreeTools
 
-# get recombination rate
+println("######## MultiTreeKnit on random ARGs ##########")
+
 function get_r(ρ, n, N, simtype::Symbol)
     if simtype == :kingman
         return ρ * n / N
@@ -16,14 +16,12 @@ end
 
 """
 get_trees(no_trees, no_lineages; remove=false, debug=false, c=0.75, ρ = 0.05
-
 returns trees as well as true MCCs
 simulate a total of `no_trees` trees using the ARGTools package, 
 specifying the `lineage_no` determines the number of nodes in each tree
 remove - if internal branches should be removed (i.e. if trees should not be fully resolved, see parameter c)
-c - Parameter to desribe how resolved trees are
+c - Parameter to describe how resolved trees are
 ρ - Reassortment rate scaled to coalescence rate
-
 """
 function get_trees(no_trees, no_lineages; remove=false, c=0.75, ρ = 0.05, N = 10_000)
     # Parameters of the ARG simulation
@@ -66,26 +64,44 @@ function remove_branches(input_trees; c=0.75, N = 10_000)
     return trees
 end
 
-function get_real_MCCs(no_trees, arg)
-    rMCCs = Vector{Vector{String}}[]
-    for k in 2:no_trees
-        k_iters = Combinatorics.combinations(1:no_trees, k)
-        for combination in k_iters
-            push!(rMCCs, ARGTools.MCCs_from_arg(arg, combination...));
-        end
+@testset "check is_degenerate(MCCs) == (consistency_rate!=0.0) holds for random multitrees" begin
+    repeat = 0
+    while repeat < 10
+        trees, arg = get_trees(3, 50, remove=true, c=0.75);
+        label!(trees[1], "a")
+        label!(trees[2], "b")
+        label!(trees[3], "c")
+        iMCCs = TreeKnit.get_infered_MCC_pairs!(trees, consistent = true, constraint_cost=4.)
+        @test TreeKnit.is_degenerate(iMCCs) == (TreeKnit.consistency_rate(iMCCs, trees)!=0.0)
+        repeat += 1
     end
-    return rMCCs
 end
 
-function compute_consecutive_MCC_set(trees::Vector{TreeTools.Tree{T}}) where T
-    M = TreeKnit.MCC_set(length(trees), [t.label for t in trees])
-    for i in 1:(M.no_trees-1)
-        for j in (i+1):M.no_trees
-            oa = TreeKnit.OptArgs(;γ = 2., likelihood_sort = true, resolve = true,
-                nMCMC = 25, verbose=false,)
-            mCCs = TreeKnit.runopt(oa, trees[i], trees[j]; output = :mccs)
-            TreeKnit.add!(M, mCCs, (i, j))
+function check_parallelized_TK()
+    for i in 1:100
+        true_trees, arg = get_trees(8, 15; ρ=(10^-0.1))
+        labels = [t.label for t in true_trees]
+        rMCCs = TreeKnit.convert_MCC_list_to_set(8, labels, TreeKnit.get_real_MCCs(8, arg))
+        for no_trees in 2:8
+            rand_order = sample(1:8, no_trees, replace = false)
+            unresolved_trees = [copy(t) for t in true_trees[rand_order]]
+            unresolved_trees = remove_branches(unresolved_trees; c=0.75)
+
+            i_trees = [copy(t) for t in unresolved_trees]
+            try
+                fc_i_MCCs = TreeKnit.get_infered_MCC_pairs!(i_trees, TreeKnit.OptArgs(consistent = true, parallel=true))
+            catch e
+                print("n: "*string(no_trees))
+                for t in true_trees
+                    print_tree_ascii(" ", t)
+                end
+                throw(error())
+            end
         end
     end
-    return M
+    return true
+end
+
+@testset "check parallelized TK runs correctly for random multitrees" begin
+    @test check_parallelized_TK()
 end
