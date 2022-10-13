@@ -56,9 +56,9 @@ The directory will contain:
 
 ### Options
 
-The main options that you can play with are:  
-- The parsimony parameter $\gamma$, `--gamma` or `-g`.   
-- Naive inference `--naive`. Using this flag is equivalent to setting $\gamma \rightarrow \infty$.  
+The main options for simulated annealing that you can play with are:  
+- the parsimony parameter $\gamma$, `--gamma` or `-g`.   
+- naive inference `--naive`. Using this flag is equivalent to setting $\gamma \rightarrow \infty$.  
 - Length of sequences used to infer trees: `--seq-lengths`. These are used for likelihood test to break degeneracy between topologically equivalent MCCs.  
 - Do not use branch length to sort the likelihood of different MCCs: `--no-likelihood`.
 - Do not attempt to resolve trees before inferring MCCs: `--no-resolve`.
@@ -66,6 +66,8 @@ The main options that you can play with are:
 When running `TreeKnit` on multiple trees further options are available:
 - Force output MCCs to be consistent with each other by potentially further splitting MCCs: `--force-consistent`
 - Run sequential `TreeKnit` with parallelization (only used for 4 or more trees): `--parallel`
+
+Furthermore, adding the argument `--auspice-view` will create files that can be used to view a tanglegram of the two trees with colored maximally compatible clades in [auspice](https://docs.nextstrain.org/projects/auspice/en/stable/advanced-functionality/second-trees.html). For more information see [Visualization of MCCs in a tanglegram](@ref view_auspice).  
 
 More details in the [options section](@ref options).
 

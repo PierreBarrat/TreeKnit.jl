@@ -7,8 +7,8 @@ println("##### main #####")
 nwk1 = "((1:1,2:1):1,((3:1,4:1):1,5:1,6:1):1)"
 nwk2 = "((6:1,2:1):1,((3:1,4:1):1,5:1,1:1):1)"
 
-t1 = node2tree(TreeTools.parse_newick(nwk1))
-t2 = node2tree(TreeTools.parse_newick(nwk2))
+t1 = node2tree(TreeTools.parse_newick(nwk1), label = "a")
+t2 = node2tree(TreeTools.parse_newick(nwk2), label = "b")
 
 solutions = [
 	[["1"], ["2"], ["3", "4", "5", "6"]],

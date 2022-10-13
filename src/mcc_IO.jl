@@ -128,4 +128,3 @@ function write_auspice_json(filepath, trees::Vector{Tree{T}}, MCCs::MCC_set) whe
 	end
 	return nothing
 end
-

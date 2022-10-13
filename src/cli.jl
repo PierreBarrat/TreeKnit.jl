@@ -23,6 +23,7 @@ treeknit
 - `--final-no-resolve`: Not not resolve trees before inferring MCCs in final round of inference (default for more than 2 trees to prevent topological inconsistencies in output MCCs)
 - `--resolve-all-rounds`: Resolve trees before inferring MCCs in all rounds (default for 2 trees, overrides final-no-resolve)
 - `-v, --verbose`: verbosity
+- `--auspice-view`: return ouput files for auspice
 """
 @main function treeknit(
 	nwk_file1::AbstractString, nwk_file2::AbstractString,
@@ -43,6 +44,7 @@ treeknit
 	verbose::Bool = false,
 	consistency_constraint::Bool = false,
 	parallel::Bool = false,
+	auspice_view::Bool = false
 )
 
 	nwk_files = [nwk_file1, nwk_file2, nwk_files...]
@@ -144,6 +146,10 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 	for i in 1:MCCs.no_trees
 		write_newick(outdir * "/" * out_nwk[i], trees[i])
 	end
+
+	if auspice_view
+		write_auspice_json(outdir * "/", trees, MCCs)
+	end
 	verbose && println()
 
 	if length(trees) ==2
@@ -195,6 +201,7 @@ function make_output_tree_names(nwk_names)
 	return names
 end
 
+
 function get_tree_names(nwk_files)
 
 	fn = [basename(nwk) for nwk in nwk_files]
@@ -206,4 +213,3 @@ function get_tree_names(nwk_files)
 	@assert unique(fn) == fn "Input trees must be identifiable by file name"
 	return fn
 end
-
