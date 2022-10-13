@@ -19,12 +19,12 @@ end
 		naive = false, seqlengths = [1,1],
 	)
 
-Compute pairwise MCCs for trees. Return MCCs and resolved splits. The `computeMCCs!`
-version resolves the input trees with newly found splits.
+Compute pairwise MCCs for two trees. Return MCCs and resolved splits.
 
 # Inputs
 ### `oa::OptArgs`
 Controls parameters of the MCC inference (unless `naive=true`). See `?OptArgs` for details.
+
 
 ### `naive = false`
 - If `true`, use a naive estimation for MCCs, *i.e.* find all clades that have an exactly
@@ -56,9 +56,9 @@ end
 		runopt(oa::OptArgs, trees::Dict{<:Any,<:Tree})
 
 Run optimization at constant γ. See `?Optargs` for arguments. In the first form, keyword
-  arguments are given to `OptArgs`. If `constraint` (in the form of an MCC where nodes that should 
-  be together are in the same cluster) is given this will be used as `shared_branch_constraint` while performing 
-  simulated annealing, preventing nodes that should be in the same MCC from being split from each other.
+  arguments are given to `OptArgs`. If `constraint` is given (in the form of an MCC where nodes that should 
+  be together are in the same cluster) this will be used as `shared_branch`-constraint while performing 
+  simulated annealing, lowering the likelihood that nodes that should be in the same MCC are split from each other.
 """
 runopt(t1::Tree, t2::Tree, constraint::Union{Nothing, Vector{Vector{String}}}; kwargs...) = runopt(OptArgs(;kwargs...), t1, t2, constraint)
 runopt(t1::Tree, t2::Tree; kwargs...) = runopt(OptArgs(;kwargs...), t1, t2, nothing)

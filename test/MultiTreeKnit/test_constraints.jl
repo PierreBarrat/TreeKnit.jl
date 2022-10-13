@@ -24,10 +24,10 @@ tree2 = convert(Tree{TreeTools.MiscData},node2tree(parse_newick("((G,(A,B)k1)k2,
 MCC12 = TreeKnit.sort([["A", "B", "E", "F1", "F2"], ["G"], ["C", "D"]], lt=TreeKnit.clt)
 MCC13 = TreeKnit.sort([["A", "B", "C", "D", "G"], ["E", "F1", "F2"]], lt=TreeKnit.clt)
 
-constraint = TreeKnit.join_sets([MCC12, MCC13])
+constraint = TreeKnit.MCC_join_constraint([MCC12, MCC13])
 
 @testset "MCC join" begin
-    @test join_sets_slow([MCC12, MCC13]) ==  TreeKnit.join_sets([MCC12, MCC13])
+    @test join_sets_slow([MCC12, MCC13]) ==  TreeKnit.MCC_join_constraint([MCC12, MCC13])
     @test constraint == [["G"], ["A", "B"], ["C", "D"], ["E", "F1", "F2"]]
 end
 
@@ -52,9 +52,9 @@ end
     true_labels = Set(["A", "B", "C", "D", "E", "F1", "F2", "i6"])
     for node in nodes(tree3)
         if node.label in true_labels
-            @test node.data["shared_branch_constraint"] == true
+            @test node.data["shared_branch"] == true
         else
-            @test node.data["shared_branch_constraint"] == false
+            @test node.data["shared_branch"] == false
         end
     end
 end

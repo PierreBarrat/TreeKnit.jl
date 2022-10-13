@@ -22,6 +22,8 @@ include("mcc_splits.jl")
 include("mcc_tools.jl")
 
 include("MultiTreeKnit/multitree_objects.jl")
+export MCC_set
+include("MultiTreeKnit/multitree_constraints.jl")
 include("MultiTreeKnit/MultiTreeKnit.jl")
 
 include("mcc_measures.jl")

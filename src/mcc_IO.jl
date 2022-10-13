@@ -1,7 +1,24 @@
 """
 	write_mccs(of, MCCs::AbstractArray)
 
-Write MCCs to file.
+Write MCCs to file. A dat file can only be produced for one tree pair MCC, each line in the dat file
+will represent one mcc.
+
+If multiple MCCs should be written to a file they need to be written to a JSON file. This will have the form:
+
+{ 
+    "MCC_dict" : {
+        "1": { 
+            "trees":["a", "b"],
+            "mccs": [["A"],["B","C"]]
+            },
+        "2": { 
+            "trees":["a", "c"],
+            "mccs": [["A","B","C"]]
+            },
+        ...
+    }
+}
 """
 function write_mccs(filePath, MCCs::AbstractArray, mode="w")
 	file_type = split(filePath, ".")[2]
@@ -75,7 +92,7 @@ with their MCCs drawn on in color. The format used is:
 """
 function write_auspice_json(filepath, trees::Vector{Tree{T}}, MCCs::MCC_set) where T 
 	for tree in trees
-		other_trees = [trees[i] for i in 1:MCCs.no_trees if trees[i].label!=tree.label]
+		other_trees = [copy(trees[i]) for i in 1:MCCs.no_trees if trees[i].label!=tree.label]
 		other_tree_names = [t.label for t in other_trees]
 		assign_all_mccs!(tree, other_trees, MCCs)
 		full_filepath = filepath*"auspice_branch_lengths_"*tree.label*".json"

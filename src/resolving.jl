@@ -29,11 +29,11 @@ function resolve!(
 					graftnode!(nr,r)
 				end
 				graftnode!(R, nr, tau=tau)
-				if typeof(R.data) != TreeTools.EmptyData && haskey(R.data.dat, "shared_branch_constraint") && all([haskey(r.data.dat, "shared_branch_constraint") for r in roots])
-					if R.data.dat["shared_branch_constraint"] && any([r.data.dat["shared_branch_constraint"] for r in roots])
-						nr.data.dat["shared_branch_constraint"] = true
+				if typeof(R.data) != TreeTools.EmptyData && haskey(R.data.dat, "shared_branch") && all([haskey(r.data.dat, "shared_branch") for r in roots])
+					if R.data.dat["shared_branch"] && any([r.data.dat["shared_branch"] for r in roots])
+						nr.data.dat["shared_branch"] = true
 					else
-						nr.data.dat["shared_branch_constraint"] = false
+						nr.data.dat["shared_branch"] = false
 					end
 				end
 				push!(tsplits.splits, s)
@@ -58,6 +58,90 @@ function resolve(trees::Dict{T, <:Tree}, splits::Dict{T, <:SplitList}; kwargs...
 	return resolved_trees
 end
 
+
+"""
+	resolve!(S1::SplitList, t1::Tree, S2::SplitList)
+
+Add splits of `S2` in `S1` if they resolve `t1`.
+"""
+function resolve!(S1new, S1::SplitList, t1::Tree, S2::SplitList)
+	c = 0
+	for s2 in S2
+		r1 = t1.lleaves[S2.leaves[s2.dat[1]]]
+		for i in 2:length(s2.dat)
+			r1 = lca(r1, t1.lleaves[S2.leaves[s2.dat[i]]])
+		end
+		#r1 = lca(t1, S2.leaves[s2.dat]) # Ancestor of nodes in s2 in t1
+		s1 = S1.splitmap[r1.label]
+		if s1 != s2 && !in(s2, S1new) && arecompatible(s1, s2)
+			# Consider the set of splits just below r1 that are subsplits of s2
+			# If I join those, I should get exactly s2
+			# Otherwise, can't use s2 to resolve r1
+			stmp = Split(0)
+			for n in r1.child
+				if n.isleaf
+					i = findfirst(==(n.label), S2.leaves)
+					if in(i, s2.dat)
+						TreeTools.joinsplits!(stmp, Split([i]))
+					end
+				else
+					if TreeTools.is_sub_split(S1.splitmap[n.label], s2)
+						TreeTools.joinsplits!(stmp, S1.splitmap[n.label])
+					end
+				end
+			end
+
+			if stmp == s2
+				push!(S1.splits, s2)
+				push!(S1new.splits, s2)
+				c += 1
+			end
+		end
+	end
+
+	return c
+end
+
+function resolve!(S1::SplitList, S2::SplitList, t1::Tree, t2::Tree)
+	nit = 0
+	nitmax = 20
+	flag = true
+	S1new = SplitList(S1.leaves)
+	S2new = SplitList(S2.leaves)
+	while flag && nit < nitmax
+		flag = false
+		c = resolve!(S1new, S1, t1, S2)
+		c != 0 && (flag = true)
+		c = resolve!(S2new, S2, t2, S1)
+		c != 0 && (flag = true)
+		nit += 1
+	end
+
+	if nit == nitmax
+		@warn "Maximum number of iterations reached"
+	end
+
+	return [S1new, S2new]
+end
+
+###############################################################################################################
+################################### Resolve trees using eachother splits ######################################
+###############################################################################################################
+
+"""
+	resolve!(t1::Tree, t2::Tree; tau=0.)
+
+Resolve `t1` using splits of `t2` and inversely. Every split of `t2` a tree that is compatible with `t1` is introduced in `t1` with branch length `tau` (and inversely). Return new splits in each tree.
+"""
+function resolve!(t1::Tree, t2::Tree; tau=0.)
+	S = [SplitList(t) for t in (t1,t2)]
+	Snew = resolve!(S[1], S[2], t1, t2)
+	for (t, s) in zip((t1,t2), S)
+		resolve!(t, s, conflict=:fail, usemask=false, tau=tau)
+	end
+
+	return Snew
+end
 
 """
 	resolve!(S::SplitList, t::Tree, S2::SplitList)
@@ -141,7 +225,7 @@ end
 ###############################################################################################################
 
 """
-	resolve!(t1::Tree, t2::Tree; tau=0.)
+	resolve!(t1::Tree, t2::Tree, tn::Vararg{Tree}; tau=0.)
 
 Resolve `t1` using splits of `t2` and inversely. Every split of `t2` a tree that is compatible with `t1` is introduced in `t1` with branch length `tau` (and inversely). Return new splits in each tree.
 """

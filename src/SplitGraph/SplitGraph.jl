@@ -131,17 +131,17 @@ get_consistency_mask(g, tree)
 
 Get which branches/ terminal nodes of the current tree (SplitGraph) 
 should not be removed in the subsequent MCMC due to the fact that 
-they have a `shared_branch_constraint`.
+they have a `shared_branch`.
 """
 function get_consistency_mask(g::Graph, tree::Tree)
-	if !haskey(tree.root.data.dat, "shared_branch_constraint")
+	if !haskey(tree.root.data.dat, "shared_branch")
 		return []
 	end
 
 	mask_names = String[]
 
 	for leaf in tree.lleaves
-		if leaf.second.data["shared_branch_constraint"]
+		if leaf.second.data["shared_branch"]
 			push!(mask_names, leaf.second.label)
 		end
 	end

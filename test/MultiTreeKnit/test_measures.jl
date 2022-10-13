@@ -76,7 +76,7 @@ end
     MCC_ab = [["11"], ["4"], ["7"], ["9"], ["1", "5"], ["10", "12", "13", "14", "15", "2", "3", "6", "8"]]
     MCC_ac = [["11"], ["12"], ["13"], ["4"], ["7"], ["9"], ["1", "5"], ["10", "14", "15", "2", "3", "6", "8"]]
     MCC_bc = [["11"], ["12"], ["13"], ["4"], ["7"], ["1", "5"], ["10", "14", "15", "2", "3", "6", "8", "9"]]
-    MCC_dict = TreeKnit.convert_MCC_list_to_set(3, ["a", "b", "c"], [MCC_ab, MCC_ac, MCC_bc])
+    MCC_dict = TreeKnit.MCC_set(3, ["a", "b", "c"], [MCC_ab, MCC_ac, MCC_bc])
     c = TreeKnit.consistency_rate(MCC_dict, [t_a, t_b, t_c])
     @test c == 0
     @test TreeKnit.is_degenerate(MCC_dict) == false
@@ -85,7 +85,7 @@ end
     MCC_ab = [["7"], ["10", "11", "12", "13", "14", "15", "1", "2", "3", "4", "5", "6", "8", "9"]]
     MCC_ac = [["11"], ["12"], ["13"], ["4"], ["7"], ["1", "5"], ["2", "3", "6", "8", "9", "10", "15", "14"]]
     MCC_cb = [["11"], ["12"], ["13"], ["15"], ["4"], ["7"], ["9"], ["1", "5"], ["10", "14", "2", "3", "6", "8"]]
-    iMCC_dict = TreeKnit.convert_MCC_list_to_set(3, ["a", "b", "c"], [MCC_ab, MCC_ac, MCC_cb])
+    iMCC_dict = TreeKnit.MCC_set(3, ["a", "b", "c"], [MCC_ab, MCC_ac, MCC_cb])
     c = TreeKnit.consistency_rate(iMCC_dict, [t_a, t_b, t_c])
     @test c != 0
     @test TreeKnit.is_degenerate(iMCC_dict) == true

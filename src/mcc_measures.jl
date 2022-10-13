@@ -75,9 +75,9 @@ function is_degenerate(M::MCC_set)
 end
 
 function is_degenerate(MCC1::Vector{Vector{String}}, MCC2::Vector{Vector{String}}, MCC3::Vector{Vector{String}})
-    if (!is_MCC_subset_dict(join_sets_to_dict([MCC1, MCC2]), leaf_mcc_map(MCC3)) || 
-        !is_MCC_subset_dict(join_sets_to_dict([MCC1, MCC3]), leaf_mcc_map(MCC2)) ||
-        !is_MCC_subset_dict(join_sets_to_dict([MCC3, MCC2]), leaf_mcc_map(MCC1)))
+    if (!is_MCC_subset_dict(MCC_join_constraint([MCC1, MCC2]; dict=true), leaf_mcc_map(MCC3)) || 
+        !is_MCC_subset_dict(MCC_join_constraint([MCC1, MCC3]; dict=true), leaf_mcc_map(MCC2)) ||
+        !is_MCC_subset_dict(MCC_join_constraint([MCC3, MCC2]; dict=true), leaf_mcc_map(MCC1)))
         return true
     else
         return false
@@ -126,7 +126,7 @@ end
 
 
 function consistent_mcc_triplets(MCCs, trees; masked=false)
-    constraint = TreeKnit.join_sets([MCCs[1], MCCs[2]])
+    constraint = TreeKnit.MCC_join_constraint([MCCs[1], MCCs[2]])
     s = 0
 	Z = 0
     for t in trees
@@ -136,7 +136,7 @@ function consistent_mcc_triplets(MCCs, trees; masked=false)
             if isroot(n)
                 continue
             end
-            if n.data.dat["shared_branch_constraint"]==true ##should be in a MCC
+            if n.data.dat["shared_branch"]==true ##should be in a MCC
                 Z += 1
                 if !(TreeKnit.is_branch_in_mccs(n, MCCs[3]))
                     s += 1
@@ -144,11 +144,20 @@ function consistent_mcc_triplets(MCCs, trees; masked=false)
             end
         end
     end
-    @assert (masked && s!=0 && TreeKnit.is_MCC_subset(TreeKnit.join_sets([MCCs[1], MCCs[2]]), MCCs[3])) == false "Error: Should be consistent" 
+    @assert (masked && s!=0 && TreeKnit.is_MCC_subset(TreeKnit.MCC_join_constraint([MCCs[1], MCCs[2]]), MCCs[3])) == false "Error: Should be consistent" 
     return  Z == 0 ? 0.0 : s / Z
 end
 
+"""
+accuracy_shared_branches(tree, true_tree, MCC, rMCC)
 
+Calculate the number of TP (true positive), FP, TN, and FN (false negative)
+for shared branch inference. Label the true underlying tree `true_tree` (prior to branch removal)
+using the real MCCs `MCC`, do the same with the infered, resolved tree `tree` (assuming TreeKnit received
+an unresolved version of `true_tree` with removed branches and branches were then added to that tree using 
+the inferred MCCs) and inferred MCCs `MCC`. For each branch that exists in both trees (use splitlist)
+check if it has been correctly labeled as shared or not shared.
+"""
 function accuracy_shared_branches(tree, true_tree, MCC, rMCC)
     true_positive = 0
     false_positive = 0
@@ -179,14 +188,14 @@ function accuracy_shared_branches(tree, true_tree, MCC, rMCC)
             node_in_true_tree = true_tree.lnodes[n.label]
         end
         if !isnothing(node_in_true_tree)
-            if n.data["shared_branch_constraint"] 
-                if node_in_true_tree.data["shared_branch_constraint"]
+            if n.data["shared_branch"] 
+                if node_in_true_tree.data["shared_branch"]
                     true_positive += 1
                 else
                     false_positive += 1
                 end
             else
-                if node_in_true_tree.data["shared_branch_constraint"]
+                if node_in_true_tree.data["shared_branch"]
                     false_negative += 1
                 else
                     true_negative += 1

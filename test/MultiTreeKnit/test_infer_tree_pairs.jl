@@ -37,21 +37,22 @@ solutions = [   [["A"], ["B", "C"]],
 
 end
 
-@testset "consistency shared_branch_constraint" begin
+
+@testset "consistency shared_branch" begin
     input_trees = [copy(t1), copy(t2), copy(t3)]
     ot3 = copy(convert(Tree{TreeTools.MiscData}, input_trees[1]))
     ot2 = copy(convert(Tree{TreeTools.MiscData}, input_trees[2]))
     TreeKnit.mark_shared_branches!([["A"], ["B", "C"]], ot2, ot3)
-    @test ot2.lnodes["NODE_1"].data.dat["shared_branch_constraint"] == false
-    @test ot3.lnodes["NODE_1"].data.dat["shared_branch_constraint"] == true
-    @test ot2.lleaves["A"].data.dat["shared_branch_constraint"] == false
-    @test ot3.lleaves["A"].data.dat["shared_branch_constraint"] == false
-    @test ot2.lleaves["B"].data.dat["shared_branch_constraint"] == true
-    @test ot3.lleaves["B"].data.dat["shared_branch_constraint"] == true
+    @test ot2.lnodes["NODE_1"].data.dat["shared_branch"] == false
+    @test ot3.lnodes["NODE_1"].data.dat["shared_branch"] == true
+    @test ot2.lleaves["A"].data.dat["shared_branch"] == false
+    @test ot3.lleaves["A"].data.dat["shared_branch"] == false
+    @test ot2.lleaves["B"].data.dat["shared_branch"] == true
+    @test ot3.lleaves["B"].data.dat["shared_branch"] == true
 
     input_trees = [copy(t1), copy(t2), copy(t3)]
     for constraint in solutions
-        mccs = TreeKnit.runopt(TreeKnit.OptArgs(), input_trees[1], input_trees[2], constraint; output = :mccs)
+        mccs = TreeKnit.runopt(TreeKnit.OptArgs(consistent=true), input_trees[1], input_trees[2], constraint; output = :mccs)
         @test mccs == constraint
     end
 

@@ -81,7 +81,7 @@ function check_parallelized_TK()
     for i in 1:100
         true_trees, arg = get_trees(8, 15; ρ=(10^-0.1))
         labels = [t.label for t in true_trees]
-        rMCCs = TreeKnit.convert_MCC_list_to_set(8, labels, TreeKnit.get_real_MCCs(8, arg))
+        rMCCs = TreeKnit.MCC_set(8, labels, TreeKnit.get_real_MCCs(8, arg))
         for no_trees in 2:8
             rand_order = sample(1:8, no_trees, replace = false)
             unresolved_trees = [copy(t) for t in true_trees[rand_order]]

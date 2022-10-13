@@ -3,7 +3,23 @@ using Dagger
 """
 compute_mcc_pairs!(trees, oa)
 
-subfunction to compute tree pair MCCs
+Subfunction to recursively compute tree pair MCCs for `l_t` trees, iterating over l_t choose 2
+tree pairs a total of `oa.rounds` times. 
+
+For 1 <=i <l_t, i<j<=l_t: 
+    Calculate the MCC between trees[i] and trees[j] (or MCC_{i,j}):
+
+- if oa.consistent and there exists a k !=i, k!=j and calculated MCC_{k,i} and MCC_{k,j}, calculate a 
+constraint on the MCC_{i,j} by computing the `MCC_join_constraint` of these MCCs (i.e. if no reassortment
+occured between leaves A and B in MCC_{k,i} and MCC_{k,j} by transitivity no reassortment should have occured
+between leaves A and B in MCC_{i,j}). This constraint will be used in SA to make removing these branches 
+indepenedently cost more.
+- infer MCC_{i,j} using SA, constraint and parameters specified in `oa`
+- resolve trees[i] and trees[j] using infered MCC_{i,j} (using `strict` or liberal resolve)
+
+If the parameter `oa.final_no_resolve` is set then in the final round no resolution will occur prior to SA. 
+It is recommended to set this parameter to true for more than two trees to prevent any topological incompatibilities 
+with the inferred MCCs and the output trees.
 
 """
 function compute_mcc_pairs!(trees::Vector{Tree{TreeTools.MiscData}}, oa::OptArgs; strict=true)
@@ -23,16 +39,21 @@ function compute_mcc_pairs!(trees::Vector{Tree{TreeTools.MiscData}}, oa::OptArgs
                     for x in range
                         first = get(pair_MCCs, (i, x))
                         second = get(pair_MCCs, (j, x))
-                        pre_joint_MCCs = TreeKnit.join_sets([first, second])
+                        pre_joint_MCCs = TreeKnit.MCC_join_constraint([first, second])
                         if !isnothing(joint_MCCs)
-                            joint_MCCs = TreeKnit.join_sets([joint_MCCs, pre_joint_MCCs])
+                            joint_MCCs = TreeKnit.MCC_join_constraint([joint_MCCs, pre_joint_MCCs])
                         else
                             joint_MCCs = pre_joint_MCCs
                         end
                     end
                 end
-                TreeKnit.add!(pair_MCCs, TreeKnit.runopt(oa, trees[i], trees[j], joint_MCCs; output = :mccs), (i, j))
-                if strict==false || r==oa.rounds
+                if oa.final_no_resolve && r==oa.rounds
+                    oa.resolve = false
+                    TreeKnit.add!(pair_MCCs, TreeKnit.runopt(oa, trees[i], trees[j], joint_MCCs; output = :mccs), (i, j))
+                else
+                    TreeKnit.add!(pair_MCCs, TreeKnit.runopt(oa, trees[i], trees[j], joint_MCCs; output = :mccs), (i, j))
+                end
+                if strict==false
                     rS = TreeKnit.resolve!(trees[i], trees[j], get(pair_MCCs, (j, i)))
                     TreeTools.ladderize!(trees[i])
                     TreeKnit.sort_polytomies!(trees[i], trees[j], get(pair_MCCs, trees[i].label, trees[j].label))
@@ -52,13 +73,19 @@ function run_step!(oa::OptArgs, tree1::Tree, tree2::Tree, constraints, strict, r
     if !isnothing(constraints)
         constraint = fetch(constraints[1])
         for mcc_con in constraints[2:end]
-            constraint = TreeKnit.join_sets([constraint, fetch(mcc_con)])
+            constraint = TreeKnit.MCC_join_constraint([constraint, fetch(mcc_con)])
         end
     else
         constraint = nothing
     end
-    MCC = TreeKnit.runopt(oa, tree1, tree2, constraint; output = :mccs)
-    if strict==false || r==oa.rounds
+    if oa.final_no_resolve && r==oa.rounds
+        oa = fetch(oa)
+        oa.resolve = false
+        MCC = TreeKnit.runopt(oa, tree1, tree2, constraint; output = :mccs)
+    else
+        MCC = TreeKnit.runopt(oa, tree1, tree2, constraint; output = :mccs)
+    end
+    if strict==false
         rS = TreeKnit.resolve!(tree1, tree2, MCC)
         TreeTools.ladderize!(tree1)
         TreeKnit.sort_polytomies!(tree1, tree2, MCC)
@@ -71,6 +98,12 @@ function run_step!(oa::OptArgs, tree1::Tree, tree2::Tree, constraints, strict, r
     return MCC
 end
 
+"""
+parallelized_compute_mccs!(trees::Vector{Tree{TreeTools.MiscData}}, oa::OptArgs, strict)
+
+Parallelized version of `compute_mcc_pairs!(trees, oa)`
+
+"""
 function parallelized_compute_mccs!(trees::Vector{Tree{TreeTools.MiscData}}, oa::OptArgs, strict)
     l_t = length(trees)
     parallel_MCCs = Dict()
@@ -123,15 +156,21 @@ function compute_naive_mcc_pairs!(trees::Vector{Tree{TreeTools.MiscData}}; stric
 end
 
 """
-function get_infered_MCC_pairs!(trees::Vector{Tree{T}}, oa::OptArgs=OptArgs()) where T
+    function get_infered_MCC_pairs!(trees::Vector{Tree{T}}, oa::OptArgs=OptArgs()) where T
 
-function to get all MCCs of all tree pairs in tree list `trees` using TreeKnit,
-resolved trees from previous MCC calculations are used as the tree input for the next pair, 
-the order is specified in Combinatorics.combinations(1:length(trees), 2). If MCC pairs should be 
-consistent with previous MCCs the `consistent` flag can be set to true. A `shared_branch_constraint` will then be 
-computed from the previous MCC pairs that will discourage TreeKnit from removing nodes in an inconsistent manner.
+Function to compute MCCs of all tree pairs in tree list `trees` using `TreeKnit.run_opt`. Resolved trees
+from previous MCC calculations are used as the input trees for the next pair, the order is specified in
+Combinatorics.combinations(1:length(trees), 2). 
 
-For example if node `a` and node `b` are both in the same MCC clade for MCC12 and MCC13 they should also 
+## Parameters:
+- `naive`: return naive MCCs of all tree pairs.
+- `strict`: Apply conservative resolution. If a reassortment event happened in a polytomy that could be resolved by a MCC 
+it is unclear if the reassortment or the coalescence happened first, in order to introduce such a split the order must be 
+randomly assigned. If this is desired `strict` should be set to false.
+- `oa.parallel`: Parallelize MCC computation of tree pairs as much as possible.
+- `oa.consistent`: If MCC pairs should be consistent with previous MCCs the `consistent` flag can be set to true, this will discourage 
+TreeKnit from removing nodes in an inconsistent manner during SA (but cannot guarantee a consistent solution).
+For example, if node `a` and node `b` are both in the same MCC clade for MCC12 and MCC13 they should also 
 be together in MCC23, otherwise the MCC pairs are inconsistent.
 
 """
@@ -154,73 +193,4 @@ end
 
 function get_infered_MCC_pairs!(trees::Vector{Tree{T}}; kwargs...) where T 
     return get_infered_MCC_pairs!(trees, OptArgs(;kwargs...))
-end
-
-
-###functions for calculating the constraints previously inferred MCCs put on later MCCs
-
-"""
-join_sets(input_sets::Vector{Vector{String}})
-
-given as input a list of MCC lists this function joins these MCC lists (sets) by calculating their intersection recursively
-and returning their intersection
-"""
-function join_sets(MCCs::Vector{Vector{Vector{String}}})
-    sets = [union([Set([m... ]) for m in mcc]...) for mcc in MCCs]
-    @assert union(sets...) == sets[1] ## make sure labels are the same in all trees
-    mcc_map = Dict{String, Vector{Int}}()
-    reverse_mcc_map = Dict{Vector{Int}, Set{String}}()
-    for MCC in MCCs
-        for (i,mcc) in enumerate(MCC)
-            for node in mcc
-                if haskey(mcc_map, node)
-                    append!(mcc_map[node], i)
-                else
-                    mcc_map[node] = [i]
-                end
-            end
-        end
-    end
-    for node in keys(mcc_map)
-        if haskey(reverse_mcc_map, mcc_map[node])
-            push!(reverse_mcc_map[mcc_map[node]], node)
-        else
-            reverse_mcc_map[mcc_map[node]] = Set([node])
-        end
-    end
-    MCCs_new = Vector{String}[]
-    for (num, mcc) in reverse_mcc_map
-        append!(MCCs_new, [sort(collect(mcc))])
-    end
-    return TreeKnit.sort(MCCs_new; lt=TreeKnit.clt)
-end
-
-function join_sets_to_dict(MCCs::Vector{Vector{Vector{String}}})
-    sets = [union([Set([m... ]) for m in mcc]...) for mcc in MCCs]
-    @assert union(sets...) == sets[1] ## make sure labels are the same in all trees
-    mcc_map = Dict{String, Vector{Int}}()
-    reverse_mcc_map = Dict{Vector{Int}, Set{String}}()
-    for MCC in MCCs
-        for (i,mcc) in enumerate(MCC)
-            for node in mcc
-                if haskey(mcc_map, node)
-                    append!(mcc_map[node], i)
-                else
-                    mcc_map[node] = [i]
-                end
-            end
-        end
-    end
-    for node in keys(mcc_map)
-        if haskey(reverse_mcc_map, mcc_map[node])
-            push!(reverse_mcc_map[mcc_map[node]], node)
-        else
-            reverse_mcc_map[mcc_map[node]] = Set([node])
-        end
-    end
-    MCCs_new = Dict{Int, Set{String}}()
-    for (num, key) in enumerate(keys(reverse_mcc_map))
-        MCCs_new[num] = reverse_mcc_map[key]
-    end
-    return MCCs_new
 end

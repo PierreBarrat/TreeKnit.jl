@@ -41,6 +41,7 @@ Storing parameters for `SplitGraph.runopt` function.
 	consistent::Bool = false ##if constraints should be added to enforce consistency
 	constraint_cost::Float64 = 2*γ
 	rounds::Int=2
+	final_no_resolve::Bool = false
 	parallel::Bool = false
 	# Verbosity
 	verbose::Bool = false
@@ -79,6 +80,11 @@ end
 
 get_linear_cooling_schedule(Tmin, Tmax, nT) = return collect(reverse(range(Tmin, stop = Tmax, length = nT)))
 
+"""
+format_constraint!(constraint, tree)
+
+Make sure constraint has required formating (same as MCC) to be used in SA
+"""
 function format_constraint!(constraint, tree)
 	if !isnothing(constraint)
 		constraint_leaves = union([Set([m... ]) for m in constraint]...)

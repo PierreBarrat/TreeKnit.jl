@@ -11,14 +11,17 @@ treeknit
 - `-g, --gamma <arg>`: value of γ; Example `-g=2`
 - `--seq-lengths <arg>`: length of the sequences. Example: `--seq-length "1500 2000"`
 - `--n-mcmc-it <arg>`: number of MCMC iterations per leaf; default 25
+- `--rounds`: Number of times to run inference on input trees, when rounds >1 MCCs will be reinferred using resolved trees from the last iteration. (default: 1 - for 2 input trees, 2 - for >2 input trees)
 
 # Flags
 
 - `--naive`: Naive inference (overrides `-g`).
 - `--no-likelihood`: Do not use branch length likelihood test to sort between different MCCs
 - `--no-resolve`: Do not attempt to resolve trees before inferring MCCs.
-- `--loose-resolve`: Resolve output trees as much as possible using inferred MCCs, adding splits when order of coalescence and reassortment is unclear (coalescence is put prior to reassortment)
+- `--liberal-resolve`: Resolve output trees as much as possible using inferred MCCs, adding splits when order of coalescence and reassortment is unclear (coalescence is set at a time prior to reassortment)
 - `--parallel`: Run sequential multitree-TreeKnit with parallelization (only relevant for 4 or more trees) 
+- `--final-no-resolve`: Not not resolve trees before inferring MCCs in final round of inference (default for more than 2 trees to prevent topological inconsistencies in output MCCs)
+- `--resolve-all-rounds`: Resolve trees before inferring MCCs in all rounds (default for 2 trees, overrides final-no-resolve)
 - `-v, --verbose`: verbosity
 """
 @main function treeknit(
@@ -29,11 +32,14 @@ treeknit
 	gamma::Float64 = 2.,
 	seq_lengths::AbstractString = join([string(i) for i in repeat([1], 2+ length(nwk_files))], " "),
 	n_mcmc_it::Int = 25,
+	rounds::Int = 1 + mod(length(nwk_files),1),
 	# flags
 	naive::Bool = false,
 	no_likelihood::Bool = false,
 	no_resolve::Bool = false,
-	loose_resolve::Bool = false,
+	liberal_resolve::Bool = false,
+	final_no_resolve::Bool = false,
+	resolve_all_rounds::Bool = false,
 	verbose::Bool = false,
 	consistency_constraint::Bool = false,
 	parallel::Bool = false,
@@ -91,11 +97,29 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 		parallel = false
 	end
 
+	println("Performing $rounds of TreeKnit")
+	if resolve_all_rounds || (length(trees)==2 && !final_no_resolve)
+		resolve_all_rounds = true
+		println("Resolving tree topology prior to inference")
+	end
+	if no_resolve
+		println("Not resolving tree topology prior to inference")
+		if no_resolve && final_no_resolve ##do not print twice
+			final_no_resolve = false
+		end
+	end
+	if final_no_resolve || (length(trees)>2 && !resolve_all_rounds)
+		final_no_resolve = true
+		println("Not resolving tree topology prior to inference in final round")
+	end
+
 	# Setting up OptArgs
 	oa = OptArgs(;
 		γ = gamma,
 		likelihood_sort = !no_likelihood,
 		resolve = !no_resolve,
+		final_no_resolve = final_no_resolve,
+		rounds = rounds, 
 		nMCMC = n_mcmc_it,
 		seq_lengths = sl,
 		verbose=true,
@@ -107,7 +131,7 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 	@info "Parameters: $oa"
 
 	@info "Inferring MCCs...\n"
-	out = @timed get_infered_MCC_pairs!(trees, oa; strict=!loose_resolve, naive=naive)
+	out = @timed get_infered_MCC_pairs!(trees, oa; strict=!liberal_resolve, naive=naive)
 	MCCs = out[1]
 	l = [length(m) for (key,m) in MCCs.mccs]
 	@info "Found $l MCCs (runtime $(out[2]))\n"

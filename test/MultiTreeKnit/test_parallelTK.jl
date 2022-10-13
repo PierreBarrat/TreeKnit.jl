@@ -1,10 +1,5 @@
 using Test, Dagger
 using TreeKnit, TreeTools
-print_time = false
-
-if print_time == true
-    using BenchmarkTools, StatsBase
-end
 
 println("#### test parallelized recursive MultiTreeKnit ###")
 
@@ -18,56 +13,26 @@ pre_trees = [t1, t2, t3]
 
 @testset "3 trees, 1 round" begin
     trees = [copy(t) for t in pre_trees]
-    MCCs = TreeKnit.parallelized_compute_mccs!(trees, OptArgs(rounds=1))
+    MCCs = TreeKnit.parallelized_compute_mccs!(trees, OptArgs(rounds=1, consistent=true))
     @test SplitList(trees[3]) == SplitList(trees[1])
     @test get(MCCs, (1, 2)) == get(MCCs, (3, 2)) 
     
     trees = [copy(t) for t in pre_trees]
-    MCCs_slow = TreeKnit.compute_mcc_pairs!(trees, OptArgs(rounds=1))
+    MCCs_slow = TreeKnit.compute_mcc_pairs!(trees, OptArgs(rounds=1, consistent=true))
     @test SplitList(trees[3]) == SplitList(trees[1])
     @test get(MCCs_slow, (1, 2)) == get(MCCs_slow, (3, 2)) 
-end
-
-if print_time == true
-    print("Time parallelized, 1 round")
-    trees = [copy(t) for t in pre_trees]
-    @btime MCCs = TreeKnit.parallelized_compute_mccs!(trees, OptArgs(rounds=1))
-    print("Time non-parallelized, 1 round")
-    trees = [copy(t) for t in pre_trees]
-    @btime TreeKnit.compute_mcc_pairs!(trees, OptArgs(rounds=1))
-    print("Time parallelized, 1 round")
-    trees = [copy(t) for t in pre_trees]
-    @btime MCCs = TreeKnit.parallelized_compute_mccs!(trees, OptArgs(rounds=1))
-    print("Time non-parallelized, 1 round")
-    trees = [copy(t) for t in pre_trees]
-    @btime TreeKnit.compute_mcc_pairs!(trees, OptArgs(rounds=1))
 end
 
 @testset "3 trees, 2 rounds" begin
     trees = [copy(t) for t in pre_trees]
-    MCCs = TreeKnit.parallelized_compute_mccs!(trees, OptArgs())
+    MCCs = TreeKnit.parallelized_compute_mccs!(trees, OptArgs(consistent=true))
     @test SplitList(trees[3]) == SplitList(trees[1])
     @test get(MCCs, (1, 2)) == get(MCCs, (3, 2)) 
 
     trees = [copy(t) for t in pre_trees]
-    MCCs_slow = TreeKnit.compute_mcc_pairs!(trees, OptArgs())
+    MCCs_slow = TreeKnit.compute_mcc_pairs!(trees, OptArgs(consistent=true))
     @test SplitList(trees[3]) == SplitList(trees[1])
     @test get(MCCs_slow, (1, 2)) == get(MCCs_slow, (3, 2)) 
-end
-
-if print_time == true
-    print("Time parallelized, 2 rounds")
-    trees = [copy(t) for t in pre_trees]
-    @btime MCCs = TreeKnit.parallelized_compute_mccs!(trees, OptArgs())
-    print("Time non-parallelized, 2 rounds")
-    trees = [copy(t) for t in pre_trees]
-    @btime  MCCs_slow = TreeKnit.compute_mcc_pairs!(trees, OptArgs())
-    print("Time parallelized, 2 rounds")
-    trees = [copy(t) for t in pre_trees]
-    @btime MCCs = TreeKnit.parallelized_compute_mccs!(trees, OptArgs())
-    print("Time non-parallelized, 2 rounds")
-    trees = [copy(t) for t in pre_trees]
-    @btime  MCCs_slow = TreeKnit.compute_mcc_pairs!(trees, OptArgs())
 end
 
 nwk1 = "(((A,B),C),(D,E,F))R"
@@ -85,9 +50,9 @@ split_list_final_t4 = [["E", "F"], ["D", "E", "F"], ["A", "B"], ["A", "B", "C"],
 
 @testset "4 trees, 1 round" begin
     trees = [copy(t) for t in pre_trees]
-    MCCs = TreeKnit.parallelized_compute_mccs!(trees, OptArgs(rounds=1))
+    MCCs = TreeKnit.parallelized_compute_mccs!(trees, OptArgs(rounds=1, consistent=true))
     @test get(MCCs, (1, 2)) == get(MCCs, (3, 2)) 
-    joint_ = TreeKnit.join_sets([get(MCCs, (1, 2)),  get(MCCs, (1, 4))])
+    joint_ = TreeKnit.MCC_join_constraint([get(MCCs, (1, 2)),  get(MCCs, (1, 4))])
     @test get(MCCs, (1, 4)) == get(MCCs, (3, 4))
     @test get(MCCs, (2, 4)) == joint_
     @test SplitList(trees[3]) == SplitList(trees[1])
@@ -95,36 +60,21 @@ split_list_final_t4 = [["E", "F"], ["D", "E", "F"], ["A", "B"], ["A", "B", "C"],
     @test SplitList(trees[4])== split_list_final_t4
 
     trees = [copy(t) for t in pre_trees]
-    MCCs_slow = TreeKnit.compute_mcc_pairs!(trees, OptArgs(rounds=1))
+    MCCs_slow = TreeKnit.compute_mcc_pairs!(trees, OptArgs(rounds=1, consistent=true))
     @test get(MCCs_slow , (1, 2)) == get(MCCs_slow , (3, 2)) 
-    joint_ = TreeKnit.join_sets([get(MCCs_slow , (1, 2)),  get(MCCs_slow , (1, 4))])
+    joint_ = TreeKnit.MCC_join_constraint([get(MCCs_slow , (1, 2)),  get(MCCs_slow , (1, 4))])
     @test get(MCCs_slow , (1, 4)) == get(MCCs_slow , (3, 4))
     @test get(MCCs_slow , (2, 4)) == joint_
     @test SplitList(trees[3]) == SplitList(trees[1])
     @test SplitList(trees[2])== split_list_final_t2
     @test SplitList(trees[4])== split_list_final_t4
-end
-
-if print_time == true
-    print("Time parallelized, 1 round")
-    trees = [copy(t) for t in pre_trees]
-    @btime MCCs = TreeKnit.parallelized_compute_mccs!(trees, OptArgs(rounds=1))
-    print("Time non-parallelized, 1 round")
-    trees = [copy(t) for t in pre_trees]
-    @btime MCCs_slow = TreeKnit.compute_mcc_pairs!(trees, OptArgs(rounds=1))
-    print("Time parallelized, 1 round")
-    trees = [copy(t) for t in pre_trees]
-    @btime MCCs = TreeKnit.parallelized_compute_mccs!(trees, OptArgs(rounds=1))
-    print("Time non-parallelized, 1 round")
-    trees = [copy(t) for t in pre_trees]
-    @btime MCCs_slow = TreeKnit.compute_mcc_pairs!(trees, OptArgs(rounds=1))
 end
 
 @testset "4 trees, 2 rounds" begin
     trees = [copy(t) for t in pre_trees]
-    MCCs = TreeKnit.parallelized_compute_mccs!(trees, OptArgs())
+    MCCs = TreeKnit.parallelized_compute_mccs!(trees, OptArgs(consistent=true))
     @test get(MCCs, (1, 2)) == get(MCCs, (3, 2)) 
-    joint_ = TreeKnit.join_sets([get(MCCs, (1, 2)),  get(MCCs, (1, 4))])
+    joint_ = TreeKnit.MCC_join_constraint([get(MCCs, (1, 2)),  get(MCCs, (1, 4))])
     @test get(MCCs, (1, 4)) == get(MCCs, (3, 4))
     @test get(MCCs, (2, 4)) == joint_
     @test SplitList(trees[3]) == SplitList(trees[1])
@@ -132,29 +82,14 @@ end
     @test SplitList(trees[4])== split_list_final_t4
 
     trees = [copy(t) for t in pre_trees]
-    MCCs_slow = TreeKnit.compute_mcc_pairs!(trees, OptArgs())
+    MCCs_slow = TreeKnit.compute_mcc_pairs!(trees, OptArgs(consistent=true))
     @test get(MCCs_slow , (1, 2)) == get(MCCs_slow , (3, 2)) 
-    joint_ = TreeKnit.join_sets([get(MCCs_slow , (1, 2)),  get(MCCs_slow , (1, 4))])
+    joint_ = TreeKnit.MCC_join_constraint([get(MCCs_slow , (1, 2)),  get(MCCs_slow , (1, 4))])
     @test get(MCCs_slow , (1, 4)) == get(MCCs_slow , (3, 4))
     @test get(MCCs_slow , (2, 4)) == joint_
     @test SplitList(trees[3]) == SplitList(trees[1])
     @test SplitList(trees[2])== split_list_final_t2
     @test SplitList(trees[4])== split_list_final_t4
-end
-
-if print_time == true
-    print("Time parallelized, 1 round")
-    trees = [copy(t) for t in pre_trees]
-    @btime MCCs = TreeKnit.parallelized_compute_mccs!(trees, OptArgs())
-    print("Time non-parallelized, 1 round")
-    trees = [copy(t) for t in pre_trees]
-    @btime MCCs_slow = TreeKnit.compute_mcc_pairs!(trees, OptArgs())
-    print("Time parallelized, 1 round")
-    trees = [copy(t) for t in pre_trees]
-    @btime MCCs = TreeKnit.parallelized_compute_mccs!(trees, OptArgs())
-    print("Time non-parallelized, 1 round")
-    trees = [copy(t) for t in pre_trees]
-    @btime MCCs_slow = TreeKnit.compute_mcc_pairs!(trees, OptArgs())
 end
 
 pre_trees = [t1, t3, t2, t4]
@@ -163,9 +98,9 @@ split_list_final_t4 = [["E", "F"], ["D", "E", "F"], ["A", "B"], ["A", "B", "C"],
 
 @testset "4 trees (reordered), 1 round" begin
     trees = [copy(t) for t in pre_trees]
-    MCCs = TreeKnit.parallelized_compute_mccs!(trees, OptArgs(rounds=1))
+    MCCs = TreeKnit.parallelized_compute_mccs!(trees, OptArgs(rounds=1, consistent=true))
     @test get(MCCs, (1, 3)) == get(MCCs, (3, 2)) 
-    joint_ = TreeKnit.join_sets([get(MCCs, (1, 3)),  get(MCCs, (1, 4))])
+    joint_ = TreeKnit.MCC_join_constraint([get(MCCs, (1, 3)),  get(MCCs, (1, 4))])
     @test get(MCCs, (1, 4)) == get(MCCs, (2, 4))
     @test get(MCCs, (3, 4)) == joint_
     @test SplitList(trees[2]) == SplitList(trees[1])
@@ -173,9 +108,9 @@ split_list_final_t4 = [["E", "F"], ["D", "E", "F"], ["A", "B"], ["A", "B", "C"],
     @test SplitList(trees[4])== split_list_final_t4
 
     trees = [copy(t) for t in pre_trees]
-    MCCs_slow = TreeKnit.compute_mcc_pairs!(trees, OptArgs(rounds=1))
+    MCCs_slow = TreeKnit.compute_mcc_pairs!(trees, OptArgs(rounds=1, consistent=true))
     @test get(MCCs_slow , (1, 3)) == get(MCCs_slow , (3, 2)) 
-    joint_ = TreeKnit.join_sets([get(MCCs_slow , (1, 3)),  get(MCCs_slow , (1, 4))])
+    joint_ = TreeKnit.MCC_join_constraint([get(MCCs_slow , (1, 3)),  get(MCCs_slow , (1, 4))])
     @test get(MCCs_slow , (1, 4)) == get(MCCs_slow , (2, 4))
     @test get(MCCs_slow , (3, 4)) == joint_
     @test SplitList(trees[2]) == SplitList(trees[1])
@@ -185,9 +120,9 @@ end
 
 @testset "4 trees (reordered), 2 rounds" begin
     trees = [copy(t) for t in pre_trees]
-    MCCs = TreeKnit.parallelized_compute_mccs!(trees, OptArgs())
+    MCCs = TreeKnit.parallelized_compute_mccs!(trees, OptArgs(consistent=true))
     @test get(MCCs, (1, 3)) == get(MCCs, (3, 2)) 
-    joint_ = TreeKnit.join_sets([get(MCCs, (1, 3)),  get(MCCs, (1, 4))])
+    joint_ = TreeKnit.MCC_join_constraint([get(MCCs, (1, 3)),  get(MCCs, (1, 4))])
     @test get(MCCs, (1, 4)) == get(MCCs, (2, 4))
     @test get(MCCs, (3, 4)) == joint_
     @test SplitList(trees[2]) == SplitList(trees[1])
@@ -195,9 +130,9 @@ end
     @test SplitList(trees[4])== split_list_final_t4
 
     trees = [copy(t) for t in pre_trees]
-    MCCs_slow = TreeKnit.compute_mcc_pairs!(trees, OptArgs())
+    MCCs_slow = TreeKnit.compute_mcc_pairs!(trees, OptArgs(consistent=true))
     @test get(MCCs_slow , (1, 3)) == get(MCCs_slow , (3, 2)) 
-    joint_ = TreeKnit.join_sets([get(MCCs_slow , (1, 3)),  get(MCCs_slow , (1, 4))])
+    joint_ = TreeKnit.MCC_join_constraint([get(MCCs_slow , (1, 3)),  get(MCCs_slow , (1, 4))])
     @test get(MCCs_slow , (1, 4)) == get(MCCs_slow , (2, 4))
     @test get(MCCs_slow , (3, 4)) == joint_
     @test SplitList(trees[2]) == SplitList(trees[1])

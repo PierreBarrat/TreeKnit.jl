@@ -39,6 +39,7 @@ Output `M`: `M[label] == i` means node `label` (internal or leaf) belongs to MCC
 
 ## Important
 `tree` has to be resolved using `MCCs` for this to work.
+If trees are not resolved `assign_mccs` can be called (trees must be of type `Tree{TreeTools.MiscData}`)
 """
 function mcc_map(tree::Tree, MCCs)
 	mcc_map = Dict()
