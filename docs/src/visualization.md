@@ -1,7 +1,7 @@
 # [Visualizing MCCs](@id visualization)
 
 ## Visualizing the ARG
-[IcyTree](https://icytree.org/) (Vaughan, T. G., IcyTree: Rapid browser-based visualization for phlogenetic trees and networks. Bioinformatics 2017. DOI: 10.1093/bioinformatics/btx155) is an in-browser application that can be used to view ARGs. Just drag and drop the extended newick file obtained per default at the end of TreeKnit and see the results. 
+[IcyTree](https://icytree.org/) (Vaughan, T. G., IcyTree: Rapid browser-based visualization for phlogenetic trees and networks. Bioinformatics 2017. DOI: 10.1093/bioinformatics/btx155) is an in-browser application that can be used to view ARGs. Just drag and drop the extended newick file obtained from TreeKnit and see the results. 
 
 ## [Visualizing MCCs using a Tanglegram] (@id view_auspice)
 Tanglegrams are an excellent way to view recombination events between trees. In a tanglegram two trees are joint at the leaves and viewed side by side. Auspice is an excellent option for visualizing recombination events in large trees as it can uniquely color different MCCs allowing for easy comparison of tree topologies. Viewing tanglegrams in Auspice with MCC colorings requires specific files, which will be generated when TreeKnit is run with the `--auspice-view` argument. In julia these files can be produced using the command: `TreeKnit.write_auspice_json(filepath::String, tree1::Tree{T}, tree2::Tree{T}, MCCs::Vector{Vector{String}})`.

@@ -1,4 +1,4 @@
-# Resolving 
+# Resolving (@id resolving)
 
 The lack of resolution in the inference of phylogenetic trees results in *polytomies*: internal nodes with more than two offsprings. 
   Polytomies can cause the topology of two trees to differ, which cause problems when inferring reassortments using topological information. 

@@ -3,7 +3,9 @@
 ## Using the CLI
 
 `TreeKnit` offers a simple CLI script: `treeknit`. 
-In short, it takes two or more trees as input, passed as [Newick](https://en.wikipedia.org/wiki/Newick_format) files, and infers reassortment events between all tree pairs. When two trees are given as input, TreeKnit returns an Ancestral Reassortment Graph (ARG). When multiple trees are given as input, an ARG of all trees can only be returned if the infered reassortment events between all tree pairs are consistent with each other (more information on consistency requirements and how `TreeKnit` runs on more than two trees can be found in the [MultiTreeKnit section](@ref multitreeknit)).
+In short, it takes two or more trees as input, passed as [Newick](https://en.wikipedia.org/wiki/Newick_format) files, and infers reassortment events between all tree pairs. It does this by finding shared regions of two trees, so called [maximally compatible clades (MCCs)](@id MCCs), within which we assume no reassortment has occurred. Each MCC corresponds to one reassortment event between the two trees (except if the MCC contains the root of both trees). Knowledge of these shared reasons can be used to better resolve input trees, see [resolving section](@ref resolve) and to improve parameter inference on trees as information from multiple segments can be used together in shared tree regions. 
+
+When two trees are given as input, TreeKnit additionally returns an Ancestral Reassortment Graph (ARG). This is currently not possible for multiple trees, more information on how `TreeKnit` runs on more than two trees can be found in the [MultiTreeKnit section](@ref multitreeknit)).
 
 !!! info "Compile time" 
     Julia is compiled *just in time*, meaning that functions are compiled when called for the first time inside a julia session. For this reason, some compilation will take place each time the  `treeknit` script is called, leading to an overhead of a few seconds. If `Treeknit` is to be applied to many pairs of trees, it will be faster to use it from a Julia session. 
@@ -30,8 +32,7 @@ However, not meeting them might result in irrelevant or meaningless output.
 ### Output
 
 Output of the inference is written to a directory called `treeknit_results`. This can be changed using the `--outdir` option.   
-The directory will contain:   
-- the ARG, written as an extended [Newick string](https://doi.org/10.1186/1471-2105-9-532).   
+The directory will contain:    
 - the MCCs, *i.e.* shared regions of the trees, indicated by the leaves they contain. The MCCs of all tree pairs are written in JSON format. For example for three trees "a", "b", "c" with 10 shared branches, their MCCs would be written to a JSON, such as in the example below. The tree pairs are numbered in the order the MCCs were calculated in.
 ```
 { 
@@ -51,8 +52,12 @@ The directory will contain:
     }
 }
 ```
-- resolved trees, where polytomies have been reduced as much as possible using the knowledge of the MCCs.   
-- a table with the correspondence between internal nodes of the ARG and the trees. Note that this refers to node labels of the resolved trees, which may not be the same as the ones given as input.   
+- resolved trees, where polytomies have been reduced using the MCCs. We allow for both strict (default) and liberal tree resolution (`--liberal-resolve` flag). Strict resolve will only resolve a polytomy if the relation of all branches within the polytomy can be determined using the other tree, potentially not fully resolving shared regions of the trees. Liberal resolve will resolve trees as much as possible, fully resolving shared regions of the two trees, but randomly choosing the location of some branches, leading to potentially wrong splits. (For more information see the [resolving section](@ref resolve_strict_vs_liberal). We do not recommend the use of liberal resolve when applying TreeKnit to more than two trees.
+
+When TreeKnit is called on two trees the directory will additionally contain a separate ARG folder with:
+- the ARG, written as an extended [Newick string](https://doi.org/10.1186/1471-2105-9-532).    
+- liberally resolved trees (needed for the construction of an ARG)
+- a table with the correspondence between internal nodes of the ARG and the trees. Note that this refers to node labels of the liberally resolved trees, which may not be the same as the ones given as input.   
 
 ### Options
 
@@ -64,7 +69,6 @@ The main options for simulated annealing that you can play with are:
 - Do not attempt to resolve trees before inferring MCCs: `--no-resolve`.
 
 When running `TreeKnit` on multiple trees further options are available:
-- Force output MCCs to be consistent with each other by potentially further splitting MCCs: `--force-consistent`
 - Run sequential `TreeKnit` with parallelization (only used for 4 or more trees): `--parallel`
 
 Furthermore, adding the argument `--auspice-view` will create files that can be used to view a tanglegram of the two trees with colored maximally compatible clades in [auspice](https://docs.nextstrain.org/projects/auspice/en/stable/advanced-functionality/second-trees.html). For more information see [Visualization of MCCs in a tanglegram](@ref view_auspice).  
@@ -74,7 +78,7 @@ More details in the [options section](@ref options).
 ## Using from a Julia session
 
 If `TreeKnit` has to be used on several pairs of trees and speed is important, then you should call it from a julia session directly. 
-Let's see how one does this using the example directory, which contains two Newick files `tree_h3n2_ha.nwk` and `tree_h3n2_na.nwk`. 
+Let's see how one does this for a simple two tree example, using the example directory, which contains two Newick files `tree_h3n2_ha.nwk` and `tree_h3n2_na.nwk`. 
 First, read the trees: 
 ```@example usage_from_julia
 using TreeTools

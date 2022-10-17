@@ -1,10 +1,12 @@
 # [MultiTreeKnit] (@id multitreeknit)
 
-`TreeKnit` can be used to infer recombination events between multiple tree pairs. When recombination events between three or more trees should be inferred `TreeKnit` uses a recursive inference strategy to return consistently resolved trees which we call `MultiTreeKnit`. The following example illustrates the benefits of this inference strategy over running `TreeKnit` individually on all tree pairs. 
+`TreeKnit` can be used to infer recombination events between multiple tree pairs. When recombination events between three or more trees should be inferred `TreeKnit` uses a recursive inference strategy to:
+- resolve each tree using information from all other trees in a consistent manner,
+- identify shared regions of each tree pair (MCCs),
+- find recombination events between tree pairs.
+The following example illustrates the benefits of this inference strategy over running `TreeKnit` individually on all tree pairs. Note however, that MultiTreeKnit may still return MCCs that are inconsistent with each other, which prevents the construction of an ARG. Therefore, we do not reconstruct an ARG for more than two trees. 
 
-As we shall show this recursive strategy makes sure that:
-- Trees are resolved in a consistent manner and cannot be resolved differently between different tree pairs. This allows us to use all recombination event information together.
-- MCCs are resolved in a consistent manner. Recombination is transitive. If no recombination has occurred between leaves `A` and `B` in `tree a` and `tree b` and no recombination has occurred between these leaves in `tree a` and `tree c`, recombination cannot have occurred between `A` and `B` in `tree b` and `tree c`. If MCCs of different tree pairs are not consistent they cannot be visualized in an ARG. 
+Furthermore, MultiTreeKnit has been optimized for using multiple reassorting segments to infer parameters of pathogen evolution. We optimized for sensitivity in MCC inference and polytomy resolution, minimizing the false positive rate for shared branches and new splits, but increasing the false negative rate, i.e. typically inferring too many reassortment events. 
 
 ![plot](./Pictures/MultiTK_example.png)
 ## Consistent Resolution
@@ -17,13 +19,15 @@ To avoid inconsistent resolution, the tree order is used to resolve tree polytom
 
 ![plot](./Pictures/resolution_order.png)
 
-Here $T_{1,2}$ corresponds to resolving `tree 1` and `tree 2` using each other and then generating a list of MCCs using standard `TreeKnit`. These resolved trees are then used to calculate the MCCs of the next neighboring tree pairs (which are connected by arrows). This means that after calculating the MCCs for `tree 1` and `tree 2` and resolving their polytomies using each other, instead of using the original `tree 1` the `resolved tree 1` is then further used when calculating the MCCs between `tree 1` and `tree 3`. 
+Here $T_{1,2}$ corresponds to resolving `tree 1` and `tree 2` using each other and then generating a list of MCCs using standard `TreeKnit`. These resolved trees are then used to calculate the MCCs of the next neighboring tree pairs (which are connected by arrows). This means that after calculating the MCCs for `tree 1` and `tree 2` and resolving their polytomies using each other, instead of using the original `tree 1` the `resolved tree 1` is then further used when calculating the MCCs between `tree 1` and `tree 3`. Leading to a consistent tree resolution.
 
-Note that even if the `resolved tree 1` is further resolved with `tree 3` the MCCs found between `tree 1` and `tree 2` will still hold for this twice resolved `tree 1`.
+Furthermore, we use strict resolve when resolving trees with MultiTreeKnit. Strict resolve will only resolve polytomies if the location of each branch in the new split can be fully determined by the other tree. Using strict resolve prevents the introduction of incorrect splits into the trees, this is especially important when resolved trees are used downstream for inference as these splits could prevent the simulated annealing from converging. 
+
+At the end of the sequential inference on all tree pairs, each tree will be resolved as much as possible using each other tree. However, the output MCCs might not be consistent with each other and might not fulfill the necessary transitivity requirements to create an ARG. To reduce the number of such potential incompatibilities we run a final round where we re-infer all tree pair MCCs without resolving trees this will prevent topological incompatibilities and ensure that all inferred MCCs are compatible with the output resolved trees, however it may not fix incompatibilities that are due to transitivity, therefore we do not produce an ARG for more than two trees. 
 
 ## Consistent MCCs
 
-When `TreeKnit` is run individually on all tree pairs trees the final MCCs might be inconsistent with each other. 
+When `TreeKnit` is run individually on all tree pairs the final MCCs might be inconsistent with each other. 
 As can be seen in the example when `TreeKnit` is run on these tree pairs individually not only are the trees resolved in an incompatible manner the transitivity of the MCCs is also broken. If no recombination has occurred between leaves `A` and `B` in `tree a` and `tree c` and no recombination has occurred between these leaves in `tree b` and `tree c`, recombination cannot have occurred between `A` and `B` in `tree a` and `tree b`. However, there has clearly been a recombination event between trees `tree a` and `tree b`. 
 
 However, fixing resolution issues as described above does not necessarily fix transitivity. `TreeKnit` uses simulated annealing and removes branches at random. This means that even if `tree c` is now resolved according to `tree a` and we infer that a recombination event has happened between trees `tree a` and `tree b` as well as between trees `tree c` and `tree b` the MCCs that `TreeKnit` infers might be inconsistent with each other. For example look at the following MCCs:
@@ -48,11 +52,9 @@ However, fixing resolution issues as described above does not necessarily fix tr
 These MCCs show that no recombination has occurred between leaves `B` and `C` in `tree a` and `tree b` and no recombination has occurred between these leaves in `tree_a` and `tree_c`. Thus, for transitivity to hold recombination cannot have occurred between `B` and `C` in `tree b` and `tree c`. But this is not the case.
 Such inconsistencies make it impossible to visualize an ARG.
 
-To avoid inconsistent MCCs we use two approaches in `MultiTreeKnit`:
-- we give previously inferred MCCs as a constraint to the simulated annealing. For example, assume that in `tree a` and `tree b` as well as in `tree a` and `tree c` the leaves `B` and `C` were both found to be in an MCC together and no recombination event to have occurred between them. The branches between leaves `B` and `C` are marked as shared in trees `tree b` and `tree c` and their removal is assigned a higher cost (`oa.constraint_cost `$= 2*\gamma$) than removing a node that is not on a shared branch. In this manner we push the simulated annealing to find MCCs between `tree b` and `tree c` that are consistent with the other MCCs, however we still enable it to split such branches if it leads to a more optimal energy cost if, for example, the previously inferred MCCs were inaccurate. 
-- by default we run two rounds of `MultiTreeKnit`. In the first round the initial tree pairs have no constraints but in the second round they also have constraints from other tree pairs, enabling optimal information transfer. 
+To decrease the number of inconsistencies in `MultiTreeKnit` we give previously inferred MCCs as a constraint to the simulated annealing. For example, assume that in `tree a` and `tree b` as well as in `tree a` and `tree c` the leaves `B` and `C` were both found to be in an MCC together and no recombination event to have occurred between them. The branches between leaves `B` and `C` are marked as shared in trees `tree b` and `tree c` and their removal is assigned a higher cost (`oa.constraint_cost `$= 2*\gamma$) than removing a node that is not on a shared branch. In this manner we push the simulated annealing to find MCCs between `tree b` and `tree c` that are consistent with the other MCCs, however we still enable it to split such branches if it leads to a more optimal energy cost if, for example, the previously inferred MCCs were inaccurate. By default we run two rounds of `MultiTreeKnit`. In the first round the initial tree pairs have no constraints but in the second round they also have constraints from other tree pairs, enabling optimal information transfer. In the final round we additionally do not resolve polytomies any further, as we assume by now each tree has been resolved as much as possible using every other tree. This prevents topological incompatibilities and ensures that all inferred MCCs are compatible with the output resolved trees.
 
-However, even using these approaches MCCs may still inconsistent as simulated annealing is a stochastic process. Inconsistent MCCs cannot be viewed together in a ARG. Therefore, if an ARG of all trees is desired the `--force-consist` flag can be used to make all MCCs consistent with each other, this is done by splitting MCCs in a way that is compatible with tree topology and fixes transitivity. In the case of the inconsistent MCCs above this would be accomplished by splitting the MCC between `tree a` and `tree c` from `[["A", "B", "C"]]` into `[["A"], ["B", "C"]]`.
+However, even using these approaches MCCs may still be inconsistent as simulated annealing is a stochastic process. Inconsistent MCCs cannot be viewed together in a ARG. Currently, we are not able to fully fix such incompatibilities. 
 
 ## Parallel MultiTreeKnit
 
