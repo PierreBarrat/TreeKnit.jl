@@ -3,7 +3,7 @@
 ## Using the CLI
 
 `TreeKnit` offers a simple CLI script: `treeknit`. 
-In short, it takes two or more trees as input, passed as [Newick](https://en.wikipedia.org/wiki/Newick_format) files, and infers reassortment events between all tree pairs. It does this by finding shared regions of two trees, so called [maximally compatible clades (MCCs)](@id MCCs), within which we assume no reassortment has occurred. Each MCC corresponds to one reassortment event between the two trees (except if the MCC contains the root of both trees). Knowledge of these shared reasons can be used to better resolve input trees, see [resolving section](@ref resolve) and to improve parameter inference on trees as information from multiple segments can be used together in shared tree regions. 
+In short, it takes two or more trees as input, passed as [Newick](https://en.wikipedia.org/wiki/Newick_format) files, and infers reassortment events between all tree pairs. It does this by finding shared regions of two trees, so called [maximally compatible clades (MCCs)](@ref MCCs), within which we assume no reassortment has occurred. Each MCC corresponds to one reassortment event between the two trees (except if the MCC contains the root of both trees). Knowledge of these shared reasons can be used to better resolve input trees, see [resolving section](@ref resolving) and to improve parameter inference on trees as information from multiple segments can be used together in shared tree regions. 
 
 When two trees are given as input, TreeKnit additionally returns an Ancestral Reassortment Graph (ARG). This is currently not possible for multiple trees, more information on how `TreeKnit` runs on more than two trees can be found in the [MultiTreeKnit section](@ref multitreeknit)).
 
