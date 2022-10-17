@@ -35,7 +35,7 @@ include("mcc_IO.jl")
 export read_mccs, write_mccs
 
 include("resolving.jl")
-export resolve!
+export resolve!, resolve_strict!, resolve_strict
 
 include("SplitGraph/SplitGraph.jl")
 using TreeKnit.SplitGraph
