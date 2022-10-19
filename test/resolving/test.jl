@@ -173,7 +173,7 @@ MCCs = TreeKnit.sort([["A","B","C"],["D","E","X"]], lt=TreeKnit.clt)
 	##check ladderize works the same
 	TreeTools.ladderize!(t1_copy)
 	TreeTools.ladderize!(t1_copy_inplace) 
-	@test write_newick(t1_copy_inplace.root) == write_newick(t1_copy.root) =="(X,(E,D,(C,(B,A)RESOLVED_1:0.0)RESOLVED_2:0.0)NODE_2)NODE_1:0;"
+	@test write_newick(t1_copy_inplace.root) == write_newick(t1_copy.root) =="(X,(D,E,(C,(A,B)RESOLVED_1:0.0)RESOLVED_2:0.0)NODE_2)NODE_1:0;"
 end
 
 t1_empty = node2tree(TreeTools.parse_newick(nwk_1; node_data_type=TreeTools.EmptyData); label="t1_empty")
@@ -194,7 +194,7 @@ t2_empty = node2tree(TreeTools.parse_newick(nwk_2; node_data_type=TreeTools.Empt
 	
 	##make sure ladderize works the same for Empty and MiscData
 	TreeTools.ladderize!(t1_copy)
-	@test write_newick(t1_copy.root) =="(X,(E,D,(C,(B,A)RESOLVED_1:0.0)RESOLVED_2:0.0)NODE_2)NODE_1:0;"
+	@test write_newick(t1_copy.root) =="(X,(D,E,(C,(A,B)RESOLVED_1:0.0)RESOLVED_2:0.0)NODE_2)NODE_1:0;"
 end
 
 
@@ -238,16 +238,16 @@ MCCs = TreeKnit.sort([["B"], ["A","C","D","E"]], lt=TreeKnit.clt)
 	rS_strict = TreeKnit.resolve_strict!(t1_strict, t2_strict, MCCs; tau = 0.)
 	TreeTools.ladderize!(t1_strict)
 	TreeKnit.sort_polytomies_strict!(t1_strict, t2_strict, MCCs)
-	@test write_newick(t1_strict.root) == "(A,(B,E,D,C)NODE_2)NODE_1:0;"
-	@test write_newick(t2_strict.root) == "(A,(E,B,(D,C)NODE_3)NODE_2)NODE_1:0;"
+	@test write_newick(t1_strict.root) == "(A,(B,C,D,E)NODE_2)NODE_1:0;"
+	@test write_newick(t2_strict.root) == "(A,((C,D)NODE_3,E,B)NODE_2)NODE_1:0;"
 
 	t1_strict = copy(t1)
 	t2_strict = copy(t2)
 	rS_strict = TreeKnit.resolve_strict!(t2_strict, t1_strict, MCCs; tau = 0.)
 	TreeTools.ladderize!(t2_strict)
 	TreeKnit.sort_polytomies_strict!(t2_strict, t1_strict, MCCs)
-	@test write_newick(t1_strict.root) == "(A,(E,D,C,B)NODE_2)NODE_1:0;"
-	@test write_newick(t2_strict.root) == "(A,(B,E,(D,C)NODE_3)NODE_2)NODE_1:0;"
+	@test write_newick(t1_strict.root) == "(A,(E,C,D,B)NODE_2)NODE_1:0;"
+	@test write_newick(t2_strict.root) == "(A,(B,E,(C,D)NODE_3)NODE_2)NODE_1:0;"
 end
 
 
