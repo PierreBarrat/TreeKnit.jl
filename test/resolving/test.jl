@@ -8,7 +8,7 @@ using Test
 using TreeTools
 
 
-println("##### Basic resolving #####")
+println("### Basic resolving")
 
 t1 = node2tree(TreeTools.parse_newick("(((A,B),C),D)"))
 t2 = node2tree(TreeTools.parse_newick("(B,C,(A,D))"))
@@ -45,7 +45,7 @@ t3 = node2tree(TreeTools.parse_newick("(A,B,(C,D))"))
 	@test !haskey(t1.lnodes, "RESOLVED_3")
 end
 
-println("##### Resolve using pre-inferred MCCs #####")
+println("### Resolve using pre-inferred MCCs")
 t3 = read_tree("$(dirname(pathof(TreeKnit)))/..//test/resolving/tree3.nwk")
 t4 = read_tree("$(dirname(pathof(TreeKnit)))/..//test/resolving/tree4.nwk")
 mccs = read_mccs("$(dirname(pathof(TreeKnit)))/..//test/resolving/mccs34.dat")
@@ -65,7 +65,6 @@ S = SplitList(t)
 Smcc = SplitList(S.leaves)
 append!(Smcc.splits, [Split([1,2,3,4]), Split([5,6,7])])
 
-println(t)
 
 @testset "`map_split_to_tree` functions" begin
 	Smapped = TreeKnit.map_splits_to_tree!(Smcc, t)
@@ -75,7 +74,7 @@ println(t)
 	@test TreeTools.iscompatible(Smapped[2], S)
 end
 
-println("##### Strict resolving #####")
+println("### Strict resolving")
 
 nwk1 = "((A,B,C,D),E)"
 nwk2 = "(((A,B),C),(D,E))"
@@ -252,7 +251,7 @@ end
 
 
 
-# println("##### Resolve using MCC inference #####")
+# printl("#### Resolve using MCC inference")
 
 # # ╔═╡ 93ccb338-8e0d-11eb-0f36-49bebaf5570b
 # function infer_mccs(trees;kwargs...)
