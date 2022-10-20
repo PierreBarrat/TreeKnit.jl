@@ -50,8 +50,7 @@ function map_mccs!(tree::Tree{TreeTools.MiscData}, MCCs; internals = true)
 	return nothing
 end
 function map_mccs!(tree, MCCs; internals=true)
-	@error "`map_mccs!` is only for trees with data attached to nodes,\
-	 *i.e.* `Tree{TreeTools.MiscData}`.
+	@error "`map_mccs!` is only for trees with data attached to nodes, *i.e.* `Tree{TreeTools.MiscData}`.
 	 Try `map_mccs` to get a map from nodes to mcc.
 	"
 	error("Incorrect method")
