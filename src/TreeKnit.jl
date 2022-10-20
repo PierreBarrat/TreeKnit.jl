@@ -18,10 +18,8 @@ export naive_mccs
 
 include("mcc_splits.jl")
 
-include("mcc_branch_labels.jl")
-export map_mccs, map_mccs!
-
 include("mcc_tools.jl")
+export map_mccs, map_mccs!
 
 include("mcc_IO.jl")
 export read_mccs, write_mccs

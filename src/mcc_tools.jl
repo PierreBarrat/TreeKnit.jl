@@ -1,4 +1,138 @@
 """
+	map_mccs(tree, MCCs; internals = true)
+	map_mccs(MCCs)
+
+Create a map from nodes of `tree` to the mcc they belong to.
+MCCs are identified using their index in the array `MCCs`.
+Nodes outside of any mcc are mapped to `nothing`.
+The output is a `Dict`.
+Use `internals=false` or the second form to map leaves only.
+"""
+map_mccs(MCCs) = map_mccs_leaves(MCCs)
+function map_mccs(tree, MCCs; internals = true)
+	leaf_mcc_map = map_mccs_leaves(MCCs)
+	if internals
+		fitch_up = map_mccs_fitch_up(tree, leaf_mcc_map)
+		@debug "Upward pass of Fitch" ficth_up=fitch_up
+		fitch_down = map_mccs_fitch_down(tree, fitch_up)
+		return fitch_down
+	else
+		return leaf_mcc_map
+	end
+end
+
+"""
+	map_mccs!(tree::Tree{TreeTools.MiscData}, MCCs; internals = true)
+
+Same as `map_mccs`, but stores information in the `data` field of tree nodes.
+A key `child_mccs` is also added to `data`, for use in some internal functions.
+"""
+function map_mccs!(tree::Tree{TreeTools.MiscData}, MCCs; internals = true)
+	leaf_mcc_map = map_mccs_leaves(MCCs)
+
+	if internals
+		# Compute the map and add it to nodes
+		fitch_up = map_mccs_fitch_up(tree, leaf_mcc_map)
+		@debug "Upward pass of Fitch" ficth_up=fitch_up
+		fitch_down = map_mccs_fitch_down(tree, fitch_up)
+		for (label, mcc) in fitch_down
+			tree[label].data["mcc"] = mcc
+			tree[label].data["child_mccs"] = fitch_up[label]
+		end
+	else
+		# Just use the leaf_map
+		for (label, mcc) in leaf_mcc_map
+			tree[label].data["mcc"] = mcc
+			tree[label].data["child_mccs"] = Set([mcc])
+		end
+	end
+
+	return nothing
+end
+function map_mccs!(tree, MCCs; internals=true)
+	@error "`map_mccs!` is only for trees with data attached to nodes,\
+	 *i.e.* `Tree{TreeTools.MiscData}`.
+	 Try `map_mccs` to get a map from nodes to mcc.
+	"
+	error("Incorrect method")
+end
+
+"""
+	map_mccs_leaves(MCCs::Vector{Vector{<:AbstractString}})
+
+Returns a dictionary of which MCC each leaf is in.
+MCCs are identified by their index in `MCCs`.
+"""
+function map_mccs_leaves(MCCs::Vector{<:Vector{<:AbstractString}})
+    leaf_mcc_map = Dict{String, Union{Int, Nothing}}() # Union to match with `map_mccs`
+    for (i,mcc) in enumerate(MCCs)
+        for node in mcc
+            leaf_mcc_map[node] = i
+        end
+    end
+    return leaf_mcc_map
+end
+
+function map_mccs_fitch_up(tree, leaf_mcc_map)
+	fitch_up = Dict{String, Any}()
+
+	# Assign all leaves
+	for leaf in leaves(tree)
+		fitch_up[leaf.label] = Set([leaf_mcc_map[leaf.label]])
+	end
+
+	# Go up the tree
+	for n in Iterators.filter(!isleaf, POT(tree))
+		if isroot(n)
+			fitch_up[n.label] = intersect([fitch_up[c.label] for c in n.child]...)
+		else
+			common_mccs = intersect([fitch_up[c.label] for c in n.child]...)
+			fitch_up[n.label] = if !isempty(common_mccs)
+				common_mccs
+			else
+				union([fitch_up[c.label] for c in n.child]...)
+			end
+		end
+	end
+
+	return fitch_up
+end
+
+function map_mccs_fitch_down(tree, fitch_up)
+	fitch_down = Dict{String, Union{Int, Nothing}}()
+	_map_mccs_fitch_down!(fitch_down, tree.root, fitch_up)
+	return fitch_down
+end
+function _map_mccs_fitch_down!(fitch_down, n, fitch_up)
+	if isroot(n)
+		# Root is in an MCC if it gets coherent messages from all children
+		fitch_down[n.label] = if length(fitch_up[n.label]) == 1
+			first(fitch_up[n.label])
+		else
+			nothing
+		end
+	else
+		if length(fitch_up[n.label]) == 1
+			# coherent messages from all children - leaves are treated here
+			fitch_down[n.label] = first(fitch_up[n.label])
+		elseif fitch_down[n.anc.label] in fitch_up[n.label]
+			# Non empty intersection between ancestor MCC and messages from children
+			fitch_down[n.label] = fitch_down[n.anc.label]
+		else
+			# n is not in an MCC ...
+			fitch_down[n.label] = nothing
+		end
+	end
+
+	for c in n.child
+		_map_mccs_fitch_down!(fitch_down, c, fitch_up)
+	end
+
+	return nothing
+end
+
+
+"""
 	get_leave_order(tree, MCCs)
 
 Return an ordering of leaves in MCCs given a tree.
@@ -30,81 +164,6 @@ function _get_leaves_order!(order::Dict, n::TreeNode, mcc::Vector{<:AbstractStri
 
 end
 
-"""
-	mcc_map(tree::Tree, MCCS)
-
-Compute a map between nodes of `tree` and `MCCs`.
-Output dictionary `M`: `M[label] == i` means node `label` (internal or leaf) belongs to
-MCC number `i` if `typeof(i)::Int` or does not belong to an MCC if `isnothing(i)`.
-
-## Important
-`tree` has to be resolved using `MCCs` for this to work.
-"""
-function mcc_map(tree::Tree, MCCs)
-	mcc_map = Dict()
-	mcc_map!(mcc_map, tree.root, MCCs)
-	return mcc_map
-end
-#=
-Strategy: message passing going up the tree
-Each node `n` returns to parent  `(i, cnt)` where:
-- `i` is the MCC to which `n` belongs
-- `cnt` is the number of nodes of `MCCs[i]` in the offsprings of `n`, including `n` itself
-  *e.g.*: for a leaf, `cnt` is 1; for an internal, it can be higher.
-This method allows us to know when we've found all nodes of a given MCC
-=#
-function mcc_map!(mcc_map::Dict, n::TreeNode, MCCs)
-	if n.isleaf
-		i = which_mcc(n.label, MCCs)
-		@assert !isnothing(i) "Leaf $(n.label) does not belong to any MCC."
-		mcc_map[n.label] = i
-		if length(MCCs[i]) == 1
-			return (nothing, 0) # we're done with MCC i
-		else
-			return (i, 1) # in MCC i, representing one node
-		end
-	else
-		i = nothing # in which mcc is `n`
-		M = 0 # how many nodes of this MCC does it has as offsprings
-		for c in n.child
-			ic, cnt = mcc_map!(mcc_map, c, MCCs)
-			if !isnothing(ic)
-				if !isnothing(i)
-					# if !isnothing(ic), we're not done with MCC[ic]
-					# Meaning n has to belong to it
-					@assert i == ic "MCCs $i and $ic conflict (resp. node $(n.label) and $(c.label)).
-					Are trees resolved using the MCCs?"
-				end
-				i = ic
-				M += cnt
-			end
-		end
-		mcc_map[n.label] = i
-
-		if isnothing(i) || length(MCCs[i]) == M
-			return (nothing, 0) # we're done with mcc i
-		elseif length(MCCs[i]) > M
-			return (i, M) # in MCC i, representing M nodes
-		else
-			error("Reached root $(n.label) of MCC $i and have not found all nodes ($(M) out of $(length(MCCs[i])))")
-		end
-	end
-end
-
-"""
-	which_mcc(n, MCCs)
-
-Return the index of the MCC to which `n` belongs.
-If `i` is returned, `in(n, MCCs[i]`) is true.
-"""
-function which_mcc(n::AbstractString, MCCs)
-	for (i, mcc) in enumerate(MCCs)
-		if in(n, mcc)
-			return i
-		end
-	end
-	return nothing
-end
 
 """
 	sort_polytomies!(t1::Tree, t2::Tree, MCCs)
@@ -115,7 +174,7 @@ The order of `t1` serves as a guide and is left unchanged.
 """
 function sort_polytomies!(t1::Tree, t2::Tree, MCCs)
 	mcc_order = get_leaves_order(t1, MCCs)
-	_mcc_map = mcc_map(t2, MCCs)
+	_mcc_map = map_mccs(t2, MCCs)
 	sort_polytomies!(t2.root, MCCs, _mcc_map, mcc_order)
 	node2tree!(t2, t2.root)
 	return nothing
@@ -125,7 +184,7 @@ function sort_polytomies_strict!(
 	t1::Tree{TreeTools.MiscData}, t2::Tree{TreeTools.MiscData}, MCCs
 )
 	mcc_order = get_leaves_order(t1, MCCs)
-	TreeKnit.assign_mccs!(t2, map_mccs(MCCs))
+	map_mccs!(t2, MCCs)
 	sort_polytomies_strict!(t2.root, MCCs, mcc_order)
 	node2tree!(t2, t2.root)
 	return nothing

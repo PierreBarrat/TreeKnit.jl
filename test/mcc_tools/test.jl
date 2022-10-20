@@ -42,6 +42,7 @@ real_map = Dict{String, Union{Int, Nothing}}(
 	map_mccs!(t1_md_copy, MCCs; internals=true)
 	for n in nodes(t1_md_copy)
 		@test n.data["mcc"] == real_map[n.label]
+		@test haskey(n.data, "child_mccs")
 	end
 
 	t1_md_copy = copy(t1_md)
@@ -51,6 +52,7 @@ real_map = Dict{String, Union{Int, Nothing}}(
 	end
 	for n in internals(t1_md_copy)
 		@test !haskey(n.data, "mcc")
+		@test !haskey(n.data, "child_mccs")
 	end
 
 	println("-- Error thrown below --")
