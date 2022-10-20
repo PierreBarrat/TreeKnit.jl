@@ -2,6 +2,7 @@ function map_mccs(tree, MCCs; internals = true)
 	leaf_mcc_map = map_mccs_leaves(MCCs)
 	if internals
 		fitch_up = map_mccs_fitch_up(tree, leaf_mcc_map)
+		@debug "Upward pass of Fitch" ficth_up=fitch_up
 		fitch_down = map_mccs_fitch_down(tree, fitch_up)
 		return fitch_down
 	else
@@ -20,10 +21,11 @@ function map_mccs!(tree::Tree{TreeTools.MiscData}, MCCs; internals = true)
 	return mcc_map
 end
 function map_mccs!(tree, MCCs; internals=true)
-	@warn "`map_mccs!` is only for trees with data attached to nodes,\
+	@error "`map_mccs!` is only for trees with data attached to nodes,\
 	 *i.e.* `Tree{TreeTools.MiscData}`.
 	 Try `map_mccs` to get a map from nodes to mcc.
 	"
+	error("Incorrect method")
 end
 
 """
@@ -31,7 +33,7 @@ end
 
 Returns a dictionary of which MCC each leaf is in. MCCs are identified by their index.
 """
-function map_mccs_leaves(MCCs::Vector{Vector{<:AbstractString}})
+function map_mccs_leaves(MCCs::Vector{<:Vector{<:AbstractString}})
     leaf_mcc_map = Dict{String, Union{Int, Nothing}}() # Union to match with `map_mccs`
     for (i,mcc) in enumerate(MCCs)
         for node in mcc
@@ -50,7 +52,7 @@ function map_mccs_fitch_up(tree, leaf_mcc_map)
 	end
 
 	# Go up the tree
-	for n in POT(tree)
+	for n in Iterators.filter(!isleaf, POT(tree))
 		if isroot(n)
 			fitch_up[n.label] = intersect([fitch_up[c.label] for c in n.child]...)
 		else
@@ -74,7 +76,11 @@ end
 function _map_mccs_fitch_down!(fitch_down, n, fitch_up)
 	if isroot(n)
 		# Root is in an MCC if it gets coherent messages from all children
-		fitch_down[n.label] = length(fitch_up[n.label]) == 1 ? fitch_up[n.label] : nothing
+		fitch_down[n.label] = if length(fitch_up[n.label]) == 1
+			first(fitch_up[n.label])
+		else
+			nothing
+		end
 	else
 		if length(fitch_up[n.label]) == 1
 			# coherent messages from all children - leaves are treated here

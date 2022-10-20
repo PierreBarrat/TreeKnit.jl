@@ -1,5 +1,6 @@
 include("resolving/test.jl")
 include("splitgraph/test.jl")
 include("main/test.jl")
+include("mcc_tools/test.jl")
 include("SRG/test.jl")
 include("NYdata/test.jl")
