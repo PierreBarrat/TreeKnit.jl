@@ -169,7 +169,7 @@ function _map_split_to_tree!(
         in the polytomy cannot be split off, this split can be introduced (i.e. if the other nodes are contained in a MCC that
         also contains other internal nodes).
         =#
-        mcc_map = leaf_mcc_map(MCCs)
+        mcc_map = map_mccs(MCCs)
         assign_mccs!(t, mcc_map) 
         mcc_ = [r.data.dat["mcc"] for r in roots]
         mcc_ =  unique(mcc_[mcc_.!=nothing])

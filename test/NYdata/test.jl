@@ -34,7 +34,7 @@ function check_sort_polytomies(t1, t2, MCCs)
 	t1, t2, rS_strict = TreeKnit.resolve_strict(t1, t2, MCCs; tau = 0.)
 	TreeTools.ladderize!(t1)
 	TreeKnit.sort_polytomies_strict!(t1, t2, MCCs)
-	leaf_map = TreeKnit.leaf_mcc_map(MCCs)
+	leaf_map = map_mccs(MCCs)
 	pos_in_mcc_t1 = Dict()
 	pos = 1
 	for leaf in POTleaves(t1)

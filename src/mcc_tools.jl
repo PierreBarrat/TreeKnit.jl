@@ -125,7 +125,7 @@ function sort_polytomies_strict!(
 	t1::Tree{TreeTools.MiscData}, t2::Tree{TreeTools.MiscData}, MCCs
 )
 	mcc_order = get_leaves_order(t1, MCCs)
-	TreeKnit.assign_mccs!(t2, TreeKnit.leaf_mcc_map(MCCs)) 
+	TreeKnit.assign_mccs!(t2, map_mccs(MCCs))
 	sort_polytomies_strict!(t2.root, MCCs, mcc_order)
 	node2tree!(t2, t2.root)
 	return nothing
