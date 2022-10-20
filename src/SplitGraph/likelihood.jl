@@ -37,9 +37,13 @@ end
 """
 	conf_likelihood_(divfunction, conf::Array{Bool,1}, g::Graph, μ, trees; v=false)
 
-For each leaf `n` remaining in `conf`, find the first non-trivial ancestors in graph `g`. For each pair of ancestors `a1` and `a2`, compare the likelihood  that the real branch length from `n` to `a1` and `a2` is the same, with the likelihood that it is different. 
+For each leaf `n` remaining in `conf`, find the first non-trivial ancestors in graph `g`.
+For each pair of ancestors `a1` and `a2`, compare the likelihood  that the real branch
+length from `n` to `a1` and `a2` is the same, with the likelihood that it is different.
 """
-function conf_likelihood_(divfunction, conf::Array{Bool,1}, g::Graph, seq_lengths, trees; v=false)
+function conf_likelihood_(
+	divfunction, conf::Array{Bool,1}, g::Graph, seq_lengths, trees; v=false
+)
 	L = 0.
 	Z = 0.
 	if length(g.leaves) + length(g.internals) == 1

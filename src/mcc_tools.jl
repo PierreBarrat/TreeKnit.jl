@@ -34,8 +34,8 @@ end
 	mcc_map(tree::Tree, MCCS)
 
 Compute a map between nodes of `tree` and `MCCs`.
-Output `M`: `M[label] == i` means node `label` (internal or leaf) belongs to MCC number `i`
-  if `typeof(i)::Int` or does not belong to an MCC if `isnothing(i)`.
+Output dictionary `M`: `M[label] == i` means node `label` (internal or leaf) belongs to
+MCC number `i` if `typeof(i)::Int` or does not belong to an MCC if `isnothing(i)`.
 
 ## Important
 `tree` has to be resolved using `MCCs` for this to work.
@@ -106,6 +106,13 @@ function which_mcc(n::AbstractString, MCCs)
 	return nothing
 end
 
+"""
+	sort_polytomies!(t1::Tree, t2::Tree, MCCs)
+
+Sort nodes of `t2` such that leaves of `t1` and `t2` in the same MCC face each other.
+In a tanglegram with nodes colored according to MCC, lines of the same color will not cross.
+The order of `t1` serves as a guide and is left unchanged.
+"""
 function sort_polytomies!(t1::Tree, t2::Tree, MCCs)
 	mcc_order = get_leaves_order(t1, MCCs)
 	_mcc_map = mcc_map(t2, MCCs)
@@ -114,7 +121,9 @@ function sort_polytomies!(t1::Tree, t2::Tree, MCCs)
 	return nothing
 end
 
-function sort_polytomies_strict!(t1::Tree{TreeTools.MiscData}, t2::Tree{TreeTools.MiscData}, MCCs)
+function sort_polytomies_strict!(
+	t1::Tree{TreeTools.MiscData}, t2::Tree{TreeTools.MiscData}, MCCs
+)
 	mcc_order = get_leaves_order(t1, MCCs)
 	TreeKnit.assign_mccs!(t2, TreeKnit.leaf_mcc_map(MCCs)) 
 	sort_polytomies_strict!(t2.root, MCCs, mcc_order)

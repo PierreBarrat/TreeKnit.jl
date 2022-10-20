@@ -22,20 +22,25 @@ end
 """
     splits_in_mcc(m::Array{<:AbstractString}, t...)
 
-Compute splits in MCC `m` in tree `t`. Return a `SplitList` object, with `mask` corresponding to leaves in `m`.
+Compute splits in MCC `m` in tree `t`.
+Return a `SplitList` object, with `mask` corresponding to leaves in `m`.
 """
 function splits_in_mcc(m::Array{<:AbstractString}, t::Tree)
     leaves = sort(collect(keys(t.lleaves)))
     leafmap = Dict(leaf=>i for (i,leaf) in enumerate(leaves))
     return _splits_in_mcc(m, t, leaves, leafmap)
 end
-splits_in_mcc(m::Array{<:AbstractString}, trees::Vararg{Tree}) = Tuple(splits_in_mcc(m,t) for t in trees)
+function splits_in_mcc(m::Array{<:AbstractString}, trees::Vararg{Tree})
+	Tuple(splits_in_mcc(m,t) for t in trees)
+end
 
 """
     splits_in_mccs(MCCs, t::Vararg{Tree})
 
-Compute splits in `MCCs` in tree `t`. Return an array of `SplitList` objects, with `mask` corresponding to leaves in each MCC.
-When called with multiple trees, return a tuple of arrays of `SplitList` objects, each of which corresponds to one of the trees (order conserved).
+Compute splits in `MCCs` in tree `t`.
+Return an array of `SplitList` objects, with `mask` corresponding to leaves in each MCC.
+When called with multiple trees, return a tuple of arrays of `SplitList` objects,
+each of which corresponds to one of the trees (order conserved).
 """
 function splits_in_mccs(MCCs, t::Tree)
     leaves = sort(collect(keys(t.lleaves)))
@@ -49,14 +54,15 @@ splits_in_mccs(MCCs, trees::Vararg{Tree}) = Tuple(splits_in_mccs(MCCs,t) for t i
     new_splits(MCCs, t1::Tree, t2::Tree)
 
 Given MCCs and two trees, what are the new splits introduced in either of the trees.
-Return an array `S` of `SplitList` objects, with `S[i][m]` corresponding to new splits in tree `i` from MCC `m`.
+Return an array `S` of `SplitList` objects, with `S[i][m]` corresponding to new splits in
+tree `i` from MCC `m`.
 
 *Note*: Resulting splits are not always unique once constrained to leaves of MCCs!
 """
 function new_splits(MCCs, t1::Tree, t2::Tree; strict=false)
     nS = [
-    	new_splits(t1, MCCs, t2; strict=strict), # Using each tree as a reference in turn
-    	new_splits(t2, MCCs, t1; strict=strict),
+    	new_splits(t1, MCCs, t2; strict), # Using each tree as a reference in turn
+    	new_splits(t2, MCCs, t1; strict),
     ]
     return nS
 end
@@ -71,7 +77,7 @@ function new_splits(tref::Tree, MCCs, t::Tree; strict=false)
     # Splits in `tref`
     S_ref = SplitList(tref)
     # Splits corresponding to each mcc in tree `t`
-    MCC_splits = map_splits_to_tree!(splits_in_mccs(MCCs, t), tref; MCCs=MCCs, strict=strict)
+    MCC_splits = map_splits_to_tree!(splits_in_mccs(MCCs, t), tref; MCCs, strict)
     # Take the new ones only
     _new_splits!(MCC_splits, S_ref)
     # Map them onto leaves of `tref`
@@ -95,7 +101,9 @@ end
 Call `map_splits_to_tree!(S::SplitList, t::Tree)` for all elements of `S`.
 Return a single `SplitList`.
 """
-function map_splits_to_tree!(S_array::Array{SplitList{T},1}, t::Tree; strict=false, MCCs=nothing) where T
+function map_splits_to_tree!(
+	S_array::Array{SplitList{T},1}, t::Tree; strict=false, MCCs=nothing
+) where T
        out = SplitList(
                sort(collect(keys(t.lleaves))),
                Array{Split,1}(undef,0),
@@ -103,7 +111,7 @@ function map_splits_to_tree!(S_array::Array{SplitList{T},1}, t::Tree; strict=fal
        )
        treesplits = SplitList(t)
        for S in S_array
-               mS = map_splits_to_tree!(S, t, treesplits; strict=strict, MCCs=MCCs)
+               mS = map_splits_to_tree!(S, t, treesplits; strict, MCCs)
                for s in mS
                        push!(out.splits, s)
                end
@@ -123,9 +131,11 @@ Useful for resolving a tree with splits of another.
 """
 function map_splits_to_tree!(S::SplitList, t::Tree; strict=false, MCCs=nothing)
 	treesplits = SplitList(t)
-	return map_splits_to_tree!(S, t, treesplits; strict=strict, MCCs=MCCs)
+	return map_splits_to_tree!(S, t, treesplits; strict, MCCs)
 end
-function map_splits_to_tree!(S::SplitList, tree::Tree, treesplits::SplitList; strict=false, MCCs=nothing)
+function map_splits_to_tree!(
+	S::SplitList, tree::Tree, treesplits::SplitList; strict=false, MCCs=nothing
+)
 	mS = SplitList(
 		S.leaves,
 		Array{Split,1}(undef,0),
@@ -133,7 +143,7 @@ function map_splits_to_tree!(S::SplitList, tree::Tree, treesplits::SplitList; st
 		Dict{eltype(S.leaves), Split}()
 	)
 	for i in 1:length(S)
-		ms = _map_split_to_tree!(S, i, tree, treesplits; strict=strict, MCCs=MCCs)
+		ms = _map_split_to_tree!(S, i, tree, treesplits; strict, MCCs)
 		push!(mS.splits, ms)
 	end
 	return mS
@@ -143,24 +153,29 @@ end
 #=
 Map split `S[i]` to `t`.
 =#
-function _map_split_to_tree!(S::SplitList, i::Integer, t::Tree, treesplits::SplitList; strict=false, MCCs=nothing)
+function _map_split_to_tree!(
+	S::SplitList, i::Integer, t::Tree, treesplits::SplitList; strict=false, MCCs=nothing
+)
 
 	ms = Split(0)
     # Not lca in case lca(t, leaves(S,i)) contains extra leaves not in S[i]
     roots = TreeTools.blca([t.lleaves[x] for x in leaves(S,i)]...)
     if strict == true && !isnothing(MCCs)
-        ##Check if a split cannot be introduced because a recombination event also happened at this polytomy and the order of 
-        ##coalescence and recombination is unclear. If at a polytomy all nodes are in the same MCC a split can be introduced.
-        ##If nodes are not all in the same clade at a polytomy a split can still be introduced if it is clear how, i.e. there are 
-        ##not multiple ways to introduce the split. For example, if a desired split would splits a mcc-clade off and the other nodes
-        ##in the polytomy cannot be split off, this split can be introduced (i.e. if the other nodes are contained in a MCC that 
-        ##also contains other internal nodes). 
+		#=
+		Check if a split cannot be introduced because a recombination event also happened at this polytomy and the order of
+        coalescence and recombination is unclear. If at a polytomy all nodes are in the same MCC a split can be introduced.
+        If nodes are not all in the same clade at a polytomy a split can still be introduced if it is clear how, i.e. there are
+        not multiple ways to introduce the split. For example, if a desired split would splits a mcc-clade off and the other nodes
+        in the polytomy cannot be split off, this split can be introduced (i.e. if the other nodes are contained in a MCC that
+        also contains other internal nodes).
+        =#
         mcc_map = leaf_mcc_map(MCCs)
         assign_mccs!(t, mcc_map) 
         mcc_ = [r.data.dat["mcc"] for r in roots]
         mcc_ =  unique(mcc_[mcc_.!=nothing])
         if isempty(mcc_)
-            mcc_ = collect(intersect([r.data.dat["child_mccs"] for r in roots]...)) ##polytomy may have not allowed mccs to be assigned, but mcc would be clear given split information
+        	##polytomy may have not allowed mccs to be assigned, but mcc would be clear given split information
+            mcc_ = collect(intersect([r.data.dat["child_mccs"] for r in roots]...))
             if length(mcc_) ==0
                 mcc_ = nothing ##if still unclear to do label mcc
             end
