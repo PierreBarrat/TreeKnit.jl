@@ -31,7 +31,7 @@ calling ladderize and sort_polytomies on the resolved trees. This will make sure
 lines between nodes in an MCC do not cross when The two trees are visualized as a dendrogram.
 """
 function check_sort_polytomies(t1, t2, MCCs) 
-	t1, t2, rS_strict = TreeKnit.resolve_strict(t1, t2, MCCs; tau = 0.)
+	rS_strict = TreeKnit.resolve_strict!(t1, t2, MCCs; tau = 0.)
 	TreeTools.ladderize!(t1)
 	TreeKnit.sort_polytomies!(t1, t2, MCCs)
 	leaf_map = map_mccs(MCCs)

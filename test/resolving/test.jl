@@ -160,19 +160,12 @@ MCCs = TreeKnit.sort([["A","B","C"],["D","E","X"]], lt=TreeKnit.clt)
 	
 	t1_copy = copy(t1)
 	t2_copy = copy(t2)
-	t1_copy, t2_copy, rS = TreeKnit.resolve_strict(t1_copy, t2_copy, MCCs; tau = 0.)
+	rS = TreeKnit.resolve_strict!(t1_copy, t2_copy, MCCs; tau = 0.)
 	@test write_newick(t1_copy.root) == "((D,E,((A,B)RESOLVED_1:0.0,C)RESOLVED_2:0.0)NODE_2,X)NODE_1:0;"
 	
-	t1_copy_inplace = copy(t1)
-	t2_copy_inplace = copy(t2)
-	rS = TreeKnit.resolve_strict!(t1_copy_inplace, t2_copy_inplace, MCCs; tau = 0.)
-	@test (t1_copy_inplace.label, t2_copy_inplace.label) == (t1_copy.label, t2_copy.label)
-	@test write_newick(t1_copy.root) == write_newick(t1_copy_inplace.root)
-	
-	##check ladderize works the same
+	##check ladderize works the same for strict resolve
 	TreeTools.ladderize!(t1_copy)
-	TreeTools.ladderize!(t1_copy_inplace) 
-	@test write_newick(t1_copy_inplace.root) == write_newick(t1_copy.root) =="(X,(D,E,(C,(A,B)RESOLVED_1:0.0)RESOLVED_2:0.0)NODE_2)NODE_1:0;"
+	@test write_newick(t1_copy.root) =="(X,(D,E,(C,(A,B)RESOLVED_1:0.0)RESOLVED_2:0.0)NODE_2)NODE_1:0;"
 end
 
 t1_empty = node2tree(TreeTools.parse_newick(nwk_1; node_data_type=TreeTools.EmptyData); label="t1_empty")
@@ -187,7 +180,7 @@ t2_empty = node2tree(TreeTools.parse_newick(nwk_2; node_data_type=TreeTools.Empt
 	
 	t1_copy = copy(t1_empty)
 	t2_copy = copy(t2_empty)
-	t1_copy, t2_copy, rS = TreeKnit.resolve_strict(t1_copy, t2_copy, MCCs; tau = 0.)
+	rS = TreeKnit.resolve_strict!(t1_copy, t2_copy, MCCs; tau = 0.)
 	@test (t1_copy.label, t2_copy.label) == ("t1_empty", "t2_empty")
 	@test write_newick(t1_copy.root) == "((D,E,((A,B)RESOLVED_1:0.0,C)RESOLVED_2:0.0)NODE_2,X)NODE_1:0;"
 	
