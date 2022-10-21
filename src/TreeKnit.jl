@@ -20,6 +20,7 @@ export naive_mccs
 include("mcc_splits.jl")
 
 include("mcc_tools.jl")
+export map_mccs, map_mccs!
 
 include("MultiTreeKnit/multitree_objects.jl")
 export MCC_set
@@ -27,9 +28,6 @@ include("MultiTreeKnit/multitree_constraints.jl")
 include("MultiTreeKnit/MultiTreeKnit.jl")
 
 include("mcc_measures.jl")
-
-include("mcc_branch_labels.jl")
-
 
 include("mcc_IO.jl")
 export read_mccs, write_mccs

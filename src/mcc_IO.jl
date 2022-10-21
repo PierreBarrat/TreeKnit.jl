@@ -94,7 +94,7 @@ function write_auspice_json(filepath, trees::Vector{Tree{T}}, MCCs::MCC_set) whe
 	for tree in trees
 		other_trees = [copy(trees[i]) for i in 1:MCCs.no_trees if trees[i].label!=tree.label]
 		other_tree_names = [t.label for t in other_trees]
-		assign_all_mccs!(tree, other_trees, MCCs)
+		mcc_maps = [map_mccs(tree, get(MCCs, tree.label, otree.label)) for otree in other_trees]
 		full_filepath = filepath*"auspice_branch_lengths_"*tree.label*".json"
 		start = true
 		open(full_filepath, "w") do w
@@ -109,14 +109,14 @@ function write_auspice_json(filepath, trees::Vector{Tree{T}}, MCCs::MCC_set) whe
 					start = false
 				end
 				write(w, "\""*n.label*"\": {\"branch_length\": "*string(n.tau)*", ")
-				if !isnothing(n.data["mcc"][1])
-					write(w, "\"mcc_"*other_tree_names[1]*"\": "*string(n.data["mcc"][1])*"")
+				if !isnothing(mcc_maps[1][n.label])
+					write(w, "\"mcc_"*other_tree_names[1]*"\": "*string(mcc_maps[1][n.label])*"")
 				else
 					write(w, "\"mcc_"*other_tree_names[1]*"\": null")
 				end
 				for i in 2:(MCCs.no_trees-1)
-					if !isnothing(n.data["mcc"][i])
-						write(w, " ,\"mcc_"*other_tree_names[i]*"\": "*string(n.data["mcc"][i]))
+					if !isnothing(mcc_maps[i][n.label])
+						write(w, " ,\"mcc_"*other_tree_names[i]*"\": "*string(mcc_maps[i][n.label]))
 					else
 						write(w, "\"mcc_"*other_tree_names[i]*"\": null")
 					end

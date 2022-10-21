@@ -60,7 +60,7 @@ function compute_mcc_pairs!(trees::Vector{Tree{TreeTools.MiscData}}, oa::OptArgs
                 else
                     rS = TreeKnit.resolve_strict!(trees[i], trees[j], get(pair_MCCs, (j, i)))
                     TreeTools.ladderize!(trees[i])
-                    TreeKnit.sort_polytomies_strict!(trees[i], trees[j], get(pair_MCCs, trees[i].label, trees[j].label))
+                    TreeKnit.sort_polytomies!(trees[i], trees[j], get(pair_MCCs, trees[i].label, trees[j].label))
                 end
                 oa.verbose && @info "found MCCs for trees: "*trees[j].label*" and "*trees[i].label
             end
@@ -92,7 +92,7 @@ function run_step!(oa::OptArgs, tree1::Tree, tree2::Tree, constraints, strict, r
     else
         rS = TreeKnit.resolve_strict!(tree1, tree2, MCC)
         TreeTools.ladderize!(tree1)
-        TreeKnit.sort_polytomies_strict!(tree1, tree2, MCC)
+        TreeKnit.sort_polytomies!(tree1, tree2, MCC)
     end
     oa.verbose && @info "found MCCs for trees: "*trees[j].label*" and "*trees[i].label
     return MCC
@@ -149,7 +149,7 @@ function compute_naive_mcc_pairs!(trees::Vector{Tree{TreeTools.MiscData}}; stric
         else
             rS = TreeKnit.resolve_strict!(trees[i], trees[j], get(pair_MCCs, (j, i)))
             TreeTools.ladderize!(trees[i])
-            TreeKnit.sort_polytomies_strict!(trees[i], trees[j], get(pair_MCCs, trees[i].label, trees[j].label))
+            TreeKnit.sort_polytomies!(trees[i], trees[j], get(pair_MCCs, trees[i].label, trees[j].label))
         end
     end
     return pair_MCCs

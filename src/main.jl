@@ -192,7 +192,6 @@ _getM(n,Md) = ceil(Int, n/Md)
 
 """
 	pruneconf!(clades, trees::Vararg{Tree})
-
 Prune `clades` from `trees...`.
 """
 function pruneconf!(clades, trees::Vararg{Tree})
@@ -205,26 +204,8 @@ function pruneconf!(clades, trees::Vararg{Tree})
 end
 """
 	pruneconf!(trees, mcc_names, mcc_conf)
-
 Prune MCCs `mcc_names[x]` for all `x` in `mcc_conf` from trees `t...`.
 """
-pruneconf!(trees, mcc_names, mcc_conf) = pruneconf!([mcc_names[x] for x in mcc_conf], trees...)
-
-
-
-
-
-# function update_df!(df, nleaves::Int64, nMCCs::Int64, γ, M, Efinal, Ffinal, rMCCs, arMCCs, remainingMCCs, method)
-# 	push!(df,
-# 		Dict(:nleaves=>nleaves,
-# 		:nMCCs=>nMCCs,
-# 		:γ=>γ,
-# 		:M=>M,
-# 		:Efinal=>Efinal,
-# 		:Ffinal=>Ffinal,
-# 		:newMCCs=>copy(rMCCs),
-# 		:AllFinalMCCs=>copy(arMCCs),
-# 		:RemainingConsistentClades=>copy(remainingMCCs),
-# 		:method=>method)
-# 		)
-# end
+function pruneconf!(trees, mcc_names, mcc_conf)
+	pruneconf!([mcc_names[x] for x in mcc_conf], trees...)
+end

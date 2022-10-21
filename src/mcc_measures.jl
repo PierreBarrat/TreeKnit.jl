@@ -45,7 +45,7 @@ function is_MCC_subset(MCC1::Vector{Vector{String}}, MCC2::Vector{Vector{String}
     return true
 end
 
-function is_MCC_subset_dict(MCC1::Dict{Int, Set{String}}, MCC2::Dict{String, Int})
+function is_MCC_subset_dict(MCC1::Dict{Int, Set{String}}, MCC2::Dict{String, Union{Int, Nothing}})
     for (keys, mcc1) in MCC1
         if length(Set([MCC2[m] for m in mcc1]))!=1
             return false
@@ -75,9 +75,9 @@ function is_degenerate(M::MCC_set)
 end
 
 function is_degenerate(MCC1::Vector{Vector{String}}, MCC2::Vector{Vector{String}}, MCC3::Vector{Vector{String}})
-    if (!is_MCC_subset_dict(MCC_join_constraint([MCC1, MCC2]; dict=true), leaf_mcc_map(MCC3)) || 
-        !is_MCC_subset_dict(MCC_join_constraint([MCC1, MCC3]; dict=true), leaf_mcc_map(MCC2)) ||
-        !is_MCC_subset_dict(MCC_join_constraint([MCC3, MCC2]; dict=true), leaf_mcc_map(MCC1)))
+    if (!is_MCC_subset_dict(MCC_join_constraint([MCC1, MCC2]; dict=true), map_mccs_leaves(MCC3)) || 
+        !is_MCC_subset_dict(MCC_join_constraint([MCC1, MCC3]; dict=true), map_mccs_leaves(MCC2)) ||
+        !is_MCC_subset_dict(MCC_join_constraint([MCC3, MCC2]; dict=true), map_mccs_leaves(MCC1)))
         return true
     else
         return false

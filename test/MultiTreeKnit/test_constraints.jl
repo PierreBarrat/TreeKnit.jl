@@ -32,11 +32,9 @@ constraint = TreeKnit.MCC_join_constraint([MCC12, MCC13])
 end
 
 @testset "mcc_map functions" begin
-    mcc_map, cluster_no = TreeKnit.leaf_mcc_map(constraint, get_cluster_no =true)
+    mcc_map = TreeKnit.map_mccs(constraint)
     @test mcc_map == Dict("B" => 2, "A" => 2, "C" => 3, "D" => 3, "G" => 1, "E" => 4, "F1" => 4, "F2" => 4)
-    mcc_double_map = TreeKnit.leaf_mcc_map([MCC12, MCC13])
-    @test mcc_double_map == Dict("B" => [3, 2], "A" => [3, 2], "C" => [2, 2], "D" => [2, 2], "G" => [1, 2], "E" => [3, 1], "F1" => [3, 1], "F2" => [3, 1])
-    TreeKnit.assign_mccs!(tree3, mcc_map)
+    TreeKnit.map_mccs!(tree3, constraint)
     inner_node_dict = Dict("i1" => 2, "i2" => 3, "i3" => nothing, "i4" => 4, "i5" => nothing, "i6" => 4, "i7" => nothing)
     for node in nodes(tree3)
         if isleaf(node)

@@ -135,8 +135,10 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 	@info "Inferring MCCs...\n"
 	out = @timed get_infered_MCC_pairs!(trees, oa; strict=!liberal_resolve, naive=naive)
 	MCCs = out[1]
+
 	l = [length(m) for (key,m) in MCCs.mccs]
 	@info "Found $l MCCs (runtime $(out[2]))\n"
+
 	verbose && println()
 	
 	# Write output

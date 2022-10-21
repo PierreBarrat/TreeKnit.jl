@@ -17,7 +17,7 @@ if !isdir(outdir)
 end
 t1, t2, rS = TreeKnit.resolve_strict(t1, t2, MCCs )
 TreeTools.ladderize!(t1)
-TreeKnit.sort_polytomies_strict!(t1, t2, MCCs )
+TreeKnit.sort_polytomies!(t1, t2, MCCs )
 TreeKnit.write_auspice_json(outdir * "/", t1, t2, MCCs )
 TreeKnit.write_newick(outdir * "/" * t1.label *".nwk", t1)
 TreeKnit.write_newick(outdir * "/" * t2.label*".nwk", t2)
