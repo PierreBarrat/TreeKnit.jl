@@ -15,6 +15,11 @@ using Test
 		println("# Main")
 		include("main/test.jl")
 	end
+  
+  @testset "src/mcc_tools.jl" begin
+    println("# MCC tools")
+    include("mcc_tools/test.jl")
+  end
 
 	@testset "SimpleReassortmentGraph" begin
 		println("# SimpleReassortmentGraph")
