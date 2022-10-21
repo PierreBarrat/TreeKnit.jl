@@ -161,16 +161,8 @@ New branches have a length `tau`.
 Return the list of resolved splits in each tree.
 """
 
-function resolve!(t1::Tree{T}, t2::Tree{T}, MCCs; tau = 0.) where T 
-	resolvable_splits = TreeKnit.new_splits(MCCs, t1, t2)
-	resolve!(t1, resolvable_splits[1]; conflict=:fail, tau)
-	resolve!(t2, resolvable_splits[2]; conflict=:fail, tau)
-
-	return resolvable_splits
-end
-
-function resolve_strict!(t1::Tree{T}, t2::Tree{T}, MCCs; tau = 0.) where T 
-	resolvable_splits = TreeKnit.new_splits(MCCs, t1, t2; strict=true)
+function resolve!(t1::Tree{T}, t2::Tree{T}, MCCs; tau = 0., strict=false) where T 
+	resolvable_splits = TreeKnit.new_splits(MCCs, t1, t2; strict =strict)
 	resolve!(t1, resolvable_splits[1]; conflict=:fail, tau)
 	resolve!(t2, resolvable_splits[2]; conflict=:fail, tau)
 

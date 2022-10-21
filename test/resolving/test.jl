@@ -160,7 +160,7 @@ MCCs = TreeKnit.sort([["A","B","C"],["D","E","X"]], lt=TreeKnit.clt)
 	
 	t1_copy = copy(t1)
 	t2_copy = copy(t2)
-	rS = TreeKnit.resolve_strict!(t1_copy, t2_copy, MCCs; tau = 0.)
+	rS = TreeKnit.resolve!(t1_copy, t2_copy, MCCs; tau = 0., strict=true)
 	@test write_newick(t1_copy.root) == "((D,E,((A,B)RESOLVED_1:0.0,C)RESOLVED_2:0.0)NODE_2,X)NODE_1:0;"
 	
 	##check ladderize works the same for strict resolve
@@ -180,7 +180,7 @@ t2_empty = node2tree(TreeTools.parse_newick(nwk_2; node_data_type=TreeTools.Empt
 	
 	t1_copy = copy(t1_empty)
 	t2_copy = copy(t2_empty)
-	rS = TreeKnit.resolve_strict!(t1_copy, t2_copy, MCCs; tau = 0.)
+	rS = TreeKnit.resolve!(t1_copy, t2_copy, MCCs; tau = 0., strict=true)
 	@test (t1_copy.label, t2_copy.label) == ("t1_empty", "t2_empty")
 	@test write_newick(t1_copy.root) == "((D,E,((A,B)RESOLVED_1:0.0,C)RESOLVED_2:0.0)NODE_2,X)NODE_1:0;"
 	
@@ -207,7 +207,7 @@ MCCs = TreeKnit.sort([["A","B","C"],["D","E","X"]], lt=TreeKnit.clt)
 	
 	t1_strict = copy(t1)
 	t2_strict = copy(t2)
-	rS_strict = TreeKnit.resolve_strict!(t1_strict, t2_strict, MCCs; tau = 0.)
+	rS_strict = TreeKnit.resolve!(t1_strict, t2_strict, MCCs; tau = 0., strict=true)
 	TreeTools.ladderize!(t1_strict)
 	TreeKnit.sort_polytomies!(t1_strict, t2_strict, MCCs)
 
@@ -227,7 +227,7 @@ MCCs = TreeKnit.sort([["B"], ["A","C","D","E"]], lt=TreeKnit.clt)
 @testset "check sort_polytomies! works when internal node could belong to more than one mcc" begin
 	t1_strict = copy(t1)
 	t2_strict = copy(t2)
-	rS_strict = TreeKnit.resolve_strict!(t1_strict, t2_strict, MCCs; tau = 0.)
+	rS_strict = TreeKnit.resolve!(t1_strict, t2_strict, MCCs; tau = 0., strict=true)
 	TreeTools.ladderize!(t1_strict)
 	TreeKnit.sort_polytomies!(t1_strict, t2_strict, MCCs)
 	@test write_newick(t1_strict.root) == "(A,(B,C,D,E)NODE_2)NODE_1:0;"
@@ -235,7 +235,7 @@ MCCs = TreeKnit.sort([["B"], ["A","C","D","E"]], lt=TreeKnit.clt)
 
 	t1_strict = copy(t1)
 	t2_strict = copy(t2)
-	rS_strict = TreeKnit.resolve_strict!(t2_strict, t1_strict, MCCs; tau = 0.)
+	rS_strict = TreeKnit.resolve!(t2_strict, t1_strict, MCCs; tau = 0., strict=true)
 	TreeTools.ladderize!(t2_strict)
 	TreeKnit.sort_polytomies!(t2_strict, t1_strict, MCCs)
 	@test write_newick(t1_strict.root) == "(A,(E,C,D,B)NODE_2)NODE_1:0;"
