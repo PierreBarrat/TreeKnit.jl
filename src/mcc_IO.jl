@@ -82,49 +82,77 @@ end
 function write_auspice_json(filepath, trees::Vector{Tree{T}}, MCCs::MCC_set) where T 
 
 Returns a .json file that can be used by auspice to plot a dendrogram of two trees 
-with their MCCs drawn on in color. The format used is:
+with their MCCs drawn on in color. The format used is specified in 
+https://github.com/nextstrain/augur/blob/master/augur/data/schema-export-v2.json
 
-{
-'nodes': {
-	'node1': {branch_length: 0.0343, mcc_tree2: 1, mcc_tree3: nothing},
-	'node2': {...}
-}}
+for more information see: 
+https://docs.nextstrain.org/projects/auspice/en/stable/releases/v2.html?highlight=augur%20export%20v2#new-dataset-json-format
 """
 function write_auspice_json(filepath, trees::Vector{Tree{T}}, MCCs::MCC_set) where T 
+	start_string_1 = """{ \"version\": \"v2\",
+		\"meta\": {
+		\"updated\": \"2022-10-18\",
+		\"colorings\": [
+		"""
+	start_string_2 = """],
+		\"filters\": [],
+		\"panels\": [
+			\"tree\"
+		]
+		},
+		\"tree\":
+		"""
 	for tree in trees
 		other_trees = [copy(trees[i]) for i in 1:MCCs.no_trees if trees[i].label!=tree.label]
 		other_tree_names = [t.label for t in other_trees]
 		mcc_maps = [map_mccs(tree, get(MCCs, tree.label, otree.label)) for otree in other_trees]
-		full_filepath = filepath*"auspice_branch_lengths_"*tree.label*".json"
-		start = true
+		full_filepath = filepath*"auspice__"*tree.label*".json"
 		open(full_filepath, "w") do w
-			write(w, "{ \"nodes\" : {\n")
-			for n in values(tree.lnodes)
-				if ismissing(n.tau)
-					n.tau = 0.0
-				end
-				if !start
-					write(w, ", \n")
-				else
-					start = false
-				end
-				write(w, "\""*n.label*"\": {\"branch_length\": "*string(n.tau)*", ")
-				if !isnothing(mcc_maps[1][n.label])
-					write(w, "\"mcc_"*other_tree_names[1]*"\": "*string(mcc_maps[1][n.label])*"")
-				else
-					write(w, "\"mcc_"*other_tree_names[1]*"\": null")
-				end
-				for i in 2:(MCCs.no_trees-1)
-					if !isnothing(mcc_maps[i][n.label])
-						write(w, " ,\"mcc_"*other_tree_names[i]*"\": "*string(mcc_maps[i][n.label]))
-					else
-						write(w, "\"mcc_"*other_tree_names[i]*"\": null")
-					end
-				end
-				write(w, "}")
+			write(w, start_string_1)
+			l = length(other_tree_names)
+			for ot in other_tree_names
+				order_ = sort([tree.label, ot])
+				write(w, " { \"key\": \"mcc_"*order_[1]*"_"*order_[2]*"\",")
+				write(w, "\"title\": \"mcc_"*order_[1]*"_"*order_[2]*"\",")
+				write(w, "\"type\": \"ordinal\" }")
+				l>1 ? write(w, ",") : nothing
+				l -= 1
 			end
-			write(w, "}}")
+			write(w, start_string_2)
+			write_node_date!(w, tree.root, mcc_maps, tree.label, other_tree_names)
+			write(w, "}")
 		end
 	end
 	return nothing
 end
+
+
+function write_node_date!(w, n, mcc_maps, tree_name, other_tree_names; div =0)
+	write(w, "{\"name\": \""*string(n.label)*"\",")
+	if ismissing(n.tau) n.tau = 0.0 end
+	div = n.tau + div
+	write(w, " \"node_attrs\": { \"div\": "*string(div)*", ")
+	l = length(other_tree_names)
+	for (i,ot) in enumerate(other_tree_names)
+		order_ = sort([tree_name, ot])
+		mcc_ = (!isnothing(mcc_maps[i][n.label])) ? string(mcc_maps[i][n.label]) : "null"
+		write(w, " \"mcc_"*order_[1]*"_"*order_[2]*"\": { \"value\":"*mcc_*"}" )
+		l>1 ? write(w, ",") : nothing
+		l -= 1
+	end
+	write(w, "}, \"branch_attrs\": {}")
+	if !isleaf(n)
+		write(w, ", \"children\": [")
+		l = length(n.child)
+		for c in n.child
+			write_node_date!(w, c, mcc_maps, tree_name, other_tree_names; div=div)
+			l>1 ? write(w, ",") : nothing
+			l -= 1
+		end
+		write(w, "]")
+	end
+	write(w, "}")
+
+	return nothing
+end
+	
