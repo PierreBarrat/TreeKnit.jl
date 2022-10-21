@@ -33,7 +33,7 @@ lines between nodes in an MCC do not cross when The two trees are visualized as 
 function check_sort_polytomies(t1, t2, MCCs) 
 	t1, t2, rS_strict = TreeKnit.resolve_strict(t1, t2, MCCs; tau = 0.)
 	TreeTools.ladderize!(t1)
-	TreeKnit.sort_polytomies_strict!(t1, t2, MCCs)
+	TreeKnit.sort_polytomies!(t1, t2, MCCs)
 	leaf_map = map_mccs(MCCs)
 	pos_in_mcc_t1 = Dict()
 	pos = 1
@@ -67,7 +67,7 @@ function check_sort_polytomies(t1, t2, MCCs)
 	return sorted
 end
 
-@testset "sort_polytomies_strict! on resolve_strict! NY trees" begin
+@testset "sort_polytomies! on resolve_strict! NY trees" begin
 	@test check_sort_polytomies(t1, t2, MCCs)
 end
 
