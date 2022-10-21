@@ -112,7 +112,7 @@ function _map_mccs_fitch_down!(fitch_down, n, fitch_up)
 		end
 	else
 		if length(fitch_up[n.label]) == 1
-			# coherent messages from all children - leaves are treated here
+			# coherent messages from all children - part of an MCC
 			fitch_down[n.label] = first(fitch_up[n.label])
 		elseif fitch_down[n.anc.label] in fitch_up[n.label]
 			# Non empty intersection between ancestor MCC and messages from children
@@ -132,7 +132,7 @@ end
 
 
 """
-	get_leave_order(tree, MCCs)
+	get_leaves_order(tree, MCCs)
 
 Return an ordering of leaves in MCCs given a tree.
 

@@ -55,21 +55,40 @@ real_map = Dict{String, Union{Int, Nothing}}(
 		@test !haskey(n.data, "child_mccs")
 	end
 
-	println("-- Error thrown below --")
+	println("-- Error correctly thrown below --")
 	@test_throws ErrorException map_mccs!(t1, MCCs)
 end
 
 
 
-# Not implemented yet
-# @testset "mark_shared_branches functions" begin
-#     TreeKnit.mark_shared_branches!(constraint, tree3)
-#     true_labels = Set(["A", "B", "C", "D", "E", "F1", "F2", "i6"])
-#     for node in nodes(tree3)
-#         if node.label in true_labels
-#             @test node.data["shared_branch"] == true
-#         else
-#             @test node.data["shared_branch"] == false
-#         end
-#     end
-# end
+tree = node2tree(parse_newick("((A,B)i1,((C,D)i2,(E,(F1,F2)i6,G)i5)i3)i7"))
+tree_misc = convert(Tree{TreeTools.MiscData}, tree)
+
+MCC = [["G"], ["A", "B"], ["C", "D"], ["E", "F1", "F2"]]
+real_map = Dict{String, Union{Int, Nothing}}(
+	"B" => 2, 
+	"A" => 2, 
+	"C" => 3, 
+	"D" => 3, 
+	"G" => 1, 
+	"E" => 4, 
+	"F1" => 4, 
+	"F2" => 4, 
+	"i1" => 2, 
+	"i2" => 3, 
+	"i3" => nothing, 
+	"i5" => nothing, ##could be in MCC 1 or 4
+	"i6" => 4, 
+	"i7" => nothing
+)
+
+@testset "map_mccs with unknown internals" begin
+    empty_data_tree_map = TreeKnit.map_mccs(tree, MCC)
+	@test empty_data_tree_map== real_map 
+	misc_data_tree_map = TreeKnit.map_mccs(tree_misc, MCC)
+    @test misc_data_tree_map  == real_map
+	TreeKnit.map_mccs!(tree_misc, MCC)
+	for n in POT(tree_misc)
+		@test real_map[n.label] == n.data["mcc"]
+	end
+end
