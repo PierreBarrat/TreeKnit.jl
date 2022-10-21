@@ -61,7 +61,7 @@ function write_mccs(filePath, MCCs::MCC_set, mode="w")
 		for i in 1:binomial(MCCs.no_trees, 2)
 			write(w, "\""*string(i)*"\": {\n \"trees\":[")
 			s = sort(tree_pairs[i], lt=clt)
-			write(w, "\""*split(s[1], ".")[1]*"\", \""*split(s[2], ".")[1]*"\"],")
+			write(w, "\""*s[1]*"\", \""*s[2]*"\"],")
 			write(w, "\n\"mccs\": [")
 			m = Ms[i]
 			for x in m[1:end-1]
@@ -106,7 +106,7 @@ function write_auspice_json(filepath, trees::Vector{Tree{T}}, MCCs::MCC_set) whe
 		other_trees = [copy(trees[i]) for i in 1:MCCs.no_trees if trees[i].label!=tree.label]
 		other_tree_names = [t.label for t in other_trees]
 		mcc_maps = [map_mccs(tree, get(MCCs, tree.label, otree.label)) for otree in other_trees]
-		full_filepath = filepath*"auspice__"*tree.label*".json"
+		full_filepath = filepath*"auspice_"*tree.label*".json"
 		open(full_filepath, "w") do w
 			write(w, start_string_1)
 			l = length(other_tree_names)

@@ -75,7 +75,7 @@ treeknit
 
 	# Reading trees
 	@info "Input Newick files:"*join(["$nwk \t" for nwk in nwk_files])*". Reading trees..."
-	fn = get_tree_names(nwk_files)
+	fn, ext = get_tree_names(nwk_files)
 	trees = [read_tree(nwk, label=f) for (nwk, f) in zip(nwk_files, fn)]
 	for t_i in trees[2:end] 
 		if !TreeTools.share_labels(trees[1], t_i)
@@ -99,7 +99,7 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 		parallel = false
 	end
 
-	println("Performing $rounds of TreeKnit")
+	println("Performing $rounds rounds of TreeKnit")
 	if resolve_all_rounds || (length(trees)==2 && !final_no_resolve)
 		resolve_all_rounds = true
 		println("Resolving tree topology prior to inference")
@@ -133,7 +133,8 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 	@info "Parameters: $oa"
 
 	@info "Inferring MCCs...\n"
-	out = @timed get_infered_MCC_pairs!(trees, oa; strict=!liberal_resolve, naive=naive)
+	infered_trees = [copy(t) for t in trees]
+	out = @timed get_infered_MCC_pairs!(infered_trees, oa; strict=!liberal_resolve, naive=naive)
 	MCCs = out[1]
 
 	l = [length(m) for (key,m) in MCCs.mccs]
@@ -144,24 +145,25 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 	# Write output
 	@info "Writing results in $(outdir)"
 	write_mccs(outdir * "/" * "MCCs.json", MCCs)
-	out_nwk = make_output_tree_names(fn)
+	out_nwk = make_output_tree_names(fn, ext)
 	for i in 1:MCCs.no_trees
-		write_newick(outdir * "/" * out_nwk[i], trees[i])
+		write_newick(outdir * "/" * out_nwk[i], infered_trees[i])
 	end
 
 	if auspice_view
-		write_auspice_json(outdir * "/", trees, MCCs)
+		write_auspice_json(outdir * "/", infered_trees, MCCs)
 	end
 	verbose && println()
 
 	if length(trees) ==2
-		t1 = trees[1]
-		t2 = trees[2]
+		rS = resolve!(trees[1], trees[2], get(MCCs, trees[1].label, trees[2].label))
+		out_nwk = make_output_tree_names(fn, ext; liberal=true)
+		for i in 1:MCCs.no_trees
+			write_newick(outdir * "/" * out_nwk[i], trees[i])
+		end
 		@info "Building ARG from trees and MCCs..."
-		arg, rlm, lm1, lm2 = SRG.arg_from_trees(t1, t2, get(MCCs, t1.label, t2.label))
+		arg, rlm, lm1, lm2 = SRG.arg_from_trees(trees[1], trees[2], get(MCCs, trees[1].label, trees[2].label))
 		@info "Found $(length(arg.hybrids)) reassortments in the ARG.\n"
-		trees[1] = t1
-		trees[2] = t2
 		write(outdir * "/" * "arg.nwk", arg)
 		write_rlm(outdir * "/" * "nodes.dat", rlm)
 	end
@@ -194,11 +196,14 @@ function write_rlm(filename, rlm)
 	end
 end
 
-function make_output_tree_names(nwk_names)
+function make_output_tree_names(nwk_names, ext; liberal=false)
 
 	f = [splitext(n)[1] for n in nwk_names]
-	ext = [splitext(n)[2] for n in nwk_names]
-	names = [f_i * "_resolved" * ext_i for (f_i, ext_i) in zip(f, ext)]
+	if liberal
+		names = [f_i * "_liberal_resolved" * ext for f_i in f]
+	else
+		names = [f_i * "_resolved" * ext for f_i in f]
+	end
 
 	return names
 end
@@ -207,11 +212,12 @@ end
 function get_tree_names(nwk_files)
 
 	fn = [basename(nwk) for nwk in nwk_files]
+	name, ext = splitext(fn[1])
+	fn = [splitext(f)[1] for f in fn]
 	if unique(fn) != fn
-		name, ext = splitext(fn[1])
 		d = [split(dirname(nwk), '/')[end] for nwk in nwk_files]
-		fn = [name * "_$(d_i)"* ext for d_i in d]
+		fn = [name * "_$(d_i)" for d_i in d]
 	end
 	@assert unique(fn) == fn "Input trees must be identifiable by file name"
-	return fn
+	return (fn, ext)
 end
