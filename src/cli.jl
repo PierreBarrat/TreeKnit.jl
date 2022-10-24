@@ -33,7 +33,7 @@ treeknit
 	gamma::Float64 = 2.,
 	seq_lengths::AbstractString = join([string(i) for i in repeat([1], 2+ length(nwk_files))], " "),
 	n_mcmc_it::Int = 25,
-	rounds::Int = 1 + mod(length(nwk_files),1),
+	rounds::Int = (length(nwk_files)>0) ? 2 : 1,
 	# flags
 	naive::Bool = false,
 	no_likelihood::Bool = false,

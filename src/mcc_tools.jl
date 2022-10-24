@@ -13,7 +13,7 @@ function map_mccs(tree, MCCs; internals = true)
 	leaf_mcc_map = map_mccs_leaves(MCCs)
 	if internals
 		fitch_up = map_mccs_fitch_up(tree, leaf_mcc_map)
-		@debug "Upward pass of Fitch" ficth_up=fitch_up
+		#@debug "Upward pass of Fitch" ficth_up=fitch_up
 		fitch_down = map_mccs_fitch_down(tree, fitch_up)
 		return fitch_down
 	else
@@ -33,7 +33,7 @@ function map_mccs!(tree::Tree{TreeTools.MiscData}, MCCs; internals = true)
 	if internals
 		# Compute the map and add it to nodes
 		fitch_up = map_mccs_fitch_up(tree, leaf_mcc_map)
-		@debug "Upward pass of Fitch" ficth_up=fitch_up
+		#@debug "Upward pass of Fitch" ficth_up=fitch_up
 		fitch_down = map_mccs_fitch_down(tree, fitch_up)
 		for (label, mcc) in fitch_down
 			tree[label].data["mcc"] = mcc

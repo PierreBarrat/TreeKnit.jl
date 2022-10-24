@@ -23,7 +23,7 @@ Storing parameters for `SplitGraph.runopt` function.
 - `verbose::Bool=false`: first level of verbosity
 - `vv::Bool = false`: second level of verbosity
 """
-@with_kw struct OptArgs
+@with_kw mutable struct OptArgs
 	γ::Real = 2
 	itmax::Int64 = 15
 	likelihood_sort::Bool = true
