@@ -198,7 +198,7 @@ function doMCMC(g::Graph, conf::Array{Bool,1}, M::Int64; T=1, γ=1, mask=Set(), 
 		# if stop
 		# 	break
 		# end
-		E, F = mcmcstep!(_conf, g, F, T, γ; mask=mask, constraint_cost=constraint_cost)
+		E, F = mcmcstep!(_conf, g, F, T, γ; mask, constraint_cost)
 		# If new minimum is found
 		if F < Fmin
 			Fmin = F

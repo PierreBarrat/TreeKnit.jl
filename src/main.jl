@@ -29,8 +29,7 @@ Controls parameters of the MCC inference (unless `naive=true`). See `?OptArgs` f
 ### `naive = false`
 - If `true`, use a naive estimation for MCCs, *i.e.* find all clades that have an exactly
   matching topology in all trees.
-- Else, use a pseudo-parsimonious method based (mostly) on topology. The method
-  `runopt(oa,t1,t2)` is called on every pair of trees.
+- Else, use a pseudo-parsimonious method based (mostly) on topology.
 """
 function computeMCCs(
 	t1::Tree, t2::Tree, oa::OptArgs=OptArgs();
@@ -53,18 +52,19 @@ end
 """
 		runopt(t1::Tree, t2::Tree; kwargs...)
 		runopt(oa::OptArgs, t1::Tree, t2::Tree)
-		runopt(oa::OptArgs, trees::Dict{<:Any,<:Tree})
 
 Run optimization at constant γ. See `?Optargs` for arguments. In the first form, keyword
   arguments are given to `OptArgs`. If `constraint` is given (in the form of an MCC where nodes that should 
   be together are in the same cluster) this will be used as `shared_branch`-constraint while performing 
   simulated annealing, lowering the likelihood that nodes that should be in the same MCC are split from each other.
 """
-runopt(t1::Tree, t2::Tree, constraint::Union{Nothing, Vector{Vector{String}}}; kwargs...) = runopt(OptArgs(;kwargs...), t1, t2, constraint)
+function runopt(t1::Tree, t2::Tree, constraint; kwargs...)
+	runopt(OptArgs(;kwargs...), t1, t2, constraint)
+end
 runopt(t1::Tree, t2::Tree; kwargs...) = runopt(OptArgs(;kwargs...), t1, t2, nothing)
-runopt(oa::OptArgs, t1::Tree, t2::Tree; output = :mccs) = runopt(oa, t1, t2, nothing; output=output)
+runopt(oa::OptArgs, t1::Tree, t2::Tree; output=:mccs) = runopt(oa, t1, t2, nothing; output)
 
-function runopt(oa::OptArgs, t1::Tree, t2::Tree, constraint::Union{Nothing, Vector{Vector{String}}}; output = :mccs)
+function runopt(oa::OptArgs, t1::Tree, t2::Tree, constraint; output = :mccs)
 	# Copying input trees for optimization
 	ot1 = copy(convert(Tree{TreeTools.MiscData}, t1))
 	ot2 = copy(convert(Tree{TreeTools.MiscData}, t2))
@@ -92,8 +92,16 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree, constraint::Union{Nothing, Vect
 		M = Int(ceil(length(ot1.lleaves) * oa.nMCMC / length(oa.Trange)))
 		mccs, Efinal, Ffinal, lk = SplitGraph.opttrees(
 			ot1, ot2;
-			γ=oa.γ, seq_lengths = oa.seq_lengths, M=M, Trange=oa.Trange, likelihood_sort=oa.likelihood_sort, 
-			resolve=oa.resolve, sa_rep=oa.sa_rep, consistent =oa.consistent, constraint_cost=oa.constraint_cost, oa.verbose
+			oa.γ,
+			oa.seq_lengths,
+			M,
+			oa.Trange,
+			oa.likelihood_sort,
+			oa.resolve,
+			oa.sa_rep,
+			oa.consistent,
+			oa.constraint_cost,
+			oa.verbose
 		)
 		!isempty(mccs) && append!(MCCs, mccs)
 		oa.verbose && @info "Found $(length(mccs)) new mccs."

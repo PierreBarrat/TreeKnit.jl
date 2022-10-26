@@ -1,5 +1,5 @@
 """
-treeknit
+	treeknit
 
 # Arguments
 
@@ -112,7 +112,7 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 	end
 	if final_no_resolve || (length(trees)>2 && !resolve_all_rounds)
 		final_no_resolve = true
-		println("Not resolving tree topology prior to inference in final round")
+		println("Resolving tree topology prior to inference in all rounds but final round")
 	end
 
 	# Setting up OptArgs
@@ -134,7 +134,7 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 
 	@info "Inferring MCCs...\n"
 	infered_trees = [copy(t) for t in trees]
-	out = @timed MTK.get_infered_MCC_pairs!(infered_trees, oa; strict=!liberal_resolve, naive=naive)
+	out = @timed MTK.get_infered_MCC_pairs!(infered_trees, oa; strict=!liberal_resolve, naive)
 	MCCs = out[1]
 
 	l = [length(m) for (key,m) in MCCs.mccs]

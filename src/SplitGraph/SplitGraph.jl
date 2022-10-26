@@ -127,13 +127,13 @@ function sortconf(oconfs, trees, g::Graph, seq_lengths, mcc_names, likelihood_so
 end
 
 """
-get_consistency_mask(g, tree)
+	get_consistency_mask(g, tree)
 
 Get which branches/ terminal nodes of the current tree (SplitGraph) 
 should not be removed in the subsequent MCMC due to the fact that 
 they have a `shared_branch`.
 """
-function get_consistency_mask(g::Graph, tree::Tree)
+function get_consistency_mask(g::Graph, tree::Tree{TreeTools.MiscData})
 	if !haskey(tree.root.data.dat, "shared_branch")
 		return []
 	end
