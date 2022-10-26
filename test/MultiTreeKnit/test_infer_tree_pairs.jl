@@ -1,6 +1,7 @@
 using Test
 using TreeTools
 using TreeKnit
+using TreeKnit.MTK
 
 println("##### testing MultiTreeKnit: get_infered_MCC_pairs! #####")
 
@@ -18,19 +19,19 @@ solutions = [   [["A"], ["B", "C"]],
 
 @testset "get_infered_MCC_pairs!, consistent=false" begin
     input_trees = [copy(t1), copy(t2), copy(t3)]
-    MCC_dict = TreeKnit.get_infered_MCC_pairs!(input_trees, OptArgs(rounds=1, consistent=false))
+    MCC_dict = MTK.get_infered_MCC_pairs!(input_trees, OptArgs(rounds=1, consistent=false))
     @test get(MCC_dict,("a", "c")) == [["A", "B", "C"]]
     @test in(get(MCC_dict, ("a", "b")), solutions)
 	@test SplitList(t1) == SplitList(input_trees[3])
 
     input_trees = [copy(t2), copy(t1), copy(t3)]
-    MCC_dict = TreeKnit.get_infered_MCC_pairs!(input_trees, OptArgs(rounds=1, consistent=false))
+    MCC_dict = MTK.get_infered_MCC_pairs!(input_trees, OptArgs(rounds=1, consistent=false))
     @test get(MCC_dict, ("b", "c")) == [["A", "B", "C"]]
     @test in(get(MCC_dict, ("a", "b")), solutions)
 	@test SplitList(t2) == SplitList(input_trees[3])
 
     input_trees = [copy(t3), copy(t1), copy(t2)]
-    MCC_dict = TreeKnit.get_infered_MCC_pairs!(input_trees, OptArgs(rounds=1, consistent=false))
+    MCC_dict = MTK.get_infered_MCC_pairs!(input_trees, OptArgs(rounds=1, consistent=false))
     @test get(MCC_dict,("a", "c")) == [["A", "B", "C"]]
     @test in(get(MCC_dict,("a", "b")), solutions)
 	@test SplitList(t1) == SplitList(input_trees[1])
@@ -42,7 +43,7 @@ end
     input_trees = [copy(t1), copy(t2), copy(t3)]
     ot3 = copy(convert(Tree{TreeTools.MiscData}, input_trees[1]))
     ot2 = copy(convert(Tree{TreeTools.MiscData}, input_trees[2]))
-    TreeKnit.mark_shared_branches!([["A"], ["B", "C"]], ot2, ot3)
+    MTK.mark_shared_branches!([["A"], ["B", "C"]], ot2, ot3)
     @test ot2.lnodes["NODE_1"].data.dat["shared_branch"] == false
     @test ot3.lnodes["NODE_1"].data.dat["shared_branch"] == true
     @test ot2.lleaves["A"].data.dat["shared_branch"] == false
@@ -60,18 +61,18 @@ end
 
 @testset "get_infered_MCC_pairs!, consistent=true" begin
     input_trees = [copy(t1), copy(t2), copy(t3)]
-    MCC_dict = TreeKnit.get_infered_MCC_pairs!(input_trees, OptArgs(rounds=1, consistent=true))
+    MCC_dict = MTK.get_infered_MCC_pairs!(input_trees, OptArgs(rounds=1, consistent=true))
     @test get(MCC_dict,("a", "c")) == [["A", "B", "C"]]
     @test get(MCC_dict, ("a", "b")) == get(MCC_dict, ("b", "c"))
     @test SplitList(t1) == SplitList(input_trees[3])
     @test 0.0 == TreeKnit.consistency_rate(MCC_dict, input_trees)
 
     input_trees = [copy(t2), copy(t1), copy(t3)]
-    MCC_dict = TreeKnit.get_infered_MCC_pairs!(input_trees, OptArgs(rounds=1, consistent=true))
+    MCC_dict = MTK.get_infered_MCC_pairs!(input_trees, OptArgs(rounds=1, consistent=true))
     @test 0.0 == TreeKnit.consistency_rate(MCC_dict, input_trees)
 
     input_trees = [copy(t3), copy(t1), copy(t2)]
-    MCC_dict = TreeKnit.get_infered_MCC_pairs!(input_trees, OptArgs(rounds=1, consistent=true))
+    MCC_dict = MTK.get_infered_MCC_pairs!(input_trees, OptArgs(rounds=1, consistent=true))
     @test 0.0 == TreeKnit.consistency_rate(MCC_dict, input_trees)
 end
 

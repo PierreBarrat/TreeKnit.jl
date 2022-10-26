@@ -75,9 +75,9 @@ function is_degenerate(M::MCC_set)
 end
 
 function is_degenerate(MCC1::Vector{Vector{String}}, MCC2::Vector{Vector{String}}, MCC3::Vector{Vector{String}})
-    if (!is_MCC_subset_dict(MCC_join_constraint([MCC1, MCC2]; dict=true), map_mccs_leaves(MCC3)) || 
-        !is_MCC_subset_dict(MCC_join_constraint([MCC1, MCC3]; dict=true), map_mccs_leaves(MCC2)) ||
-        !is_MCC_subset_dict(MCC_join_constraint([MCC3, MCC2]; dict=true), map_mccs_leaves(MCC1)))
+    if (!is_MCC_subset_dict(MTK.MCC_join_constraint([MCC1, MCC2]; dict=true), map_mccs_leaves(MCC3)) || 
+        !is_MCC_subset_dict(MTK.MCC_join_constraint([MCC1, MCC3]; dict=true), map_mccs_leaves(MCC2)) ||
+        !is_MCC_subset_dict(MTK.MCC_join_constraint([MCC3, MCC2]; dict=true), map_mccs_leaves(MCC1)))
         return true
     else
         return false
@@ -126,12 +126,12 @@ end
 
 
 function consistent_mcc_triplets(MCCs, trees; masked=false)
-    constraint = TreeKnit.MCC_join_constraint([MCCs[1], MCCs[2]])
+    constraint = MTK.MCC_join_constraint([MCCs[1], MCCs[2]])
     s = 0
 	Z = 0
     for t in trees
         tree = copy(t)
-        TreeKnit.mark_shared_branches!(constraint, tree)
+        MTK.mark_shared_branches!(constraint, tree)
         for n in nodes(tree)
             if isroot(n)
                 continue
@@ -144,7 +144,7 @@ function consistent_mcc_triplets(MCCs, trees; masked=false)
             end
         end
     end
-    @assert (masked && s!=0 && TreeKnit.is_MCC_subset(TreeKnit.MCC_join_constraint([MCCs[1], MCCs[2]]), MCCs[3])) == false "Error: Should be consistent" 
+    @assert (masked && s!=0 && TreeKnit.is_MCC_subset(MTK.MCC_join_constraint([MCCs[1], MCCs[2]]), MCCs[3])) == false "Error: Should be consistent" 
     return  Z == 0 ? 0.0 : s / Z
 end
 

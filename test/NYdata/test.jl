@@ -34,32 +34,28 @@ function check_sort_polytomies(t1, t2, MCCs)
 	t1, t2, rS_strict = TreeKnit.resolve_strict(t1, t2, MCCs; tau = 0.)
 	TreeTools.ladderize!(t1)
 	TreeKnit.sort_polytomies!(t1, t2, MCCs)
-	leaf_map = map_mccs(MCCs)
+	leaf_map = map_mccs(MCCs) ##map from leaf to mcc
 	pos_in_mcc_t1 = Dict()
-	pos = 1
 	for leaf in POTleaves(t1)
 		if haskey(pos_in_mcc_t1, leaf_map[leaf.label])
-			append!(pos_in_mcc_t1[leaf_map[leaf.label]], pos)
+			append!(pos_in_mcc_t1[leaf_map[leaf.label]], leaf.label)
 		else
-			pos_in_mcc_t1[leaf_map[leaf.label]] = [pos]
+			pos_in_mcc_t1[leaf_map[leaf.label]] = [leaf.label]
 		end
-		pos +=1 
 	end
 
 	pos_in_mcc_t2 = Dict()
-	pos = 1
 	for leaf in POTleaves(t2)
 		if haskey(pos_in_mcc_t2, leaf_map[leaf.label])
-			append!(pos_in_mcc_t2[leaf_map[leaf.label]], pos)
+			append!(pos_in_mcc_t2[leaf_map[leaf.label]], leaf.label)
 		else
-			pos_in_mcc_t2[leaf_map[leaf.label]] = [pos]
+			pos_in_mcc_t2[leaf_map[leaf.label]] = [leaf.label]
 		end
-		pos +=1 
 	end
 
 	sorted = true
 	for mcc in 1:length(MCCs)
-		if (sort(pos_in_mcc_t1[mcc]) !=  pos_in_mcc_t1[mcc]) || (sort(pos_in_mcc_t2[mcc]) !=  pos_in_mcc_t2[mcc])
+		if (pos_in_mcc_t1[mcc] == pos_in_mcc_t2[mcc])
 			sorted = false
 			break
 		end

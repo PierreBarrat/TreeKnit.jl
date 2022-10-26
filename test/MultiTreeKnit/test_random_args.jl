@@ -64,6 +64,17 @@ function remove_branches(input_trees; c=0.75, N = 10_000)
     return trees
 end
 
+function get_real_MCCs(no_trees, arg)
+    rMCCs = Vector{Vector{String}}[]
+    for k in 2:no_trees
+        k_iters = Combinatorics.combinations(1:no_trees, k)
+        for combination in k_iters
+            push!(rMCCs, ARGTools.MCCs_from_arg(arg, combination...));
+        end
+    end
+    return rMCCs
+end
+
 @testset "check is_degenerate(MCCs) == (consistency_rate!=0.0) holds for random multitrees" begin
     repeat = 0
     while repeat < 10
@@ -71,8 +82,8 @@ end
         label!(trees[1], "a")
         label!(trees[2], "b")
         label!(trees[3], "c")
-        iMCCs = TreeKnit.get_infered_MCC_pairs!(trees, consistent = true, constraint_cost=4.)
-        @test TreeKnit.is_degenerate(iMCCs) == (TreeKnit.consistency_rate(iMCCs, trees)!=0.0)
+        iMCCs = MTK.get_infered_MCC_pairs!(trees, consistent = true, constraint_cost=4.)
+        @test MTK.is_degenerate(iMCCs) == (MTK.consistency_rate(iMCCs, trees)!=0.0)
         repeat += 1
     end
 end
@@ -81,7 +92,7 @@ function check_parallelized_TK()
     for i in 1:100
         true_trees, arg = get_trees(8, 15; ρ=(10^-0.1))
         labels = [t.label for t in true_trees]
-        rMCCs = TreeKnit.MCC_set(8, labels, TreeKnit.get_real_MCCs(8, arg))
+        rMCCs = MCC_set(8, labels, get_real_MCCs(8, arg))
         for no_trees in 2:8
             rand_order = sample(1:8, no_trees, replace = false)
             unresolved_trees = [copy(t) for t in true_trees[rand_order]]
@@ -89,7 +100,7 @@ function check_parallelized_TK()
 
             i_trees = [copy(t) for t in unresolved_trees]
             try
-                fc_i_MCCs = TreeKnit.get_infered_MCC_pairs!(i_trees, TreeKnit.OptArgs(consistent = true, parallel=true))
+                fc_i_MCCs = MTK.get_infered_MCC_pairs!(i_trees, TreeKnit.OptArgs(consistent = true, parallel=true))
             catch e
                 print("n: "*string(no_trees))
                 for t in true_trees

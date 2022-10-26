@@ -73,7 +73,7 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree, constraint::Union{Nothing, Vect
 	oa.resolve && resolve!(ot1, ot2)
 
 	format_constraint!(constraint, t1)
-	mark_shared_branches!(constraint, ot1, ot2)
+	MTK.mark_shared_branches!(constraint, ot1, ot2)
 
 	iMCCs = naive_mccs(ot1, ot2)
 	oa.verbose && @info "Initial state: $(length(iMCCs)) naive MCCs"

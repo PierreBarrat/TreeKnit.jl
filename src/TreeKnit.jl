@@ -22,10 +22,11 @@ include("mcc_splits.jl")
 include("mcc_tools.jl")
 export map_mccs, map_mccs!
 
-include("MultiTreeKnit/multitree_objects.jl")
-export MCC_set
-include("MultiTreeKnit/multitree_constraints.jl")
 include("MultiTreeKnit/MultiTreeKnit.jl")
+import TreeKnit.MultiTreeKnit: MTK
+import TreeKnit.MultiTreeKnit: MCC_set
+export MTK
+export MCC_set
 
 include("mcc_measures.jl")
 

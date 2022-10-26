@@ -1,4 +1,3 @@
-export MCC_set 
 """
 	struct MCC_set
 
@@ -23,7 +22,7 @@ function MCC_set(no_trees::Int, order_trees::Vector{String}, MCC_list::Vector{Ve
     M = MCC_set(no_trees, order_trees)
     iters = Combinatorics.combinations(1:no_trees, 2)
     for (i, comb) in enumerate(iters)
-        TreeKnit.add!(M, MCC_list[i], comb...)
+        add!(M, MCC_list[i], comb...)
     end
     return M
 end

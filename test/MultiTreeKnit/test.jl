@@ -1,5 +1,6 @@
 using TreeKnit
 using TreeKnit.SplitGraph
+using TreeKnit.MTK
 using Test
 using TreeTools
 
@@ -12,5 +13,5 @@ include("$(dirname(pathof(TreeKnit)))/..//test/MultiTreeKnit/test_parallelTK.jl"
 
 using Pkg
 if "ARGTools" in keys(Pkg.project().dependencies)
-    include("$(dirname(pathof(TreeKnit)))/..//test/MultiTreeKnit/test_random_multitrees.jl")
+    include("$(dirname(pathof(TreeKnit)))/..//test/MultiTreeKnit/test_random_args.jl")
 end

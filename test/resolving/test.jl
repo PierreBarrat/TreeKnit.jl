@@ -272,6 +272,20 @@ MCCs = TreeKnit.sort([["B"], ["A","C","D","E"]], lt=TreeKnit.clt)
 	@test write_newick(t2_strict.root) == "(A,(B,E,(C,D)NODE_3)NODE_2)NODE_1:0;"
 end
 
+nwk_1 = "(A,B,C,D)"
+nwk_2 = "(A,C,(D,B))"
+t1 = node2tree(TreeTools.parse_newick(nwk_1; node_data_type=TreeTools.MiscData); label="t1")
+t2 = node2tree(TreeTools.parse_newick(nwk_2; node_data_type=TreeTools.MiscData); label="t2")
+MCCs = TreeKnit.sort([["B"], ["A","C","D"]], lt=TreeKnit.clt)
+
+@testset "check sort_polytomies! works when internal node could belong to more than one mcc" begin
+	t1_strict = copy(t1)
+	t2_strict = copy(t2)
+	rS_strict = TreeKnit.resolve_strict!(t1_strict, t2_strict, MCCs; tau = 0.)
+	TreeTools.ladderize!(t1_strict)
+	TreeKnit.sort_polytomies!(t1_strict, t2_strict, MCCs)
+end
+
 
 
 # printl("#### Resolve using MCC inference")

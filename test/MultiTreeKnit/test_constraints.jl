@@ -1,3 +1,8 @@
+using Test
+using TreeTools
+using TreeKnit
+using TreeKnit.MTK
+
 println("##### testing constraints #####")
 
 function join_sets_slow(input_sets::Vector{Vector{Vector{String}}})
@@ -24,10 +29,10 @@ tree2 = convert(Tree{TreeTools.MiscData},node2tree(parse_newick("((G,(A,B)k1)k2,
 MCC12 = TreeKnit.sort([["A", "B", "E", "F1", "F2"], ["G"], ["C", "D"]], lt=TreeKnit.clt)
 MCC13 = TreeKnit.sort([["A", "B", "C", "D", "G"], ["E", "F1", "F2"]], lt=TreeKnit.clt)
 
-constraint = TreeKnit.MCC_join_constraint([MCC12, MCC13])
+constraint = MTK.MCC_join_constraint([MCC12, MCC13])
 
 @testset "MCC join" begin
-    @test join_sets_slow([MCC12, MCC13]) ==  TreeKnit.MCC_join_constraint([MCC12, MCC13])
+    @test join_sets_slow([MCC12, MCC13]) ==  MTK.MCC_join_constraint([MCC12, MCC13])
     @test constraint == [["G"], ["A", "B"], ["C", "D"], ["E", "F1", "F2"]]
 end
 
@@ -46,7 +51,7 @@ end
 end
 
 @testset "mark_shared_branches functions" begin
-    TreeKnit.mark_shared_branches!(constraint, tree3)
+    MTK.mark_shared_branches!(constraint, tree3)
     true_labels = Set(["A", "B", "C", "D", "E", "F1", "F2", "i6"])
     for node in nodes(tree3)
         if node.label in true_labels

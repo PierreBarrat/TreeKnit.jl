@@ -57,7 +57,7 @@ function write_mccs(filePath, MCCs::MCC_set, mode="w")
 
 	open(filePath, mode) do w
 		write(w, "{ \"MCC_dict\" : {\n")
-		tree_pairs, Ms = iter_pairs(MCCs)
+		tree_pairs, Ms = MTK.iter_pairs(MCCs)
 		for i in 1:binomial(MCCs.no_trees, 2)
 			write(w, "\""*string(i)*"\": {\n \"trees\":[")
 			s = sort(tree_pairs[i], lt=clt)
