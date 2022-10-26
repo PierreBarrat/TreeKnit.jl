@@ -9,10 +9,11 @@ Add splits in `S` to `t` by introducing internal nodes.
 New nodes are assigned a time `tau` (`0` by default).
 If `conflict != :ignore`, will fail if a split `s` in `S` is not compatible with `t`.
 Otherwise, silently skip the conflicting splits.
+Add shared identity to nodes or `shared_map` if given as input.
 """
 function resolve!(
 	t::Tree{T}, S::SplitList;
-	conflict=:fail, usemask=false, tau=0., safe=false
+	conflict=:fail, usemask=false, tau=0., safe=false, shared_map = nothing
 ) where T
 	# Label for created nodes
 	label_i = parse(Int64, TreeTools.create_label(t, "RESOLVED")[10:end])
@@ -36,6 +37,13 @@ function resolve!(
 						nr.data.dat["shared_branch"] = true
 					else
 						nr.data.dat["shared_branch"] = false
+					end
+				end
+				if !isnothing(shared_map)
+					if shared_map[R.label] && any([shared_map[r.label] for r in roots])
+						shared_map[nr.label] = true
+					else
+						shared_map[nr.label] = false
 					end
 				end
 				push!(tsplits.splits, s)
@@ -139,11 +147,17 @@ Resolve `t1` using splits of `t2` and inversely.
 Every split of `t2` a tree that is compatible with `t1` is introduced in `t1` with branch
 length `tau` (and inversely). Return new splits in each tree.
 """
-function resolve!(t1::Tree, t2::Tree; tau=0.)
+function resolve!(t1::Tree, t2::Tree; tau=0., shared_maps=nothing)
 	S = [SplitList(t) for t in (t1,t2)]
 	Snew = resolve!(S[1], S[2], t1, t2)
-	for (t, s) in zip((t1,t2), S)
-		resolve!(t, s, conflict=:fail, usemask=false, tau=tau)
+	if !isnothing(shared_maps)
+		for (t, s, d) in zip((t1,t2), S, shared_maps)
+			resolve!(t, s, conflict=:fail, usemask=false, tau=tau, shared_map=d)
+		end
+	else
+		for (t, s) in zip((t1,t2), S)
+			resolve!(t, s, conflict=:fail, usemask=false, tau=tau)
+		end
 	end
 
 	return Snew

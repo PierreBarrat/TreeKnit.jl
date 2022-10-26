@@ -46,7 +46,7 @@ end
 
 
 """
-mark_shared_branches!(MCC::Union{Nothing, Vector{Vector{String}}}, trees::Vararg{Tree})
+    map_shared_branches!(MCC::Union{Nothing, Vector{Vector{String}}}, tree::Tree{TreeTools.MiscData})
 
 Add a `shared_branch` parameter to all `trees`, branches with a `shared_branch` do not have a recombination event 
 occuring on them as they connect clades that should be together according to the MCCs. If trees are not fully resolved 
@@ -57,29 +57,59 @@ and two mccs share a common ancestor this ancestor will be marked as `None` by t
 The function proceeds by allocating each node to the MCC it should be in using the Fitch algorithm, 
 then branches which are in a MCC with 2 or more nodes are marked with `shared_branch`.
 """
-function mark_shared_branches!(MCC::Union{Nothing, Vector{Vector{String}}}, trees::Vararg{Tree}; up_to_resolution=true)
+function map_shared_branches!(MCC::Union{Nothing, Vector{Vector{String}}}, tree::Tree{TreeTools.MiscData}; up_to_resolution=true)
 	
 	if isnothing(MCC)
 		return nothing
 	end
 
-	# assign MCCs to leaves
-    for tree in trees
-	    map_mccs!(tree, MCC)
+    shared_branches_map_ = map_shared_branches(MCC, tree; up_to_resolution)
 
-		for n in POT(tree)
-			if !isnothing(n.data["mcc"]) && length(MCC[n.data["mcc"]]) >1
-                m = n.data["mcc"]
-                if (isroot(n) || m==n.anc.data["mcc"])
-				    n.data["shared_branch"] = true
-                elseif up_to_resolution && (any([(c!=n && (c.data["mcc"]==m ||  any([l.data["mcc"] ==m for l in POTleaves(c)]))) for c ∈ n.anc.child]))
-                    n.data["shared_branch"] = true
-                else
-                    n.data["shared_branch"] = false
-                end
-            else
-				n.data["shared_branch"] = false
-			end
-		end
+	# assign MCCs to leaves
+    for n in POT(tree)
+        n.data["shared_branch"] = shared_branches_map_[n.label]
+    end
+    return nothing
+end
+
+function map_shared_branches!(MCC, tree; up_to_resolution=true)
+@error "`map_shared_branches!` is only for trees with data attached to nodes, *i.e.* `Tree{TreeTools.MiscData}`.
+	 Try `map_shared_branches` to get a map from nodes to shared branches.
+	"
+	error("Incorrect method")
+end
+
+"""
+    map_shared_branches(MCC::Union{Nothing, Vector{Vector{String}}}, tree::Tree)
+
+Create a dictionary which maps each node label to if that branch is shared (Bool) in the MCC. If trees are not fully
+resolved and two mccs share a common ancestor this ancestor will be marked as `None` by the `assign_mccs` function. If the 
+`up_to_resolution` flag is used branches leading to such a shared node are `shared`.
+
+The function proceeds by allocating each node to the MCC it should be in using the Fitch algorithm, 
+then branches which are in a MCC with 2 or more nodes are marked with `shared_branch`.
+"""
+function map_shared_branches(MCC::Union{Nothing, Vector{Vector{String}}}, tree::Tree; up_to_resolution=true)
+    if isnothing(MCC)
+		return nothing
 	end
+    shared_branches_map = Dict{String, Bool}()
+	    mcc_map_ = map_mccs(tree, MCC)
+        
+    for n in POT(tree)
+        if !isnothing(mcc_map_[n.label]) && length(MCC[mcc_map_[n.label]]) >1
+            m = mcc_map_[n.label]
+            if (isroot(n) || m==mcc_map_[n.anc.label])
+                shared_branches_map[n.label] = true
+            elseif up_to_resolution && (any([(c!=n && (mcc_map_[c.label]==m ||  any([mcc_map_[l.label] ==m for l in POTleaves(c)]))) for c ∈ n.anc.child]))
+                shared_branches_map[n.label] = true
+            else
+                shared_branches_map[n.label] = false
+            end
+        else
+            shared_branches_map[n.label] = false
+        end
+    end
+
+    return shared_branches_map
 end

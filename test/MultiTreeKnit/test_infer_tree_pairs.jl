@@ -43,7 +43,8 @@ end
     input_trees = [copy(t1), copy(t2), copy(t3)]
     ot3 = copy(convert(Tree{TreeTools.MiscData}, input_trees[1]))
     ot2 = copy(convert(Tree{TreeTools.MiscData}, input_trees[2]))
-    MTK.mark_shared_branches!([["A"], ["B", "C"]], ot2, ot3)
+    MTK.map_shared_branches!([["A"], ["B", "C"]], ot2)
+    MTK.map_shared_branches!([["A"], ["B", "C"]], ot3)
     @test ot2.lnodes["NODE_1"].data.dat["shared_branch"] == false
     @test ot3.lnodes["NODE_1"].data.dat["shared_branch"] == true
     @test ot2.lleaves["A"].data.dat["shared_branch"] == false

@@ -73,8 +73,11 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree, constraint; output = :mccs)
 	oa.resolve && resolve!(ot1, ot2)
 
 	format_constraint!(constraint, t1)
-	MTK.mark_shared_branches!(constraint, ot1, ot2)
-
+	if !isnothing(constraint)
+		shared_maps = [MTK.map_shared_branches(constraint, ot1), MTK.map_shared_branches(constraint, ot2)]
+	else
+		shared_maps = nothing
+	end
 	iMCCs = naive_mccs(ot1, ot2)
 	oa.verbose && @info "Initial state: $(length(iMCCs)) naive MCCs"
 
@@ -101,7 +104,8 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree, constraint; output = :mccs)
 			oa.sa_rep,
 			oa.consistent,
 			oa.constraint_cost,
-			oa.verbose
+			oa.verbose,
+			shared_maps
 		)
 		!isempty(mccs) && append!(MCCs, mccs)
 		oa.verbose && @info "Found $(length(mccs)) new mccs."
@@ -109,7 +113,7 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree, constraint; output = :mccs)
 
 		# Stopping condition
 		oa.verbose && @info "Proceeding based on newly found MCCs..."
-		flag, rMCCs = stop_conditions!(MCCs, mccs, oa, it, ot1, ot2; hardstop=true)
+		flag, rMCCs = stop_conditions!(MCCs, mccs, oa, it, ot1, ot2; hardstop=true, shared_maps)
 
 		#=
 			Note on variables at this point
@@ -132,7 +136,7 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree, constraint; output = :mccs)
 	end
 end
 
-function stop_conditions!(previous_mccs, new_mccs, oa, it, trees... ; hardstop=true)
+function stop_conditions!(previous_mccs, new_mccs, oa, it, trees... ; hardstop=true, shared_maps=nothing)
 	# If no solution was found
 	if length(new_mccs) == 0
 		# oa.verbose && print("No solution found... ")
@@ -165,7 +169,7 @@ function stop_conditions!(previous_mccs, new_mccs, oa, it, trees... ; hardstop=t
 	oa.vv && @info "Pruned MCCs and trees: " new_mccs
 	oa.vv && show(trees)
 	pruneconf!(new_mccs, trees...)
-	oa.resolve && resolve!(trees...)
+	oa.resolve && resolve!(trees...; shared_maps)
 	remaining_mccs = naive_mccs(trees)
 	### If they new trees have an obvious solution, append it to new_mccs and stop
 	if length(remaining_mccs) == 1

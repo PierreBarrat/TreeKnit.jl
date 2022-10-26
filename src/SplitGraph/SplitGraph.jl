@@ -41,18 +41,19 @@ function opttrees(t...;
 	sa_rep = 1,
 	consistent =false,
 	constraint_cost= γ,
-	verbose=false
+	verbose=false,
+	shared_maps=nothing
 )
 	opttrees!(
 		γ, Trange, M, seq_lengths, [copy(convert(Tree{TreeTools.MiscData}, x)) for x in t]...;
 		likelihood_sort=likelihood_sort, resolve=resolve, sa_rep=sa_rep, consistent=consistent, 
-		constraint_cost=constraint_cost, verbose=verbose
+		constraint_cost=constraint_cost, verbose=verbose, shared_maps=shared_maps
 	)
 end
 
 function opttrees!(
 	γ, Trange, M, seq_lengths, t::Vararg{Tree}; 
-	likelihood_sort=true, resolve=true, sa_rep=1, consistent =false, constraint_cost= γ, verbose=false
+	likelihood_sort=true, resolve=true, sa_rep=1, consistent =false, constraint_cost= γ, verbose=false, shared_maps=nothing
 )
 	set_verbose(verbose)
 
@@ -61,13 +62,13 @@ function opttrees!(
 	if length(mcc) == 1
 		return mcc, 0, 0., Int64[], Float64[], Union{Missing,Float64}[]
 	end
-	mcc_names = TreeKnit.name_mcc_clades!(treelist, mcc)
+	mcc_names = TreeKnit.name_mcc_clades!(treelist, mcc; shared_maps)
 	for (i,t) in enumerate(treelist)
 		TreeKnit.reduce_to_mcc!(t, mcc)
 	end
 	g = trees2graph(treelist)
 	if consistent
-		mask = get_consistency_mask(g, treelist[1])
+		mask = get_consistency_mask(g, t...; shared_maps)
 	else
 		mask =  []
 	end
@@ -133,19 +134,20 @@ Get which branches/ terminal nodes of the current tree (SplitGraph)
 should not be removed in the subsequent MCMC due to the fact that 
 they have a `shared_branch`.
 """
-function get_consistency_mask(g::Graph, tree::Tree{TreeTools.MiscData})
-	if !haskey(tree.root.data.dat, "shared_branch")
+function get_consistency_mask(g::Graph, trees::Vararg{Tree}; shared_maps=nothing)
+	if isnothing(shared_maps)
 		return []
 	end
 
 	mask_names = String[]
-
-	for leaf in tree.lleaves
-		if leaf.second.data["shared_branch"]
-			push!(mask_names, leaf.second.label)
+	for (i, tree) in enumerate(trees)
+		for leaf in POTleaves(tree)
+			if shared_maps[i][leaf.label]
+				push!(mask_names, leaf.label)
+			end
 		end
 	end
-	mask_names = sort!(mask_names)
+	mask_names = sort!(unique!(mask_names))
 
 	mask = [g.labels_to_int[m] for m in mask_names]
 

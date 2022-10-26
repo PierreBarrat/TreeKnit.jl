@@ -131,12 +131,12 @@ function consistent_mcc_triplets(MCCs, trees; masked=false)
 	Z = 0
     for t in trees
         tree = copy(t)
-        MTK.mark_shared_branches!(constraint, tree)
+        shared_branches_map_ = MTK.map_shared_branches(constraint, tree)
         for n in nodes(tree)
             if isroot(n)
                 continue
             end
-            if n.data.dat["shared_branch"]==true ##should be in a MCC
+            if shared_branches_map_[n.label] ==true ##should be in a MCC
                 Z += 1
                 if !(TreeKnit.is_branch_in_mccs(n, MCCs[3]))
                     s += 1
@@ -164,8 +164,8 @@ function accuracy_shared_branches(tree, true_tree, MCC, rMCC)
     true_negative = 0
     false_negative = 0
     ##note the true tree should be fully resolved
-    TreeKnit.mark_shared_branches!(MCC, tree)
-    TreeKnit.mark_shared_branches!(rMCC, true_tree)
+    shared_branches_ = TreeKnit.map_shared_branches(MCC, tree)
+    real_shared_branches_ = TreeKnit.map_shared_branches(rMCC, true_tree)
     true_splits = SplitList(true_tree)
     true_splits_dict = Dict()
     for n in nodes(true_tree)
@@ -188,14 +188,14 @@ function accuracy_shared_branches(tree, true_tree, MCC, rMCC)
             node_in_true_tree = true_tree.lnodes[n.label]
         end
         if !isnothing(node_in_true_tree)
-            if n.data["shared_branch"] 
-                if node_in_true_tree.data["shared_branch"]
+            if shared_branches_[n.label]
+                if real_shared_branches_[node_in_true_tree.label]
                     true_positive += 1
                 else
                     false_positive += 1
                 end
             else
-                if node_in_true_tree.data["shared_branch"]
+                if real_shared_branches_[node_in_true_tree.label]
                     false_negative += 1
                 else
                     true_negative += 1

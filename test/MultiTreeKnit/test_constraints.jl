@@ -50,14 +50,26 @@ end
     end
 end
 
-@testset "mark_shared_branches functions" begin
-    MTK.mark_shared_branches!(constraint, tree3)
+@testset "map_shared_branches! functions" begin
+    MTK.map_shared_branches!(constraint, tree3)
     true_labels = Set(["A", "B", "C", "D", "E", "F1", "F2", "i6"])
     for node in nodes(tree3)
         if node.label in true_labels
             @test node.data["shared_branch"] == true
         else
             @test node.data["shared_branch"] == false
+        end
+    end
+end
+
+@testset "map_shared_branches functions" begin
+    shared_branches_map_ = MTK.map_shared_branches(constraint, tree3)
+    true_labels = Set(["A", "B", "C", "D", "E", "F1", "F2", "i6"])
+    for node in nodes(tree3)
+        if node.label in true_labels
+            @test shared_branches_map_[node.label] == true
+        else
+            @test shared_branches_map_[node.label] == false
         end
     end
 end
