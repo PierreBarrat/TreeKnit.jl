@@ -1,6 +1,7 @@
 using Test
 using TreeTools
 using TreeKnit
+using TreeKnit.MTK
 
 MCCs_ref = [
 	["A/NewYork/105/2002"],
@@ -13,8 +14,11 @@ MCCs_ref = [
 
 t1 = read_tree("$(dirname(pathof(TreeKnit)))/../test/NYdata/tree_ha.nwk")
 t2 = read_tree("$(dirname(pathof(TreeKnit)))/../test/NYdata/tree_na.nwk")
+MTK_trees = [copy(convert(Tree{TreeTools.MiscData},t1)), copy(convert(Tree{TreeTools.MiscData},t2))]
+t1_original = copy(t1)
+t2_original = copy(t2)
 
-MCCs = computeMCCs(t1, t2)
+MCCs = computeMCCs(t1, t2, TreeKnit.OptArgs(rounds=1))
 
 @testset "computeMCCs on NY data" begin
 	@test MCCs[1:end-1] == MCCs_ref
@@ -31,14 +35,11 @@ calling ladderize and sort_polytomies on the resolved trees. This will make sure
 lines between nodes in an MCC do not cross when the two trees are visualized as a tanglegram.
 """
 function check_sort_polytomies(t1, t2, MCCs) 
-	t1, t2, rS_strict = TreeKnit.resolve_strict(t1, t2, MCCs; tau = 0.)
-	TreeTools.ladderize!(t1)
-	TreeKnit.sort_polytomies!(t1, t2, MCCs)
 	leaf_map = map_mccs(MCCs) ##map from leaf to mcc
 	pos_in_mcc_t1 = Dict()
 	for leaf in POTleaves(t1)
 		if haskey(pos_in_mcc_t1, leaf_map[leaf.label])
-			append!(pos_in_mcc_t1[leaf_map[leaf.label]], leaf.label)
+			push!(pos_in_mcc_t1[leaf_map[leaf.label]], leaf.label)
 		else
 			pos_in_mcc_t1[leaf_map[leaf.label]] = [leaf.label]
 		end
@@ -47,7 +48,7 @@ function check_sort_polytomies(t1, t2, MCCs)
 	pos_in_mcc_t2 = Dict()
 	for leaf in POTleaves(t2)
 		if haskey(pos_in_mcc_t2, leaf_map[leaf.label])
-			append!(pos_in_mcc_t2[leaf_map[leaf.label]], leaf.label)
+			push!(pos_in_mcc_t2[leaf_map[leaf.label]], leaf.label)
 		else
 			pos_in_mcc_t2[leaf_map[leaf.label]] = [leaf.label]
 		end
@@ -55,7 +56,7 @@ function check_sort_polytomies(t1, t2, MCCs)
 
 	sorted = true
 	for mcc in 1:length(MCCs)
-		if (pos_in_mcc_t1[mcc] == pos_in_mcc_t2[mcc])
+		if (pos_in_mcc_t1[mcc] != pos_in_mcc_t2[mcc])
 			sorted = false
 			break
 		end
@@ -63,7 +64,28 @@ function check_sort_polytomies(t1, t2, MCCs)
 	return sorted
 end
 
+t1, t2, rS_strict = TreeKnit.resolve_strict(t1, t2, MCCs; tau = 0.)
+TreeTools.ladderize!(t1)
+TreeKnit.sort_polytomies!(t1, t2, MCCs; strict=true)
 @testset "sort_polytomies! on resolve_strict! NY trees" begin
 	@test check_sort_polytomies(t1, t2, MCCs)
 end
 
+MCCs_MTK = MTK.compute_mcc_pairs!(MTK_trees, TreeKnit.OptArgs(rounds=1); strict=true)
+@testset "infer MCCs works the same" begin
+	@test MCCs == get(MCCs_MTK, (1,2))
+	@test SplitList(t1) == SplitList(MTK_trees[1])
+end
+
+@testset "get_infered_MCC_pairs! correctly sorts polytomies" begin
+	@test check_sort_polytomies(MTK_trees[1], MTK_trees[2], get(MCCs_MTK, (1,2)))
+end
+
+
+# t1 = node2tree(TreeTools.parse_newick("((A,B1),B2,C,D)"))
+# t2 = node2tree(TreeTools.parse_newick("((A,B1,B2,D),C)"))
+# MCCs = [["D"], ["A", "B1", "B2", "C"]]
+# check_sort_polytomies(t1, t2, MCCs)
+# @testset "sort_polytomies! on resolve_strict! trees" begin
+# 	@test check_sort_polytomies(t1, t2, MCCs)
+# end

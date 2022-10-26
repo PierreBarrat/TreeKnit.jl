@@ -170,11 +170,17 @@ Sort nodes of `t2` such that leaves of `t1` and `t2` in the same MCC face each o
 In a tanglegram with nodes colored according to MCC, lines of the same color will not cross.
 The order of `t1` serves as a guide and is left unchanged.
 """
-function sort_polytomies!(t1::Tree{T}, t2::Tree{T}, MCCs) where T
+function sort_polytomies!(t1::Tree{T}, t2::Tree{T}, MCCs; strict=true) where T
 	mcc_order = get_leaves_order(t1, MCCs)
 	_mcc_map = map_mccs(t2, MCCs)
 	sort_polytomies!(t2.root, MCCs, _mcc_map, mcc_order)
 	node2tree!(t2, t2.root)
+	if strict ##also need to sort other tree as splits might only exist on 1 side
+		mcc_order = get_leaves_order(t2, MCCs)
+		_mcc_map = map_mccs(t1, MCCs)
+		sort_polytomies!(t1.root, MCCs, _mcc_map, mcc_order)
+		node2tree!(t1, t1.root)
+	end
 	return nothing
 end
 

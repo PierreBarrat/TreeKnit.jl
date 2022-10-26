@@ -233,13 +233,13 @@ MCCs = TreeKnit.sort([["A","B","C"],["D","E","X"]], lt=TreeKnit.clt)
 	t2_copy = copy(t2_empty)
 	rS = resolve!(t1_copy, t2_copy, MCCs; tau = 0.)
 	TreeTools.ladderize!(t1_copy)
-	TreeKnit.sort_polytomies!(t1_copy, t2_copy, MCCs)
+	TreeKnit.sort_polytomies!(t1_copy, t2_copy, MCCs; strict=false)
 	
 	t1_strict = copy(t1)
 	t2_strict = copy(t2)
 	rS_strict = TreeKnit.resolve_strict!(t1_strict, t2_strict, MCCs; tau = 0.)
 	TreeTools.ladderize!(t1_strict)
-	TreeKnit.sort_polytomies!(t1_strict, t2_strict, MCCs)
+	TreeKnit.sort_polytomies!(t1_strict, t2_strict, MCCs; strict=true)
 
 	@test rS == rS_strict
 	@test write_newick(t1_copy.root) == write_newick(t1_strict.root)
@@ -259,7 +259,7 @@ MCCs = TreeKnit.sort([["B"], ["A","C","D","E"]], lt=TreeKnit.clt)
 	t2_strict = copy(t2)
 	rS_strict = TreeKnit.resolve_strict!(t1_strict, t2_strict, MCCs; tau = 0.)
 	TreeTools.ladderize!(t1_strict)
-	TreeKnit.sort_polytomies!(t1_strict, t2_strict, MCCs)
+	TreeKnit.sort_polytomies!(t1_strict, t2_strict, MCCs; strict=true)
 	@test write_newick(t1_strict.root) == "(A,(B,C,D,E)NODE_2)NODE_1:0;"
 	@test write_newick(t2_strict.root) == "(A,((C,D)NODE_3,E,B)NODE_2)NODE_1:0;"
 
@@ -267,7 +267,7 @@ MCCs = TreeKnit.sort([["B"], ["A","C","D","E"]], lt=TreeKnit.clt)
 	t2_strict = copy(t2)
 	rS_strict = TreeKnit.resolve_strict!(t2_strict, t1_strict, MCCs; tau = 0.)
 	TreeTools.ladderize!(t2_strict)
-	TreeKnit.sort_polytomies!(t2_strict, t1_strict, MCCs)
+	TreeKnit.sort_polytomies!(t2_strict, t1_strict, MCCs; strict=false)
 	@test write_newick(t1_strict.root) == "(A,(E,C,D,B)NODE_2)NODE_1:0;"
 	@test write_newick(t2_strict.root) == "(A,(B,E,(C,D)NODE_3)NODE_2)NODE_1:0;"
 end
@@ -283,7 +283,7 @@ MCCs = TreeKnit.sort([["B"], ["A","C","D"]], lt=TreeKnit.clt)
 	t2_strict = copy(t2)
 	rS_strict = TreeKnit.resolve_strict!(t1_strict, t2_strict, MCCs; tau = 0.)
 	TreeTools.ladderize!(t1_strict)
-	TreeKnit.sort_polytomies!(t1_strict, t2_strict, MCCs)
+	TreeKnit.sort_polytomies!(t1_strict, t2_strict, MCCs; strict=true)
 end
 
 
