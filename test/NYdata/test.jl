@@ -64,10 +64,10 @@ function check_sort_polytomies(t1, t2, MCCs)
 	return sorted
 end
 
-t1, t2, rS_strict = TreeKnit.resolve_strict(t1, t2, MCCs; tau = 0.)
+rS_strict = TreeKnit.resolve!(t1, t2, MCCs; tau = 0., strict=true)
 TreeTools.ladderize!(t1)
 TreeKnit.sort_polytomies!(t1, t2, MCCs; strict=true)
-@testset "sort_polytomies! on resolve_strict! NY trees" begin
+@testset "sort_polytomies! on strict resolve! NY trees" begin
 	@test check_sort_polytomies(t1, t2, MCCs)
 end
 
@@ -77,7 +77,7 @@ MCCs_MTK = MTK.compute_mcc_pairs!(MTK_trees, TreeKnit.OptArgs(rounds=1); strict=
 	@test SplitList(t1) == SplitList(MTK_trees[1])
 end
 
-@testset "get_infered_MCC_pairs! correctly sorts polytomies" begin
+@testset "compute_mcc_pairs! correctly sorts polytomies" begin
 	@test check_sort_polytomies(MTK_trees[1], MTK_trees[2], get(MCCs_MTK, (1,2)))
 end
 
@@ -86,6 +86,6 @@ end
 # t2 = node2tree(TreeTools.parse_newick("((A,B1,B2,D),C)"))
 # MCCs = [["D"], ["A", "B1", "B2", "C"]]
 # check_sort_polytomies(t1, t2, MCCs)
-# @testset "sort_polytomies! on resolve_strict! trees" begin
+# @testset "sort_polytomies! on strict resolve! trees" begin
 # 	@test check_sort_polytomies(t1, t2, MCCs)
 # end

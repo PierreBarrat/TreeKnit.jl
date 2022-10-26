@@ -71,11 +71,7 @@ function compute_mcc_pairs!(trees::Vector{Tree{TreeTools.MiscData}}, oa::OptArgs
                 else
                     add!(pair_MCCs, TreeKnit.runopt(oa, trees[i], trees[j], joint_MCCs; output = :mccs), (i, j))
                 end
-                if strict==false
-                    rS = TreeKnit.resolve!(trees[i], trees[j], get(pair_MCCs, (j, i)))
-                else
-                    rS = TreeKnit.resolve_strict!(trees[i], trees[j], get(pair_MCCs, (j, i)))
-                end
+                rS = TreeKnit.resolve!(trees[i], trees[j], get(pair_MCCs, (j, i)); strict)
                 oa.verbose && @info "found MCCs for trees: "*trees[j].label*" and "*trees[i].label
                 if r==oa.rounds 
                     if i ==1 ##only the first tree should be ladderized
@@ -106,11 +102,7 @@ function run_step!(oa::OptArgs, tree1::Tree, tree2::Tree, constraints, strict, r
     else
         MCC = TreeKnit.runopt(oa, tree1, tree2, constraint; output = :mccs)
     end
-    if strict==false
-        rS = TreeKnit.resolve!(tree1, tree2, MCC)
-    else
-        rS = TreeKnit.resolve_strict!(tree1, tree2, MCC)
-    end
+    rS = TreeKnit.resolve!(tree1, tree2, MCC; strict)
     if r==oa.rounds 
         if pos ==1
             TreeTools.ladderize!(tree1)
@@ -164,11 +156,7 @@ function compute_naive_mcc_pairs!(trees::Vector{Tree{TreeTools.MiscData}}; stric
         for j in (i+1):l_t
             TreeKnit.add!(pair_MCCs, TreeKnit.naive_mccs(trees[i], trees[j]))
         end
-        if strict==false
-            rS = TreeKnit.resolve!(trees[i], trees[j], get(pair_MCCs, (j, i)))
-        else
-            rS = TreeKnit.resolve_strict!(trees[i], trees[j], get(pair_MCCs, (j, i)))
-        end
+        rS = TreeKnit.resolve!(trees[i], trees[j], get(pair_MCCs, (j, i)); strict)
         if i==1
             TreeTools.ladderize!(trees[i])
         end

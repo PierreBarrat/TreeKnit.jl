@@ -15,7 +15,7 @@ outdir = "test_auspice"
 if !isdir(outdir)
 	mkdir(outdir)
 end
-t1, t2, rS = TreeKnit.resolve_strict(t1, t2, MCCs )
+t1, t2, rS = TreeKnit.resolve(t1, t2, MCCs; strict=true)
 TreeTools.ladderize!(t1)
 TreeKnit.sort_polytomies!(t1, t2, MCCs; strict=true)
 TreeKnit.write_auspice_json(outdir * "/", [t1, t2], MCC_set(2, ["a", "b"], [MCCs]) )

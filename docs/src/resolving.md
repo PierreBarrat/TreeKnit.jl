@@ -53,7 +53,7 @@ using TreeKnit
 t1 = node2tree(parse_newick("(A,B,C,D)"))
 t2 = node2tree(parse_newick("((A,(B,C)),D)"))
 MCCs = [["D"], ["A", "B", "C"]]
-t1_strict, t2_strict, new_splits_strict = resolve_strict(t1, t2, MCCs);
+t1_strict, t2_strict, new_splits_strict = resolve(t1, t2, MCCs; strict=true);
 t1_strict
 ```
 
