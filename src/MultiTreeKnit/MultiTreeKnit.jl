@@ -1,25 +1,45 @@
 using Dagger
 
 """
-compute_mcc_pairs!(trees, oa)
+	compute_mcc_pairs!(trees, oa; strict=true)
 
-Subfunction to recursively compute tree pair MCCs for `l_t` trees, iterating over l_t choose 2
-tree pairs a total of `oa.rounds` times. 
+Subfunction to sequentially compute MCCs for each pair of trees in `trees`. Iterate over
+all pairs in the same order a total of `oa.rounds` times.
 
-For 1 <=i <l_t, i<j<=l_t: 
-    Calculate the MCC between trees[i] and trees[j] (or MCC_{i,j}):
+## Details
 
-- if oa.consistent and there exists a k !=i, k!=j and calculated MCC_{k,i} and MCC_{k,j}, calculate a 
-constraint on the MCC_{i,j} by computing the `MCC_join_constraint` of these MCCs (i.e. if no reassortment
+Let `l_t = length(trees)`. Then for each round and for `1 <= i < j <= l_t`:
+
+- if `oa.consistent`, compute a set of soft constraints on `MCC_ij` given other previously
+  calculated MCCs of the form `MCC_ik` or `MCC_jk`. See the `Consistency` paragraph below.
+
+- calculate the `MCC_ij` between `trees[i]` and `trees[j]` using the standard TreeKnit
+  procedure and potentially constraints from previous tree pairs (`oa.consistent`).
+
+- resolve `trees[i]` and `trees[j]` using `MCC_ij`, unless this is the last round.
+
+### Rounds
+
+Going over all pairs of trees once is called a *round*. MultiTreeKnit performs several
+rounds for reasons of consistency between inferred MCCs and tree topology.
+
+The minimal number of rounds should be 2, but the effect of more than 2 rounds has not been
+tested. During the final round, the trees are not resolved anymore. This can be changed
+by setting `oa.final_no_resolve=false`, but it is not recommended for more than two trees.
+
+### Consistency
+
+If `oa.consistent` is set to `true`, MultiTreeKnit does extra effort to make MCCs of
+different tree pairs consistent. Assume that the current pair of trees is `(i,j)`, and that
+there is another index `k` such that the MCCs `MCC_ik` and `MCC_jk` are already inferred.
+In this case, MultiTreeKnit computes a set of constraints on `MCC_ij` for it to be consistent
+with `MCC_ik` and `MCC_jk`. The constraints are not strongly enforced, but simply bias the
+optimization process.
+
+Constraint calculation: constraint on the `MCC_ij` by computing the `MCC_join_constraint` of these MCCs (i.e. if no reassortment
 occured between leaves A and B in MCC_{k,i} and MCC_{k,j} by transitivity no reassortment should have occured
-between leaves A and B in MCC_{i,j}). This constraint will be used in SA to make removing these branches 
+between leaves A and B in MCC_{i,j}). This constraint will be used in SA to make removing these branches
 indepenedently cost more.
-- infer MCC_{i,j} using SA, constraint and parameters specified in `oa`
-- resolve trees[i] and trees[j] using infered MCC_{i,j} (using `strict` or liberal resolve)
-
-If the parameter `oa.final_no_resolve` is set then in the final round no resolution will occur prior to SA. 
-It is recommended to set this parameter to true for more than two trees to prevent any topological incompatibilities 
-with the inferred MCCs and the output trees.
 
 """
 function compute_mcc_pairs!(trees::Vector{Tree{TreeTools.MiscData}}, oa::OptArgs; strict=true)
@@ -99,7 +119,7 @@ function run_step!(oa::OptArgs, tree1::Tree, tree2::Tree, constraints, strict, r
 end
 
 """
-parallelized_compute_mccs!(trees::Vector{Tree{TreeTools.MiscData}}, oa::OptArgs, strict)
+	parallelized_compute_mccs!(trees::Vector{Tree{TreeTools.MiscData}}, oa::OptArgs, strict)
 
 Parallelized version of `compute_mcc_pairs!(trees, oa)`
 
@@ -185,7 +205,7 @@ function get_infered_MCC_pairs!(trees::Vector{Tree{T}}, oa::OptArgs; strict=true
     if oa.parallel == true
         pair_MCCs = parallelized_compute_mccs!(trees, oa, strict)
     else
-        pair_MCCs = compute_mcc_pairs!(trees, oa; strict=strict)
+        pair_MCCs = compute_mcc_pairs!(trees, oa; strict)
     end
 
     return pair_MCCs

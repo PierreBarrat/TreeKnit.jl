@@ -81,7 +81,7 @@ end
 get_linear_cooling_schedule(Tmin, Tmax, nT) = return collect(reverse(range(Tmin, stop = Tmax, length = nT)))
 
 """
-format_constraint!(constraint, tree)
+	format_constraint!(constraint, tree)
 
 Make sure constraint has required formating (same as MCC) to be used in SA
 """

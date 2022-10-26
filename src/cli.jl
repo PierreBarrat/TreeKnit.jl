@@ -1,5 +1,5 @@
 """
-treeknit
+	treeknit
 
 # Arguments
 
@@ -134,7 +134,7 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 
 	@info "Inferring MCCs...\n"
 	infered_trees = [copy(t) for t in trees]
-	out = @timed get_infered_MCC_pairs!(infered_trees, oa; strict=!liberal_resolve, naive=naive)
+	out = @timed get_infered_MCC_pairs!(infered_trees, oa; strict=!liberal_resolve, naive)
 	MCCs = out[1]
 
 	l = [length(m) for (key,m) in MCCs.mccs]
