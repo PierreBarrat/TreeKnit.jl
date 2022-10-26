@@ -40,7 +40,7 @@ between leaves A and B in MCC_{i,j}). This constraint will be used in SA to make
 indepenedently cost more.
 
 """
-function compute_mcc_pairs!(trees::Vector{Tree{TreeTools.MiscData}}, oa::OptArgs; strict=true)
+function compute_mcc_pairs!(trees::Vector{Tree{T}}, oa::OptArgs; strict=true) where T 
     l_t = length(trees)
     pair_MCCs = MCC_set(l_t, [t.label for t in trees])
     for r in 1:oa.rounds
@@ -113,12 +113,12 @@ function run_step!(oa::OptArgs, tree1::Tree, tree2::Tree, constraints, strict, r
 end
 
 """
-	parallelized_compute_mccs!(trees::Vector{Tree{TreeTools.MiscData}}, oa::OptArgs, strict)
+	parallelized_compute_mccs!(trees::Vector{Tree{T}}, oa::OptArgs, strict) where T
 
 Parallelized version of `compute_mcc_pairs!(trees, oa)`
 
 """
-function parallelized_compute_mccs!(trees::Vector{Tree{TreeTools.MiscData}}, oa::OptArgs, strict)
+function parallelized_compute_mccs!(trees::Vector{Tree{T}}, oa::OptArgs, strict) where T 
     l_t = length(trees)
     parallel_MCCs = Dict()
     for r in 1:oa.rounds
@@ -146,10 +146,10 @@ function parallelized_compute_mccs!(trees::Vector{Tree{TreeTools.MiscData}}, oa:
     end
     return pair_MCCs
 end
-parallelized_compute_mccs!(trees::Vector{Tree{TreeTools.MiscData}}, oa::OptArgs) = parallelized_compute_mccs!(trees::Vector{Tree{TreeTools.MiscData}}, oa::OptArgs, true)
+parallelized_compute_mccs!(trees::Vector{Tree{T}}, oa::OptArgs) where T = parallelized_compute_mccs!(trees::Vector{Tree{T}}, oa::OptArgs, true)
 
 
-function compute_naive_mcc_pairs!(trees::Vector{Tree{TreeTools.MiscData}}; strict=true)
+function compute_naive_mcc_pairs!(trees::Vector{Tree{T}}; strict=true) where T 
     l_t = length(trees)
     pair_MCCs = MCC_set(l_t, [t.label for t in trees])
     for i in 1:(l_t-1)
@@ -184,13 +184,11 @@ For example, if node `a` and node `b` are both in the same MCC clade for MCC12 a
 be together in MCC23, otherwise the MCC pairs are inconsistent.
 
 """
-function get_infered_MCC_pairs!(trees::Vector{Tree{T}}, oa::OptArgs; strict=true, naive=false) where T
+function get_infered_MCC_pairs!(trees::Vector{Tree{T}}, oa::OptArgs; strict=true, naive=false) where T 
 
     if naive
         return compute_naive_mcc_pairs!(trees; strict)
     end
-
-    trees = [convert(Tree{TreeTools.MiscData}, t) for t in trees]
 
     if oa.parallel == true
         pair_MCCs = parallelized_compute_mccs!(trees, oa, strict)
