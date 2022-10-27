@@ -156,16 +156,16 @@ MCCs = TreeKnit.sort([["A","B","C"],["D","E","X"]], lt=TreeKnit.clt)
 	t1_copy = copy(t1)
 	t2_copy = copy(t2)
 	rS = resolve!(t1_copy, t2_copy, MCCs; tau = 0.)
-	@test write_newick(t1_copy.root) == "((((A,B)RESOLVED_1:0.0,C)RESOLVED_2:0.0,(D,E)RESOLVED_3:0.0)NODE_2,X)NODE_1:0;"
+	@test write_newick(t1_copy) == "((((A,B)RESOLVED_1:0.0,C)RESOLVED_2:0.0,(D,E)RESOLVED_3:0.0)NODE_2,X)NODE_1:0;"
 	
 	t1_copy = copy(t1)
 	t2_copy = copy(t2)
 	rS = TreeKnit.resolve!(t1_copy, t2_copy, MCCs; tau = 0., strict=true)
-	@test write_newick(t1_copy.root) == "((D,E,((A,B)RESOLVED_1:0.0,C)RESOLVED_2:0.0)NODE_2,X)NODE_1:0;"
+	@test write_newick(t1_copy) == "((D,E,((A,B)RESOLVED_1:0.0,C)RESOLVED_2:0.0)NODE_2,X)NODE_1:0;"
 	
 	##check ladderize works the same for strict resolve
 	TreeTools.ladderize!(t1_copy)
-	@test write_newick(t1_copy.root) =="(X,(D,E,(C,(A,B)RESOLVED_1:0.0)RESOLVED_2:0.0)NODE_2)NODE_1:0;"
+	@test write_newick(t1_copy) =="(X,(D,E,(C,(A,B)RESOLVED_1:0.0)RESOLVED_2:0.0)NODE_2)NODE_1:0;"
 end
 
 
@@ -191,8 +191,8 @@ MCCs = TreeKnit.sort([["A","B","C"],["D","E","X"]], lt=TreeKnit.clt)
 	TreeKnit.sort_polytomies!(t1_strict, t2_strict, MCCs; strict=true)
 
 	@test rS == rS_strict
-	@test write_newick(t1_copy.root) == write_newick(t1_strict.root)
-	@test write_newick(t2_copy.root) == write_newick(t2_strict.root)
+	@test write_newick(t1_copy) == write_newick(t1_strict)
+	@test write_newick(t2_copy) == write_newick(t2_strict)
 end
 
 nwk_1 = "(A,(C,D,E,B))"
