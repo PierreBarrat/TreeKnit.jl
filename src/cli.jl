@@ -103,7 +103,7 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 	t1_strict, t2_strict = copy(t1), copy(t2)
 	rS = resolve!(t1_strict, t2_strict, MCCs; strict=true)
 	TreeTools.ladderize!(t1_strict)
-	sort_polytomies!(t1_strict, t2_strict, MCCs)
+	sort_polytomies!(t1_strict, t2_strict, MCCs; strict=true)
 	@info "Resolved $(length(rS[1])) splits in $(nwk1) and $(length(rS[1])) splits in $(nwk2)\n"
 
 	verbose && println()

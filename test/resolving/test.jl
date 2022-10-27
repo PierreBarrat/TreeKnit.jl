@@ -224,23 +224,46 @@ t1_empty = node2tree(TreeTools.parse_newick(nwk_1; node_data_type=TreeTools.Empt
 t2_empty = node2tree(TreeTools.parse_newick(nwk_2; node_data_type=TreeTools.EmptyData); label="t2")
 MCCs = TreeKnit.sort([["B"], ["A","C","D","E"]], lt=TreeKnit.clt)
 
+function get_leaf_order(t)
+	t_leaves =String[]
+	for leaf in POTleaves(t)
+		push!(t_leaves, leaf.label)
+	end
+	return t_leaves
+end
+
 @testset "check sort_polytomies! works when internal node could belong to more than one mcc" begin
 	t1_strict = copy(t1)
 	t2_strict = copy(t2)
 	rS_strict = TreeKnit.resolve!(t1_strict, t2_strict, MCCs; tau = 0., strict=true)
 	TreeTools.ladderize!(t1_strict)
 	TreeKnit.sort_polytomies!(t1_strict, t2_strict, MCCs)
-	@test write_newick(t1_strict.root) == "(A,(B,C,D,E)NODE_2)NODE_1:0;"
-	@test write_newick(t2_strict.root) == "(A,((C,D)NODE_3,E,B)NODE_2)NODE_1:0;"
+	@test filter(e -> e!="B", get_leaf_order(t1_strict)) == filter(e -> e!="B", get_leaf_order(t2_strict))
 
 	t1_strict = copy(t1)
 	t2_strict = copy(t2)
 	rS_strict = TreeKnit.resolve!(t2_strict, t1_strict, MCCs; tau = 0., strict=true)
 	TreeTools.ladderize!(t2_strict)
 	TreeKnit.sort_polytomies!(t2_strict, t1_strict, MCCs)
-	@test write_newick(t1_strict.root) == "(A,(E,C,D,B)NODE_2)NODE_1:0;"
-	@test write_newick(t2_strict.root) == "(A,(B,E,(C,D)NODE_3)NODE_2)NODE_1:0;"
+	@test filter(e -> e!="B", get_leaf_order(t1_strict)) == filter(e -> e!="B", get_leaf_order(t2_strict))
 end
+
+nwk_1 = "(E,(B,C,D,A),K)"
+nwk_2 = "(A,E,B,C,D,K)"
+t1 = node2tree(TreeTools.parse_newick(nwk_1; node_data_type=TreeTools.MiscData); label="t1")
+t2 = node2tree(TreeTools.parse_newick(nwk_2; node_data_type=TreeTools.MiscData); label="t2")
+MCCs = TreeKnit.sort([["A","B","C","D","E"], ["K"]], lt=TreeKnit.clt)
+
+@testset "check sort_polytomies! strict works on strictly resolved trees" begin
+	t1_strict = copy(t1)
+	t2_strict = copy(t2)
+	rS_strict = TreeKnit.resolve!(t1_strict, t2_strict, MCCs; tau = 0., strict=true)
+	TreeTools.ladderize!(t2_strict)
+	TreeKnit.sort_polytomies!(t2_strict, t1_strict, MCCs; strict=true)
+	@test filter(e -> e!="K", get_leaf_order(t1_strict)) == filter(e -> e!="K", get_leaf_order(t2_strict))
+
+end
+
 
 
 

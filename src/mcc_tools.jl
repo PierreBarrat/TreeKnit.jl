@@ -171,11 +171,17 @@ Sort nodes of `t2` such that leaves of `t1` and `t2` in the same MCC face each o
 In a tanglegram with nodes colored according to MCC, lines of the same color will not cross.
 The order of `t1` serves as a guide and is left unchanged.
 """
-function sort_polytomies!(t1::Tree{T}, t2::Tree{T}, MCCs) where T
+function sort_polytomies!(t1::Tree{T}, t2::Tree{T}, MCCs; strict=false) where T
 	mcc_order = get_leaves_order(t1, MCCs)
 	_mcc_map = map_mccs(t2, MCCs)
 	sort_polytomies!(t2.root, MCCs, _mcc_map, mcc_order)
 	node2tree!(t2, t2.root)
+	if strict # when using strict resolve the more resolved tree always has to be used as the first tree
+		mcc_order = get_leaves_order(t2, MCCs)
+		_mcc_map = map_mccs(t1, MCCs)
+		sort_polytomies!(t1.root, MCCs, _mcc_map, mcc_order)
+		node2tree!(t1, t1.root)
+	end
 	return nothing
 end
 
@@ -226,6 +232,71 @@ function _sort_children!(n, rank)
 	children_order = sortperm(rank, lt = _isless)
 	n.child = n.child[children_order]
 end
+
+# """
+# 	sort_polytomies!(t1::Tree, t2::Tree, MCCs)
+
+# Sort nodes of `t2` such that leaves of `t1` and `t2` in the same MCC face each other.
+# In a tanglegram with nodes colored according to MCC, lines of the same color will not cross.
+# The order of `t1` serves as a guide and is left unchanged.
+# """
+# function sort_polytomies!(t1::Tree{T}, t2::Tree{T}, MCCs; strict=false) where T
+# 	inner_mcc_order = get_leaves_order(t1, MCCs)
+# 	_mcc_map_t1 = map_mccs(t1, MCCs; internals=false)
+# 	mcc_order = unique!([_mcc_map_t1[n.label] for n in POTleaves(t1)])
+# 	_mcc_map_t2 = map_mccs(t2, MCCs)
+# 	sort_polytomies!(t2.root, MCCs, _mcc_map_t2, mcc_order, inner_mcc_order)
+# 	node2tree!(t2, t2.root)
+# 	if strict # when using strict resolve the more resolved tree always has to be used as the first tree
+# 		inner_mcc_order = get_leaves_order(t2, MCCs)
+# 		_mcc_map_t2 = map_mccs(t2, MCCs; internals=false)
+# 		mcc_order = unique!([_mcc_map_t2[n.label] for n in POTleaves(t2)])
+# 		_mcc_map_t1 = map_mccs(t1, MCCs)
+# 		sort_polytomies!(t1.root, MCCs, _mcc_map_t1, mcc_order, inner_mcc_order)
+# 		node2tree!(t1, t1.root)
+# 	end
+# 	return nothing
+# end
+
+# function sort_polytomies!(n::TreeNode, MCCs, mcc_map, mcc_order, inner_mcc_order)
+# 	if n.isleaf
+# 		i = mcc_map[n.label] # in MCCs[i]
+# 		return inner_mcc_order[i][n.label], mcc_order[i]  # rank in the polytomy, rank of mcc
+# 	else
+# 		i = mcc_map[n.label] # Id of the current MCC (can be `nothing`)
+
+# 		# Construct ranking or children
+# 		# positive if they are in same MCC as current node, negative otherwise
+# 		# r = 1
+# 		rank = Array{Any}(undef, length(n.child))
+# 		for (k, c) in enumerate(n.child)
+# 			rank[k] = sort_polytomies!(c, MCCs, mcc_map, mcc_order, inner_mcc_order)
+# 		end
+
+# 		# # Sort children
+# 		_sort_children!(n, rank)
+
+# 		# # Return minimum value of the rank of nodes in the MCC.
+# 		# # Will be used by parent to rank the current node
+# 		return findmin(r -> r[1], rank)[1], findmin(r -> r[2], rank)[1]
+# 	end
+# end
+
+# function _sort_children!(n, rank)
+# 	# Custom sorting function
+# 	## if the nodes are in the same MCC, rank them according to that
+# 	## otherwise, rank according to ladder rank (biggest clade at the beginning)
+# 	function _isless(x,y)
+# 		if x[2] == y[2] ## if in same mcc_
+# 			return x[1] < y[1] # those two numbers can't be equal (rank in mcc)
+# 		else
+# 			return x[2] < y[2]
+# 		end
+# 	end
+
+# 	children_order = sortperm(rank, lt = _isless)
+# 	n.child = n.child[children_order]
+# end
 
 
 
