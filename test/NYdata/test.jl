@@ -67,14 +67,4 @@ TreeKnit.sort_polytomies!(t1, t2, MCCs; strict=true)
 	@test check_sort_polytomies(t1, t2, MCCs)
 end
 
-t1 = node2tree(TreeTools.parse_newick("((A,B1),B2,C,D)"))
-t2 = node2tree(TreeTools.parse_newick("((A,B1,B2,D),C)"))
-MCCs = [["D"], ["A", "B1", "B2", "C"]]
-rS_strict = TreeKnit.resolve!(t1, t2, MCCs; tau = 0., strict=true)
-TreeTools.ladderize!(t1)
-TreeKnit.sort_polytomies!(t1, t2, MCCs; strict=true)
-@testset "sort_polytomies! on strict resolve! trees" begin
-	@test check_sort_polytomies(t1, t2, MCCs)
-end
-
 

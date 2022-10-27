@@ -168,27 +168,6 @@ MCCs = TreeKnit.sort([["A","B","C"],["D","E","X"]], lt=TreeKnit.clt)
 	@test write_newick(t1_copy.root) =="(X,(D,E,(C,(A,B)RESOLVED_1:0.0)RESOLVED_2:0.0)NODE_2)NODE_1:0;"
 end
 
-t1_empty = node2tree(TreeTools.parse_newick(nwk_1; node_data_type=TreeTools.EmptyData); label="t1_empty")
-t2_empty = node2tree(TreeTools.parse_newick(nwk_2; node_data_type=TreeTools.EmptyData); label="t2_empty")
-
-@testset "strict_resolve and ladderize work on TreeTools.EmptyData" begin
-	t1_copy = copy(t1_empty)
-	t2_copy = copy(t2_empty)
-	rS = resolve!(t1_copy, t2_copy, MCCs; tau = 0.)
-	@test (t1_copy.label, t2_copy.label) == ("t1_empty", "t2_empty")
-	@test write_newick(t1_copy.root) == "((((A,B)RESOLVED_1:0.0,C)RESOLVED_2:0.0,(D,E)RESOLVED_3:0.0)NODE_2,X)NODE_1:0;"
-	
-	t1_copy = copy(t1_empty)
-	t2_copy = copy(t2_empty)
-	rS = TreeKnit.resolve!(t1_copy, t2_copy, MCCs; tau = 0., strict=true)
-	@test (t1_copy.label, t2_copy.label) == ("t1_empty", "t2_empty")
-	@test write_newick(t1_copy.root) == "((D,E,((A,B)RESOLVED_1:0.0,C)RESOLVED_2:0.0)NODE_2,X)NODE_1:0;"
-	
-	##make sure ladderize works the same for Empty and MiscData
-	TreeTools.ladderize!(t1_copy)
-	@test write_newick(t1_copy.root) =="(X,(D,E,(C,(A,B)RESOLVED_1:0.0)RESOLVED_2:0.0)NODE_2)NODE_1:0;"
-end
-
 
 nwk_1 = "((A,B,C,(D,E)),X)"
 nwk_2 = "((((A,B),C),(D,E)),X)"
@@ -209,7 +188,7 @@ MCCs = TreeKnit.sort([["A","B","C"],["D","E","X"]], lt=TreeKnit.clt)
 	t2_strict = copy(t2)
 	rS_strict = TreeKnit.resolve!(t1_strict, t2_strict, MCCs; tau = 0., strict=true)
 	TreeTools.ladderize!(t1_strict)
-	TreeKnit.sort_polytomies!(t1_strict, t2_strict, MCCs)
+	TreeKnit.sort_polytomies!(t1_strict, t2_strict, MCCs; strict=true)
 
 	@test rS == rS_strict
 	@test write_newick(t1_copy.root) == write_newick(t1_strict.root)
@@ -237,14 +216,14 @@ end
 	t2_strict = copy(t2)
 	rS_strict = TreeKnit.resolve!(t1_strict, t2_strict, MCCs; tau = 0., strict=true)
 	TreeTools.ladderize!(t1_strict)
-	TreeKnit.sort_polytomies!(t1_strict, t2_strict, MCCs)
+	TreeKnit.sort_polytomies!(t1_strict, t2_strict, MCCs; strict=true)
 	@test filter(e -> e!="B", get_leaf_order(t1_strict)) == filter(e -> e!="B", get_leaf_order(t2_strict))
 
 	t1_strict = copy(t1)
 	t2_strict = copy(t2)
 	rS_strict = TreeKnit.resolve!(t2_strict, t1_strict, MCCs; tau = 0., strict=true)
 	TreeTools.ladderize!(t2_strict)
-	TreeKnit.sort_polytomies!(t2_strict, t1_strict, MCCs)
+	TreeKnit.sort_polytomies!(t2_strict, t1_strict, MCCs; strict=true)
 	@test filter(e -> e!="B", get_leaf_order(t1_strict)) == filter(e -> e!="B", get_leaf_order(t2_strict))
 end
 
@@ -254,16 +233,24 @@ t1 = node2tree(TreeTools.parse_newick(nwk_1; node_data_type=TreeTools.MiscData);
 t2 = node2tree(TreeTools.parse_newick(nwk_2; node_data_type=TreeTools.MiscData); label="t2")
 MCCs = TreeKnit.sort([["A","B","C","D","E"], ["K"]], lt=TreeKnit.clt)
 
-@testset "check sort_polytomies! strict works on strictly resolved trees" begin
+@testset "check sort_polytomies! strict works on strictly resolved trees, 1" begin
 	t1_strict = copy(t1)
 	t2_strict = copy(t2)
 	rS_strict = TreeKnit.resolve!(t1_strict, t2_strict, MCCs; tau = 0., strict=true)
 	TreeTools.ladderize!(t2_strict)
 	TreeKnit.sort_polytomies!(t2_strict, t1_strict, MCCs; strict=true)
 	@test filter(e -> e!="K", get_leaf_order(t1_strict)) == filter(e -> e!="K", get_leaf_order(t2_strict))
-
 end
 
+t1 = node2tree(TreeTools.parse_newick("((A,B1),B2,C,D)"))
+t2 = node2tree(TreeTools.parse_newick("((A,B1,B2,D),C)"))
+MCCs = [["D"], ["A", "B1", "B2", "C"]]
+rS_strict = TreeKnit.resolve!(t1, t2, MCCs; tau = 0., strict=true)
+TreeTools.ladderize!(t1)
+TreeKnit.sort_polytomies!(t1, t2, MCCs; strict=true)
+@testset "check sort_polytomies! strict works on strictly resolved trees, 2" begin
+	@test filter(e -> e!="D", get_leaf_order(t1)) == filter(e -> e!="D", get_leaf_order(t2))
+end
 
 
 
