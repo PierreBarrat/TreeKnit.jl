@@ -86,11 +86,3 @@ MCCs_MTK = MTK.get_infered_MCC_pairs!(MTK_trees, TreeKnit.OptArgs(rounds=1); str
 	@test check_sort_polytomies(MTK_trees[1], MTK_trees[2], get(MCCs_MTK, (1,2)))
 end
 
-
-# t1 = node2tree(TreeTools.parse_newick("((A,B1),B2,C,D)"))
-# t2 = node2tree(TreeTools.parse_newick("((A,B1,B2,D),C)"))
-# MCCs = [["D"], ["A", "B1", "B2", "C"]]
-# check_sort_polytomies(t1, t2, MCCs)
-# @testset "sort_polytomies! on strict resolve! trees" begin
-# 	@test check_sort_polytomies(t1, t2, MCCs)
-# end

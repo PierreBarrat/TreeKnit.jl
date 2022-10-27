@@ -137,7 +137,6 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 	out = @timed MTK.get_infered_MCC_pairs!(infered_trees, oa; strict=!liberal_resolve, naive)
 	MCCs = out[1]
 
-
 	l = [length(m) for (key,m) in MCCs.mccs]
 	@info "Found $l MCCs (runtime $(out[2]))\n"
 	verbose && println()

@@ -1,10 +1,6 @@
 using Test
 
 @testset verbose=true "TreeKnit" begin
-	@testset "NY data" begin
-		println("# NY data")
-		include("NYdata/test.jl")
-	end
 	@testset "Resolving" begin
 		println("# Resolving")
 		include("resolving/test.jl")
