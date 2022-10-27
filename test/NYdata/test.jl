@@ -71,7 +71,7 @@ TreeKnit.sort_polytomies!(t1, t2, MCCs; strict=true)
 	@test check_sort_polytomies(t1, t2, MCCs)
 end
 
-MCCs_MTK = MTK.compute_mcc_pairs!(MTK_trees, TreeKnit.OptArgs(rounds=1); strict=true)
+MCCs_MTK = MTK.compute_mcc_pairs!(MTK_trees, TreeKnit.OptArgs(rounds=1))
 @testset "infer MCCs works the same" begin
 	@test MCCs == get(MCCs_MTK, (1,2))
 	@test SplitList(t1) == SplitList(MTK_trees[1])
@@ -81,7 +81,7 @@ end
 	@test check_sort_polytomies(MTK_trees[1], MTK_trees[2], get(MCCs_MTK, (1,2)))
 end
 
-MCCs_MTK = MTK.get_infered_MCC_pairs!(MTK_trees, TreeKnit.OptArgs(rounds=1); strict=true)
+MCCs_MTK = MTK.get_infered_MCC_pairs!(MTK_trees, TreeKnit.OptArgs(rounds=1))
 @testset "get_infered_MCC_pairs! correctly sorts polytomies" begin
 	@test check_sort_polytomies(MTK_trees[1], MTK_trees[2], get(MCCs_MTK, (1,2)))
 end

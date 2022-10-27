@@ -28,6 +28,7 @@ Storing parameters for `SplitGraph.runopt` function.
 	itmax::Int64 = 15
 	likelihood_sort::Bool = true
 	resolve::Bool = true
+	strict::Bool = true ##when resolving the final tree only add non-ambiguous splits
 	seq_lengths::Vector{Int} = [1, 1]
 	# For the annealing
 	nMCMC::Int = 50

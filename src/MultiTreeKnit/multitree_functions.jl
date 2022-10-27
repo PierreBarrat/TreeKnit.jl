@@ -1,5 +1,5 @@
 """
-	compute_mcc_pairs!(trees, oa; strict=true)
+	compute_mcc_pairs!(trees, oa)
 
 Subfunction to sequentially compute MCCs for each pair of trees in `trees`. Iterate over
 all pairs in the same order a total of `oa.rounds` times.
@@ -40,7 +40,7 @@ between leaves A and B in MCC_{i,j}). This constraint will be used in SA to make
 indepenedently cost more.
 
 """
-function compute_mcc_pairs!(trees::Vector{Tree{T}}, oa::OptArgs; strict=true) where T 
+function compute_mcc_pairs!(trees::Vector{Tree{T}}, oa::OptArgs) where T 
     l_t = length(trees)
     pair_MCCs = MCC_set(l_t, [t.label for t in trees])
     for r in 1:oa.rounds
@@ -71,13 +71,13 @@ function compute_mcc_pairs!(trees::Vector{Tree{T}}, oa::OptArgs; strict=true) wh
                 else
                     add!(pair_MCCs, TreeKnit.runopt(oa, trees[i], trees[j], joint_MCCs; output = :mccs), (i, j))
                 end
-                rS = TreeKnit.resolve!(trees[i], trees[j], get(pair_MCCs, (j, i)); strict)
+                rS = TreeKnit.resolve!(trees[i], trees[j], get(pair_MCCs, (j, i)); oa.strict)
                 oa.verbose && @info "found MCCs for trees: "*trees[j].label*" and "*trees[i].label
                 if r==oa.rounds 
                     if i ==1 ##only the first tree should be ladderized
                         TreeTools.ladderize!(trees[i])
                     end
-                    TreeKnit.sort_polytomies!(trees[i], trees[j], get(pair_MCCs, trees[i].label, trees[j].label); strict)
+                    TreeKnit.sort_polytomies!(trees[i], trees[j], get(pair_MCCs, trees[i].label, trees[j].label); oa.strict)
                     oa.verbose && @info "ladderized and sorted trees: "*trees[j].label*" and "*trees[i].label
                 end
             end
@@ -86,7 +86,7 @@ function compute_mcc_pairs!(trees::Vector{Tree{T}}, oa::OptArgs; strict=true) wh
     return pair_MCCs
 end
 
-function run_step!(oa::OptArgs, tree1::Tree, tree2::Tree, constraints, strict, r, pos)
+function run_step!(oa::OptArgs, tree1::Tree, tree2::Tree, constraints, r, pos)
     if !isnothing(constraints)
         constraint = fetch(constraints[1])
         for mcc_con in constraints[2:end]
@@ -102,12 +102,12 @@ function run_step!(oa::OptArgs, tree1::Tree, tree2::Tree, constraints, strict, r
     else
         MCC = TreeKnit.runopt(oa, tree1, tree2, constraint; output = :mccs)
     end
-    rS = TreeKnit.resolve!(tree1, tree2, MCC; strict)
+    rS = TreeKnit.resolve!(tree1, tree2, MCC; oa.strict)
     if r==oa.rounds 
         if pos ==1
             TreeTools.ladderize!(tree1)
         end
-        TreeKnit.sort_polytomies!(tree1, tree2, MCC; strict)
+        TreeKnit.sort_polytomies!(tree1, tree2, MCC; oa.strict)
     end
     return MCC
 end
@@ -118,7 +118,7 @@ end
 Parallelized version of `compute_mcc_pairs!(trees, oa)`
 
 """
-function parallelized_compute_mccs!(trees::Vector{Tree{T}}, oa::OptArgs, strict) where T 
+function parallelized_compute_mccs!(trees::Vector{Tree{T}}, oa::OptArgs) where T 
     l_t = length(trees)
     parallel_MCCs = Dict()
     for r in 1:oa.rounds
@@ -136,7 +136,7 @@ function parallelized_compute_mccs!(trees::Vector{Tree{T}}, oa::OptArgs, strict)
                         append!(MCC_list, [parallel_MCCs[Set([i, x])], parallel_MCCs[Set([j,x])]])
                     end
                 end
-                parallel_MCCs[Set([i,j])] = Dagger.@spawn run_step!(oa, trees[i], trees[j], MCC_list, strict, r, i)
+                parallel_MCCs[Set([i,j])] = Dagger.@spawn run_step!(oa, trees[i], trees[j], MCC_list, r, i)
             end
         end
     end
@@ -146,8 +146,6 @@ function parallelized_compute_mccs!(trees::Vector{Tree{T}}, oa::OptArgs, strict)
     end
     return pair_MCCs
 end
-parallelized_compute_mccs!(trees::Vector{Tree{T}}, oa::OptArgs) where T = parallelized_compute_mccs!(trees::Vector{Tree{T}}, oa::OptArgs, true)
-
 
 function compute_naive_mcc_pairs!(trees::Vector{Tree{T}}; strict=true) where T 
     l_t = length(trees)
@@ -184,16 +182,16 @@ For example, if node `a` and node `b` are both in the same MCC clade for MCC12 a
 be together in MCC23, otherwise the MCC pairs are inconsistent.
 
 """
-function get_infered_MCC_pairs!(trees::Vector{Tree{T}}, oa::OptArgs; strict=true, naive=false) where T 
+function get_infered_MCC_pairs!(trees::Vector{Tree{T}}, oa::OptArgs; naive=false) where T 
 
     if naive
-        return compute_naive_mcc_pairs!(trees; strict)
+        return compute_naive_mcc_pairs!(trees; oa.strict)
     end
 
     if oa.parallel == true
-        pair_MCCs = parallelized_compute_mccs!(trees, oa, strict)
+        pair_MCCs = parallelized_compute_mccs!(trees, oa)
     else
-        pair_MCCs = compute_mcc_pairs!(trees, oa; strict=strict)
+        pair_MCCs = compute_mcc_pairs!(trees, oa)
     end
 
     return pair_MCCs

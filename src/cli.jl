@@ -120,6 +120,7 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 		γ = gamma,
 		likelihood_sort = !no_likelihood,
 		resolve = !no_resolve,
+		strict=!liberal_resolve,
 		final_no_resolve = final_no_resolve,
 		rounds = rounds, 
 		nMCMC = n_mcmc_it,
@@ -134,7 +135,7 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 
 	@info "Inferring MCCs...\n"
 	infered_trees = [copy(t) for t in trees]
-	out = @timed MTK.get_infered_MCC_pairs!(infered_trees, oa; strict=!liberal_resolve, naive)
+	out = @timed MTK.get_infered_MCC_pairs!(infered_trees, oa; naive)
 	MCCs = out[1]
 
 	l = [length(m) for (key,m) in MCCs.mccs]
