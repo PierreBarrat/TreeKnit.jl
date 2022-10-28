@@ -34,10 +34,10 @@ In this case, MultiTreeKnit computes a set of constraints on `MCC_ij` for it to 
 with `MCC_ik` and `MCC_jk`. The constraints are not strongly enforced, but simply bias the
 optimization process.
 
-Constraint calculation: constraint on the `MCC_ij` by computing the `MCC_join_constraint` of these MCCs (i.e. if no reassortment
-occured between leaves A and B in MCC_{k,i} and MCC_{k,j} by transitivity no reassortment should have occured
-between leaves A and B in MCC_{i,j}). This constraint will be used in SA to make removing these branches
-indepenedently cost more.
+Constraint calculation: constraint on the `MCC_ij` by computing the `MCC_join_constraint` of these 
+MCCs (i.e. if no reassortment occured between leaves A and B in MCC_{k,i} and MCC_{k,j} by 
+transitivity no reassortment should have occured between leaves A and B in MCC_{i,j}). This 
+constraint will be used in SA to make removing these branches indepenedently cost more.
 
 """
 function compute_mcc_pairs!(trees::Vector{Tree{T}}, oa::OptArgs) where T 
@@ -67,6 +67,7 @@ function compute_mcc_pairs!(trees::Vector{Tree{T}}, oa::OptArgs) where T
                 end
                 if oa.final_no_resolve && r==oa.rounds
                     oa.resolve = false
+                    oa.strict = false
                     add!(pair_MCCs, TreeKnit.runopt(oa, trees[i], trees[j], joint_MCCs; output = :mccs), (i, j))
                 else
                     add!(pair_MCCs, TreeKnit.runopt(oa, trees[i], trees[j], joint_MCCs; output = :mccs), (i, j))
@@ -98,6 +99,7 @@ function run_step!(oa::OptArgs, tree1::Tree, tree2::Tree, constraints, r, pos)
     if oa.final_no_resolve && r==oa.rounds
         oa = fetch(oa)
         oa.resolve = false
+        oa.strict = false
         MCC = TreeKnit.runopt(oa, tree1, tree2, constraint; output = :mccs)
     else
         MCC = TreeKnit.runopt(oa, tree1, tree2, constraint; output = :mccs)
@@ -176,9 +178,9 @@ Combinatorics.combinations(1:length(trees), 2).
 it is unclear if the reassortment or the coalescence happened first, in order to introduce such a split the order must be 
 randomly assigned. If this is desired `strict` should be set to false.
 - `oa.parallel`: Parallelize MCC computation of tree pairs as much as possible.
-- `oa.consistent`: If MCC pairs should be consistent with previous MCCs the `consistent` flag can be set to true, this will discourage 
-TreeKnit from removing nodes in an inconsistent manner during SA (but cannot guarantee a consistent solution).
-For example, if node `a` and node `b` are both in the same MCC clade for MCC12 and MCC13 they should also 
+- `oa.consistent`: If MCC pairs should be consistent with previous MCCs the `consistent` flag can be set to true, 
+this will discourage TreeKnit from removing nodes in an inconsistent manner during SA (but cannot guarantee a consistent 
+solution). For example, if node `a` and node `b` are both in the same MCC clade for MCC12 and MCC13 they should also 
 be together in MCC23, otherwise the MCC pairs are inconsistent.
 
 """

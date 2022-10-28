@@ -169,6 +169,8 @@ end
 Sort nodes of `t2` such that leaves of `t1` and `t2` in the same MCC face each other.
 In a tanglegram with nodes colored according to MCC, lines of the same color will not cross.
 The order of `t1` serves as a guide and is left unchanged.
+Note that if strict `sort_polytomies!` is applied to multiple tree pairs it may not have the desired outcome as 
+it will reorder each tree in the tree pair. 
 """
 function sort_polytomies!(t1::Tree{T}, t2::Tree{T}, MCCs; strict=false) where T
 	if strict 
