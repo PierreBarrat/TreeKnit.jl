@@ -164,8 +164,8 @@ function accuracy_shared_branches(tree, true_tree, MCC, rMCC)
     true_negative = 0
     false_negative = 0
     ##note the true tree should be fully resolved
-    shared_branches_ = TreeKnit.map_shared_branches(MCC, tree)
-    real_shared_branches_ = TreeKnit.map_shared_branches(rMCC, true_tree)
+    shared_branches_ = MTK.map_shared_branches(MCC, tree)
+    real_shared_branches_ = MTK.map_shared_branches(rMCC, true_tree)
     true_splits = SplitList(true_tree)
     true_splits_dict = Dict()
     for n in nodes(true_tree)
