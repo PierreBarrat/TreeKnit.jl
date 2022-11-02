@@ -21,7 +21,7 @@ If multiple MCCs should be written to a file they need to be written to a JSON f
 }
 """
 function write_mccs(filePath, MCCs::AbstractArray, mode="w")
-	file_type = split(filePath, ".")[2]
+	file_type = split(filePath, ".")[end]
 	if file_type !="dat"
 		print("File type not supported")
 	end
@@ -50,7 +50,7 @@ end
 
 
 function write_mccs(filePath, MCCs::MCC_set, mode="w")
-	file_type = split(filePath, ".")[2]
+	file_type = split(filePath, ".")[end]
 	if file_type !="json"
 		print("File type not supported")
 	end
