@@ -169,23 +169,27 @@ function _map_split_to_tree!(
         in the polytomy cannot be split off, this split can be introduced (i.e. if the other nodes are contained in a MCC that
         also contains other internal nodes).
         =#
-        map_mccs!(t, MCCs)
-        mcc_ = [r.data.dat["mcc"] for r in roots]
+        mcc_map_ = map_mccs(t, MCCs)
+        mcc_ = [mcc_map_[r.label] for r in roots]
         mcc_ =  unique(mcc_[mcc_.!=nothing])
         if isempty(mcc_)
         	##polytomy may have not allowed mccs to be assigned, but mcc would be clear given split information
-            mcc_ = collect(intersect([r.data.dat["child_mccs"] for r in roots]...))
+            mcc_ = intersect([Set([mcc_map_[r.label] for r in POTleaves(root)]) for root in roots]...)
             if length(mcc_) ==0
-                mcc_ = nothing ##if still unclear to do label mcc
+                mcc_ = nothing ##if still unclear what to label mcc
             end
         else
             mcc_ = mcc_[1]
         end
         children = TreeTools.lca([t.lleaves[x] for x in leaves(S,i)]...).child
-        sisters = children[children .∉ Ref(roots)]
-        ##check conditions, if not fulfilled do not split
-        if any([(r.isroot || !((!isnothing(r.data.dat["mcc"]) && r.anc.data.dat["mcc"]==r.data.dat["mcc"]) || (!isnothing(mcc_) && mcc_ ∈ r.data.dat["child_mccs"]))) for r in sisters])
-            return ms
+        sisters = children[children .∉ Ref(roots)] #return all children that are not in roots
+        for s in sisters
+            s_and_s_anc_share_mcc = !isnothing(mcc_map_[s.label]) && mcc_map_[s.anc.label]==mcc_map_[s.label] # sister cannot be part of split
+            mcc_is_child_mcc_of_s = !isnothing(mcc_) && mcc_ ∈ Set([mcc_map_[r.label] for r in POTleaves(s)]) # sister must be part of this mcc -> can introduce split
+            ##if s is root, the mcc of s is not the same as the mcc of the ancestor
+            if (s.isroot || !(s_and_s_anc_share_mcc || mcc_is_child_mcc_of_s))
+                return ms
+            end
         end
     end
     

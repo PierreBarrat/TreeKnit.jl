@@ -161,34 +161,12 @@ New branches have a length `tau`.
 Return the list of resolved splits in each tree.
 """
 
-function resolve!(t1::Tree, t2::Tree, MCCs; tau = 0.)
-	resolvable_splits = TreeKnit.new_splits(MCCs, t1, t2)
+function resolve!(t1::Tree{T}, t2::Tree{T}, MCCs; tau = 0., strict=false) where T 
+	resolvable_splits = TreeKnit.new_splits(MCCs, t1, t2; strict)
 	resolve!(t1, resolvable_splits[1]; conflict=:fail, tau)
 	resolve!(t2, resolvable_splits[2]; conflict=:fail, tau)
 
 	return resolvable_splits
-end
-
-function resolve_strict!(
-	t1::Tree{TreeTools.MiscData}, t2::Tree{TreeTools.MiscData}, MCCs; tau = 0.
-)
-	resolvable_splits = TreeKnit.new_splits(MCCs, t1, t2; strict=true)
-	resolve!(t1, resolvable_splits[1]; conflict=:fail, tau)
-	resolve!(t2, resolvable_splits[2]; conflict=:fail, tau)
-
-	return resolvable_splits
-end
-
-function resolve_strict(
-	t1_input::Tree{T}, t2_input::Tree{T}, MCCs; tau = 0.
-) where T
-	t1 = TreeTools.convert(Tree{TreeTools.MiscData}, t1_input)
-	t2 = TreeTools.convert(Tree{TreeTools.MiscData}, t2_input)
-	resolvable_splits = TreeKnit.new_splits(MCCs, t1, t2; strict=true)
-	resolve!(t1, resolvable_splits[1]; conflict=:fail, tau)
-	resolve!(t2, resolvable_splits[2]; conflict=:fail, tau)
-
-	return t1, t2, resolvable_splits
 end
 
 
