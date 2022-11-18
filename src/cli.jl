@@ -1,10 +1,9 @@
 """
-treeknit
+	treeknit
 
 # Arguments
 
-- `nwk1`: Newick file for first tree
-- `nwk2`: Newick file for second tree
+- `nwk_files`: Newick files (requires 2 or more trees - note an ARG currently cannot be created for more than 2 trees)
 
 # Options
 
@@ -12,33 +11,46 @@ treeknit
 - `-g, --gamma <arg>`: value of γ; Example `-g=2`
 - `--seq-lengths <arg>`: length of the sequences. Example: `--seq-length "1500 2000"`
 - `--n-mcmc-it <arg>`: number of MCMC iterations per leaf; default 25
+- `--rounds`: Number of times to run inference on input trees, when rounds >1 MCCs will be reinferred using resolved trees from the last iteration. (default: 1 - for 2 input trees, 2 - for >2 input trees)
 
 # Flags
 
 - `--naive`: Naive inference (overrides `-g`).
 - `--no-likelihood`: Do not use branch length likelihood test to sort between different MCCs
 - `--no-resolve`: Do not attempt to resolve trees before inferring MCCs.
+- `--liberal-resolve`: Resolve output trees as much as possible using inferred MCCs, adding splits when order of coalescence and reassortment is unclear (coalescence is set at a time prior to reassortment)
+- `--final-no-resolve`: Not not resolve trees before inferring MCCs in final round of inference (default for more than 2 trees to prevent topological inconsistencies in output MCCs)
+- `--resolve-all-rounds`: Resolve trees before inferring MCCs in all rounds (default for 2 trees, overrides final-no-resolve)
 - `-v, --verbose`: verbosity
+- `--auspice-view`: return ouput files for auspice
 """
 @main function treeknit(
-	nwk1::AbstractString, nwk2::AbstractString;
+	nwk_file1::AbstractString, nwk_file2::AbstractString,
+	nwk_files::AbstractString...;
 	# options
 	outdir::AbstractString = "treeknit_results",
 	gamma::Float64 = 2.,
-	seq_lengths::AbstractString = "1 1",
+	seq_lengths::AbstractString = join([string(i) for i in repeat([1], 2+ length(nwk_files))], " "),
 	n_mcmc_it::Int = 25,
+	rounds::Int = (length(nwk_files)>0) ? 2 : 1,
 	# flags
 	naive::Bool = false,
 	no_likelihood::Bool = false,
 	no_resolve::Bool = false,
+	liberal_resolve::Bool = false,
+	final_no_resolve::Bool = false,
+	resolve_all_rounds::Bool = false,
 	verbose::Bool = false,
+	consistency_constraint::Bool = false,
+	auspice_view::Bool = false
 )
 
+	nwk_files = [nwk_file1, nwk_file2, nwk_files...]
 	println("Treeknit: ")
-	println("Input trees: $nwk1 \t $nwk2")
+	println("Input trees:")
+	println(join(["$nwk \t" for nwk in nwk_files]))
 	println("Results directory: $outdir")
 	println("γ: $gamma")
-
 	# Setting up directories
 	mkpath(outdir)
 
@@ -59,19 +71,20 @@ treeknit
 
 	global_logger(TeeLogger(loggers...))
 
-
 	# Reading trees
-	@info "Input Newick files: $nwk1 \t $nwk2. Reading trees..."
-	t1 = read_tree(nwk1)
-	t2 = read_tree(nwk2)
-	if !TreeTools.share_labels(t1, t2)
-		error("Trees must share leaves")
+	@info "Input Newick files:"*join(["$nwk \t" for nwk in nwk_files])*". Reading trees..."
+	fn, ext = get_tree_names(nwk_files)
+	trees = [read_tree(nwk, label=f) for (nwk, f) in zip(nwk_files, fn)]
+	for t_i in trees[2:end] 
+		if !TreeTools.share_labels(trees[1], t_i)
+			error("Trees must share leaves")
+		end
 	end
 
 	# Reading sequence lengths
 	sl = try
 		local sl = map(i->parse(Int, i), split(seq_lengths, " "))
-		@assert length(sl) == 2
+		@assert length(sl) == length(trees)
 		sl
 	catch err
 		@error "Unrecognized format for `--seq-lengths`.
@@ -79,59 +92,79 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 		error(err)
 	end
 
+	println("Performing $rounds rounds of TreeKnit")
+	if resolve_all_rounds || (length(trees)==2 && !final_no_resolve)
+		resolve_all_rounds = true
+		println("Resolving tree topology prior to inference")
+	end
+	if no_resolve
+		println("Not resolving tree topology prior to inference")
+		if no_resolve && final_no_resolve ##do not print twice
+			final_no_resolve = false
+		end
+	end
+	if final_no_resolve || (length(trees)>2 && !resolve_all_rounds)
+		final_no_resolve = true
+		println("Resolving tree topology prior to inference in all rounds but final round")
+	end
+
 	# Setting up OptArgs
 	oa = OptArgs(;
 		γ = gamma,
 		likelihood_sort = !no_likelihood,
 		resolve = !no_resolve,
+		strict=!liberal_resolve,
+		final_no_resolve = final_no_resolve,
+		rounds = rounds, 
 		nMCMC = n_mcmc_it,
 		seq_lengths = sl,
 		verbose=true,
+		consistent=consistency_constraint
 	)
 
 	#
 	@info "Parameters: $oa"
 
 	@info "Inferring MCCs...\n"
-	out = @timed computeMCCs(t1, t2, oa; naive)
+	infered_trees = [copy(t) for t in trees]
+	out = @timed MTK.get_infered_MCC_pairs!(infered_trees, oa; naive)
 	MCCs = out[1]
-	@info "Found $(length(MCCs)) MCCs (runtime $(out[2]))\n"
 
+	l = [length(m) for (key,m) in MCCs.mccs]
+	@info "Found $l MCCs (runtime $(out[2]))\n"
 	verbose && println()
-
-	@info "Resolving trees based on found MCCs..."
-	t1_strict, t2_strict = copy(t1), copy(t2)
-	rS = resolve!(t1_strict, t2_strict, MCCs; strict=true)
-	TreeTools.ladderize!(t1_strict)
-	sort_polytomies!(t1_strict, t2_strict, MCCs)
-	@info "Resolved $(length(rS[1])) splits in $(nwk1) and $(length(rS[1])) splits in $(nwk2)\n"
-
-	verbose && println()
-
-	# Write tree output
+	
+	# Write output
 	@info "Writing results in $(outdir)"
-	write_mccs(outdir * "/" * "MCCs.dat", MCCs)
-	out_nwk1, out_nwk2 = make_output_tree_names(nwk1, nwk2)
-	write_newick(outdir * "/" * out_nwk1, t1_strict)
-	write_newick(outdir * "/" * out_nwk2, t2_strict)
+	write_mccs(outdir * "/" * "MCCs.json", MCCs)
+	out_nwk = make_output_tree_names(fn, ext)
+	for i in 1:MCCs.no_trees
+		write_newick(outdir * "/" * out_nwk[i], infered_trees[i])
+	end
 
+	if auspice_view
+		write_auspice_json(outdir * "/", infered_trees, MCCs)
+	end
 	verbose && println()
 
-	@info "Building ARG from trees and MCCs..."
-	rS = resolve!(t1, t2, MCCs)
-	TreeTools.ladderize!(t1)
-	sort_polytomies!(t1, t2, MCCs)
-	arg, rlm, lm1, lm2 = SRG.arg_from_trees(t1, t2, MCCs)
-	@info "Found $(length(arg.hybrids)) reassortments in the ARG.\n"
-
-	# Write arg output
-	write(outdir * "/" * "arg.nwk", arg)
-	write_rlm(outdir * "/" * "nodes.dat", rlm)
+	if length(trees) ==2
+		rS = resolve!(trees[1], trees[2], get(MCCs, trees[1].label, trees[2].label))
+		out_nwk = make_output_tree_names(fn, ext; liberal=true)
+		for i in 1:MCCs.no_trees
+			write_newick(outdir * "/" * out_nwk[i], trees[i])
+		end
+		@info "Building ARG from trees and MCCs..."
+		arg, rlm, lm1, lm2 = SRG.arg_from_trees(trees[1], trees[2], get(MCCs, trees[1].label, trees[2].label))
+		@info "Found $(length(arg.hybrids)) reassortments in the ARG.\n"
+		write(outdir * "/" * "arg.nwk", arg)
+		write_rlm(outdir * "/" * "nodes.dat", rlm)
+	end
 
 	close(io)
 
 	println()
 end
+
 
 function write_rlm(filename, rlm)
 	open(filename, "w") do io
@@ -155,28 +188,28 @@ function write_rlm(filename, rlm)
 	end
 end
 
-function make_output_tree_names(nwk1, nwk2)
-	fn = [basename(nwk) for nwk in (nwk1, nwk2)]
-	name1, name2 = if fn[1] == fn[2]
-		name, ext = splitext(fn[1])
-		d1 = split(dirname(nwk1), '/')[end]
-		d2 = split(dirname(nwk2), '/')[end]
-		name1, name2 = if d1 == d2
-			name * "_1.resolved" * ext, name * "_2.resolved" * ext
-		else
-			name * "_$(d1).resolved" * ext, name * "_$(d2).resolved" * ext
-		end
-		@warn "The two input trees have the same filename. Writing output as:
-		$nwk1 --> $name1
-		$nwk2 --> $name2"
-		name1, name2
+function make_output_tree_names(nwk_names, ext; liberal=false)
+
+	f = [splitext(n)[1] for n in nwk_names]
+	if liberal
+		names = [f_i * "_liberal_resolved" * ext for f_i in f]
 	else
-		f1, ext1 = splitext(fn[1])
-		f2, ext2 = splitext(fn[2])
-		f1 * ".resolved" * ext1, f2 * ".resolved" * ext2
+		names = [f_i * "_resolved" * ext for f_i in f]
 	end
 
-	return name1, name2
+	return names
 end
 
 
+function get_tree_names(nwk_files)
+
+	fn = [basename(nwk) for nwk in nwk_files]
+	name, ext = splitext(fn[1])
+	fn = [splitext(f)[1] for f in fn]
+	if unique(fn) != fn
+		d = [split(dirname(nwk), '/')[end] for nwk in nwk_files]
+		fn = [name * "_$(d_i)" for d_i in d]
+	end
+	@assert unique(fn) == fn "Input trees must be identifiable by file name"
+	return (fn, ext)
+end

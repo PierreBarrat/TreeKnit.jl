@@ -56,14 +56,19 @@ end
 """
 		runopt(t1::Tree, t2::Tree; kwargs...)
 		runopt(oa::OptArgs, t1::Tree, t2::Tree)
-		runopt(oa::OptArgs, trees::Dict{<:Any,<:Tree})
 
 Run optimization at constant γ. See `?Optargs` for arguments. In the first form, keyword
-  arguments are given to `OptArgs`.
+  arguments are given to `OptArgs`. If `constraint` is given (in the form of an MCC where nodes that should 
+  be together are in the same cluster) this will be used as `shared_branch`-constraint while performing 
+  simulated annealing, lowering the likelihood that nodes that should be in the same MCC are split from each other.
 """
-runopt(t1::Tree, t2::Tree; kwargs...) = runopt(OptArgs(;kwargs...), t1, t2)
+function runopt(t1::Tree, t2::Tree, constraint; kwargs...)
+	runopt(OptArgs(;kwargs...), t1, t2, constraint)
+end
+runopt(t1::Tree, t2::Tree; kwargs...) = runopt(OptArgs(;kwargs...), t1, t2, nothing)
+runopt(oa::OptArgs, t1::Tree, t2::Tree; output=:mccs) = runopt(oa, t1, t2, nothing; output)
 
-function runopt(oa::OptArgs, t1::Tree, t2::Tree; output = :mccs)
+function runopt(oa::OptArgs, t1::Tree, t2::Tree, constraint; output = :mccs)
 	# Copying input trees for optimization
 	ot1 = copy(t1)
 	ot2 = copy(t2)
@@ -71,6 +76,12 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree; output = :mccs)
 	# Resolve
 	oa.resolve && resolve!(ot1, ot2)
 
+	format_constraint!(constraint, t1)
+	if !isnothing(constraint)
+		shared_maps = [MTK.map_shared_branches(constraint, ot1), MTK.map_shared_branches(constraint, ot2)]
+	else
+		shared_maps = nothing
+	end
 	iMCCs = naive_mccs(ot1, ot2)
 	oa.verbose && @info "Initial state: $(length(iMCCs)) naive MCCs"
 
@@ -88,8 +99,17 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree; output = :mccs)
 		M = Int(ceil(length(ot1.lleaves) * oa.nMCMC / length(oa.Trange)))
 		mccs, Efinal, Ffinal, lk = SplitGraph.opttrees(
 			ot1, ot2;
-			γ=oa.γ, seq_lengths = oa.seq_lengths, M=M, Trange=oa.Trange,
-			likelihood_sort=oa.likelihood_sort, resolve=oa.resolve, sa_rep = oa.sa_rep, oa.verbose
+			oa.γ,
+			oa.seq_lengths,
+			M,
+			oa.Trange,
+			oa.likelihood_sort,
+			oa.resolve,
+			oa.sa_rep,
+			oa.consistent,
+			oa.constraint_cost,
+			oa.verbose,
+			shared_maps
 		)
 		!isempty(mccs) && append!(MCCs, mccs)
 		oa.verbose && @info "Found $(length(mccs)) new mccs."
@@ -97,7 +117,7 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree; output = :mccs)
 
 		# Stopping condition
 		oa.verbose && @info "Proceeding based on newly found MCCs..."
-		flag, rMCCs = stop_conditions!(MCCs, mccs, oa, it, ot1, ot2; hardstop=true)
+		flag, rMCCs = stop_conditions!(MCCs, mccs, oa, it, ot1, ot2; hardstop=true, shared_maps)
 
 		#=
 			Note on variables at this point
@@ -120,7 +140,7 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree; output = :mccs)
 	end
 end
 
-function stop_conditions!(previous_mccs, new_mccs, oa, it, trees... ; hardstop=true)
+function stop_conditions!(previous_mccs, new_mccs, oa, it, trees... ; hardstop=true, shared_maps=nothing)
 	# If no solution was found
 	if length(new_mccs) == 0
 		# oa.verbose && print("No solution found... ")
@@ -153,7 +173,7 @@ function stop_conditions!(previous_mccs, new_mccs, oa, it, trees... ; hardstop=t
 	oa.vv && @info "Pruned MCCs and trees: " new_mccs
 	oa.vv && show(trees)
 	pruneconf!(new_mccs, trees...)
-	oa.resolve && resolve!(trees...)
+	oa.resolve && resolve!(trees...; shared_maps)
 	remaining_mccs = naive_mccs(trees)
 	### If they new trees have an obvious solution, append it to new_mccs and stop
 	if length(remaining_mccs) == 1

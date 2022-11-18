@@ -23,11 +23,12 @@ Storing parameters for `SplitGraph.runopt` function.
 - `verbose::Bool=false`: first level of verbosity
 - `vv::Bool = false`: second level of verbosity
 """
-@with_kw struct OptArgs
+@with_kw mutable struct OptArgs
 	γ::Real = 2
 	itmax::Int64 = 15
 	likelihood_sort::Bool = true
 	resolve::Bool = true
+	strict::Bool = true ##when resolving the final tree only add non-ambiguous splits
 	seq_lengths::Vector{Int} = [1, 1]
 	# For the annealing
 	nMCMC::Int = 50
@@ -37,6 +38,11 @@ Storing parameters for `SplitGraph.runopt` function.
 	cooling_schedule = :geometric
 	Trange = get_cooling_schedule(Tmin, Tmax, nT, type=cooling_schedule)
 	sa_rep::Int64 = 1
+	# Cost of breaking a constraint (nodes that should be connected)
+	consistent::Bool = false ##if constraints should be added to enforce consistency
+	constraint_cost::Float64 = 2*γ
+	rounds::Int=2
+	final_no_resolve::Bool = false
 	# Verbosity
 	verbose::Bool = false
 	vv::Bool = false
@@ -74,4 +80,19 @@ end
 
 get_linear_cooling_schedule(Tmin, Tmax, nT) = return collect(reverse(range(Tmin, stop = Tmax, length = nT)))
 
+"""
+	format_constraint!(constraint, tree)
 
+Make sure constraint has required formating (same as MCC) to be used in SA
+"""
+function format_constraint!(constraint, tree)
+	if !isnothing(constraint)
+		constraint_leaves = union([Set([m... ]) for m in constraint]...)
+		for l in keys(tree.lleaves)
+			if l ∉ constraint_leaves
+				append!(constraint, [l])
+			end
+		end
+	end
+	return constraint
+end

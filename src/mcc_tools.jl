@@ -170,13 +170,48 @@ end
 Sort nodes of `t2` such that leaves of `t1` and `t2` in the same MCC face each other.
 In a tanglegram with nodes colored according to MCC, lines of the same color will not cross.
 The order of `t1` serves as a guide and is left unchanged.
+Note that if strict `sort_polytomies!` is applied to multiple tree pairs it may not have the desired outcome as 
+it will reorder each tree in the tree pair. 
 """
-function sort_polytomies!(t1::Tree{T}, t2::Tree{T}, MCCs) where T
-	mcc_order = get_leaves_order(t1, MCCs)
-	_mcc_map = map_mccs(t2, MCCs)
-	sort_polytomies!(t2.root, MCCs, _mcc_map, mcc_order)
-	node2tree!(t2, t2.root)
+function sort_polytomies!(t1::Tree{T}, t2::Tree{T}, MCCs; strict=false) where T
+	if strict 
+		##create a copy of the trees which are then fully resolved so that they can be sorted correctly
+		t1_, t2_ = copy(t1), copy(t2)
+		resolve!(t1_, t2_, MCCs; strict=false)
+		TreeTools.ladderize!(t1_)
+		sort_polytomies!(t1_, t2_, MCCs)
+		##get order of leaves in sorted liberal resolved trees and apply this order to strict resolved trees
+		fixed_order_1 =  Dict(n.label => i for (i,n) in enumerate(POTleaves(t1_)))
+		fixed_order_2 =   Dict(n.label => i for (i,n) in enumerate(POTleaves(t2_)))
+		sort_polytomies!(t1.root, fixed_order_1)
+		sort_polytomies!(t2.root, fixed_order_2)
+		return nothing
+	else
+		mcc_order = get_leaves_order(t1, MCCs)
+		_mcc_map = map_mccs(t2, MCCs)
+		sort_polytomies!(t2.root, MCCs, _mcc_map, mcc_order)
+		node2tree!(t2, t2.root)
+	end
 	return nothing
+end
+
+function sort_polytomies!(n::TreeNode, fixed_order)
+	if n.isleaf
+		return fixed_order[n.label]
+	else
+		# # Sort children
+		rank = Array{Any}(undef, length(n.child))
+		for (k, c) in enumerate(n.child)
+			rank[k] = sort_polytomies!(c, fixed_order)
+		end
+	
+		children_order = sortperm(rank)
+		n.child = n.child[children_order]
+
+		# # Return minimum value of the rank of nodes in the MCC.
+		# # Will be used by parent to rank the current node
+		return findmin(r -> r[1], rank)[1]
+	end
 end
 
 function sort_polytomies!(n::TreeNode, MCCs, mcc_map, mcc_order)

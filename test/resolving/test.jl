@@ -156,39 +156,17 @@ MCCs = TreeKnit.sort([["A","B","C"],["D","E","X"]], lt=TreeKnit.clt)
 	t1_copy = copy(t1)
 	t2_copy = copy(t2)
 	rS = resolve!(t1_copy, t2_copy, MCCs; tau = 0.)
-	@test write_newick(t1_copy.root) == "((((A,B)RESOLVED_1:0.0,C)RESOLVED_2:0.0,(D,E)RESOLVED_3:0.0)NODE_2,X)NODE_1:0;"
+	@test write_newick(t1_copy) == "((((A,B)RESOLVED_1:0.0,C)RESOLVED_2:0.0,(D,E)RESOLVED_3:0.0)NODE_2,X)NODE_1:0;"
 	
 	t1_copy = copy(t1)
 	t2_copy = copy(t2)
 	rS = TreeKnit.resolve!(t1_copy, t2_copy, MCCs; tau = 0., strict=true)
-	@test write_newick(t1_copy.root) == "((D,E,((A,B)RESOLVED_1:0.0,C)RESOLVED_2:0.0)NODE_2,X)NODE_1:0;"
+	@test write_newick(t1_copy) == "((D,E,((A,B)RESOLVED_1:0.0,C)RESOLVED_2:0.0)NODE_2,X)NODE_1:0;"
 	
 	##check ladderize works the same for strict resolve
 	TreeTools.ladderize!(t1_copy)
-	@test write_newick(t1_copy.root) =="(X,(D,E,(C,(A,B)RESOLVED_1:0.0)RESOLVED_2:0.0)NODE_2)NODE_1:0;"
+	@test write_newick(t1_copy) =="(X,(D,E,(C,(A,B)RESOLVED_1:0.0)RESOLVED_2:0.0)NODE_2)NODE_1:0;"
 end
-
-t1_empty = node2tree(TreeTools.parse_newick(nwk_1; node_data_type=TreeTools.EmptyData); label="t1_empty")
-t2_empty = node2tree(TreeTools.parse_newick(nwk_2; node_data_type=TreeTools.EmptyData); label="t2_empty")
-
-@testset "strict_resolve and ladderize work on TreeTools.EmptyData" begin
-	t1_copy = copy(t1_empty)
-	t2_copy = copy(t2_empty)
-	rS = resolve!(t1_copy, t2_copy, MCCs; tau = 0.)
-	@test (t1_copy.label, t2_copy.label) == ("t1_empty", "t2_empty")
-	@test write_newick(t1_copy.root) == "((((A,B)RESOLVED_1:0.0,C)RESOLVED_2:0.0,(D,E)RESOLVED_3:0.0)NODE_2,X)NODE_1:0;"
-	
-	t1_copy = copy(t1_empty)
-	t2_copy = copy(t2_empty)
-	rS = TreeKnit.resolve!(t1_copy, t2_copy, MCCs; tau = 0., strict=true)
-	@test (t1_copy.label, t2_copy.label) == ("t1_empty", "t2_empty")
-	@test write_newick(t1_copy.root) == "((D,E,((A,B)RESOLVED_1:0.0,C)RESOLVED_2:0.0)NODE_2,X)NODE_1:0;"
-	
-	##make sure ladderize works the same for Empty and MiscData
-	TreeTools.ladderize!(t1_copy)
-	@test write_newick(t1_copy.root) =="(X,(D,E,(C,(A,B)RESOLVED_1:0.0)RESOLVED_2:0.0)NODE_2)NODE_1:0;"
-end
-
 
 nwk_1 = "((A,B,C,(D,E)),X)"
 nwk_2 = "((((A,B),C),(D,E)),X)"
@@ -203,17 +181,17 @@ MCCs = TreeKnit.sort([["A","B","C"],["D","E","X"]], lt=TreeKnit.clt)
 	t2_copy = copy(t2_empty)
 	rS = resolve!(t1_copy, t2_copy, MCCs; tau = 0.)
 	TreeTools.ladderize!(t1_copy)
-	TreeKnit.sort_polytomies!(t1_copy, t2_copy, MCCs)
+	TreeKnit.sort_polytomies!(t1_copy, t2_copy, MCCs; strict=false)
 	
 	t1_strict = copy(t1)
 	t2_strict = copy(t2)
 	rS_strict = TreeKnit.resolve!(t1_strict, t2_strict, MCCs; tau = 0., strict=true)
 	TreeTools.ladderize!(t1_strict)
-	TreeKnit.sort_polytomies!(t1_strict, t2_strict, MCCs)
+	TreeKnit.sort_polytomies!(t1_strict, t2_strict, MCCs; strict=true)
 
 	@test rS == rS_strict
-	@test write_newick(t1_copy.root) == write_newick(t1_strict.root)
-	@test write_newick(t2_copy.root) == write_newick(t2_strict.root)
+	@test write_newick(t1_copy) == write_newick(t1_strict)
+	@test write_newick(t2_copy) == write_newick(t2_strict)
 end
 
 nwk_1 = "(A,(C,D,E,B))"
@@ -224,113 +202,65 @@ t1_empty = node2tree(TreeTools.parse_newick(nwk_1; node_data_type=TreeTools.Empt
 t2_empty = node2tree(TreeTools.parse_newick(nwk_2; node_data_type=TreeTools.EmptyData); label="t2")
 MCCs = TreeKnit.sort([["B"], ["A","C","D","E"]], lt=TreeKnit.clt)
 
+function get_leaf_order(t)
+	t_leaves =String[]
+	for leaf in POTleaves(t)
+		push!(t_leaves, leaf.label)
+	end
+	return t_leaves
+end
+
 @testset "check sort_polytomies! works when internal node could belong to more than one mcc" begin
 	t1_strict = copy(t1)
 	t2_strict = copy(t2)
 	rS_strict = TreeKnit.resolve!(t1_strict, t2_strict, MCCs; tau = 0., strict=true)
 	TreeTools.ladderize!(t1_strict)
-	TreeKnit.sort_polytomies!(t1_strict, t2_strict, MCCs)
-	@test write_newick(t1_strict.root) == "(A,(B,C,D,E)NODE_2)NODE_1:0;"
-	@test write_newick(t2_strict.root) == "(A,((C,D)NODE_3,E,B)NODE_2)NODE_1:0;"
+	TreeKnit.sort_polytomies!(t1_strict, t2_strict, MCCs; strict=true)
+	@test filter(e -> e!="B", get_leaf_order(t1_strict)) == filter(e -> e!="B", get_leaf_order(t2_strict))
 
 	t1_strict = copy(t1)
 	t2_strict = copy(t2)
 	rS_strict = TreeKnit.resolve!(t2_strict, t1_strict, MCCs; tau = 0., strict=true)
 	TreeTools.ladderize!(t2_strict)
-	TreeKnit.sort_polytomies!(t2_strict, t1_strict, MCCs)
-	@test write_newick(t1_strict.root) == "(A,(E,C,D,B)NODE_2)NODE_1:0;"
-	@test write_newick(t2_strict.root) == "(A,(B,E,(C,D)NODE_3)NODE_2)NODE_1:0;"
+	TreeKnit.sort_polytomies!(t2_strict, t1_strict, MCCs; strict=true)
+	@test filter(e -> e!="B", get_leaf_order(t1_strict)) == filter(e -> e!="B", get_leaf_order(t2_strict))
 end
 
+nwk_1 = "(E,(B,C,D,A),K)"
+nwk_2 = "(A,E,B,C,D,K)"
+t1 = node2tree(TreeTools.parse_newick(nwk_1; node_data_type=TreeTools.MiscData); label="t1")
+t2 = node2tree(TreeTools.parse_newick(nwk_2; node_data_type=TreeTools.MiscData); label="t2")
+MCCs = TreeKnit.sort([["A","B","C","D","E"], ["K"]], lt=TreeKnit.clt)
 
+@testset "check sort_polytomies! strict works on strictly resolved trees, 1" begin
+	t1_strict = copy(t1)
+	t2_strict = copy(t2)
+	rS_strict = TreeKnit.resolve!(t1_strict, t2_strict, MCCs; tau = 0., strict=true)
+	TreeTools.ladderize!(t2_strict)
+	TreeKnit.sort_polytomies!(t2_strict, t1_strict, MCCs; strict=true)
+	@test filter(e -> e!="K", get_leaf_order(t1_strict)) == filter(e -> e!="K", get_leaf_order(t2_strict))
+end
 
-# printl("#### Resolve using MCC inference")
+t1 = node2tree(TreeTools.parse_newick("((A,B1),B2,C,D)"))
+t2 = node2tree(TreeTools.parse_newick("((A,B1,B2,D),C)"))
+MCCs = [["D"], ["A", "B1", "B2", "C"]]
+rS_strict = TreeKnit.resolve!(t1, t2, MCCs; tau = 0., strict=true)
+TreeTools.ladderize!(t1)
+TreeKnit.sort_polytomies!(t1, t2, MCCs; strict=true)
+@testset "check sort_polytomies! strict works on strictly resolved trees, 2" begin
+	@test filter(e -> e!="D", get_leaf_order(t1)) == filter(e -> e!="D", get_leaf_order(t2))
+end
 
-# # ╔═╡ 93ccb338-8e0d-11eb-0f36-49bebaf5570b
-# function infer_mccs(trees;kwargs...)
-# 	TreeKnit.runopt(
-# 		OptArgs(;seq_lengths = Dict(s=>1 for s in keys(trees)), kwargs...),
-# 		trees
-# 	)
-# end
+nwk_1 = "(A,B,C,D)"
+nwk_2 = "(A,C,(D,B))"
+t1 = node2tree(TreeTools.parse_newick(nwk_1; node_data_type=TreeTools.MiscData); label="t1")
+t2 = node2tree(TreeTools.parse_newick(nwk_2; node_data_type=TreeTools.MiscData); label="t2")
+MCCs = TreeKnit.sort([["B"], ["A","C","D"]], lt=TreeKnit.clt)
 
-# # ╔═╡ 45e695a6-8e0d-11eb-178d-97bf0cb45379
-# nwk1 = "(A:1.,B:1.,(C:1.,D:1.):1.)"
-
-# # ╔═╡ 6165e6e0-8e0d-11eb-1f87-b94b13b3ec95
-# nwk2 = "(((A:1.,B:1.):1.,C:1.):1.,D:100.)"
-
-# # ╔═╡ 6f0f4310-8e0d-11eb-1110-9d6d12d0cbae
-# t1 = node2tree(TreeTools.parse_newick(nwk1))
-
-# # ╔═╡ 7bdceb1a-8e0d-11eb-0160-0d60f81fd810
-# t2= node2tree(TreeTools.parse_newick(nwk2))
-
-# # ╔═╡ 90c5c30c-8e0e-11eb-00a0-45ccc42a2500
-# trees = Dict(1=>deepcopy(t1), 2=>deepcopy(t2))
-
-# # ╔═╡ fa1be92c-8e0d-11eb-0f5a-21209d7ffc68
-# @testset "Inner function _resolve_from_mccs!" begin
-# 	ct = deepcopy(trees)
-# 	nS = TreeKnit._resolve_from_mccs!(infer_mccs, ct)
-# 	@test isempty(nS[2])
-# 	@test nS[1] == [["A", "B"]]
-# end
-
-# # ╔═╡ ef1e0a34-8e10-11eb-198d-1d31d25d8167
-# nwk3 = "(((A1:1,A2:1):1.,A3:1,A4:1):1.,B1:1.,B2:1,(C:1.,D:1.):1)"
-
-# # ╔═╡ 117d3fe6-8e11-11eb-02bf-6b21357867d7
-# t3 = node2tree(TreeTools.parse_newick(nwk3))
-
-# # ╔═╡ 1be36e60-8e11-11eb-2ca0-e59c20fa35a4
-# nwk4 = "(((((A1:1,A2:1,A3:1):1,A4:1):1.,(B1:1.,B2:1):1):1,C:1.):1.,D:100.)"
-
-# # ╔═╡ 50b097f8-8e11-11eb-1a43-ed66b32e8ee4
-# t4 = node2tree(TreeTools.parse_newick(nwk4))
-
-# # ╔═╡ 5fb91e64-8e11-11eb-3ac7-4906f631bd80
-# trees2 = Dict(1=>deepcopy(t3), 2=>deepcopy(t4))
-
-# # ╔═╡ 8d4d48b4-8e11-11eb-2445-f5196c3666b3
-# @testset "Outer function resolve_from_mccs!" begin
-# 	ct2 = deepcopy(trees2)
-# 	nS2 = TreeKnit.resolve_from_mccs!(infer_mccs, ct2)
-# 	@test nS2[2] == [["A1", "A2"]]
-# 	@test nS2[1] == [["A1", "A2", "A3"], ["B1", "B2"], ["A1", "A2", "A3", "A4", "B1", "B2"]]
-# end
-
-
-# # # Testing max-clique splits
-# # # trees 2 and 3 try to resolve 1 in a different way.
-# # nwk1 = "((A,B,C),(D,E,F,G))"
-# # nwk2 = "(((A,B),C),(D,(E,(F,G))))"
-# # nwk3 = "(((A,B),C),(D,(E,F),G))"
-# # trees = Dict(i=>node2tree(parse_newick(nwk)) for (i,nwk) in enumerate([nwk1, nwk2, nwk3]))
-# # MCCs = TreeKnit._computeMCCs(infer_mccs, trees)
-# # resolvable_splits = TreeKnit.new_splits(trees, MCCs)
-# # @testset "max-clique splits" begin
-# # 	S1 = TreeKnit.max_clique_splits(resolvable_splits[1])
-# # 	S2 = TreeKnit.max_clique_splits(resolvable_splits[2])
-# # 	S3 = TreeKnit.max_clique_splits(resolvable_splits[3])
-# # 	@test length(S1) == 3 # would be 0 with compat
-# # 	@test length(S2) == 0 # is already resolved
-# # 	@test length(S3) == 1 # one split from tree 2 (depending if E or G is an MCC)
-# # end
-
-
-# ╔═╡ Cell order:
-# ╠═2ea1ccbc-8e0d-11eb-29c3-05a91ea18a6f
-# ╠═93ccb338-8e0d-11eb-0f36-49bebaf5570b
-# ╠═45e695a6-8e0d-11eb-178d-97bf0cb45379
-# ╠═6165e6e0-8e0d-11eb-1f87-b94b13b3ec95
-# ╠═6f0f4310-8e0d-11eb-1110-9d6d12d0cbae
-# ╠═7bdceb1a-8e0d-11eb-0160-0d60f81fd810
-# ╠═90c5c30c-8e0e-11eb-00a0-45ccc42a2500
-# ╠═fa1be92c-8e0d-11eb-0f5a-21209d7ffc68
-# ╠═ef1e0a34-8e10-11eb-198d-1d31d25d8167
-# ╠═117d3fe6-8e11-11eb-02bf-6b21357867d7
-# ╠═1be36e60-8e11-11eb-2ca0-e59c20fa35a4
-# ╠═50b097f8-8e11-11eb-1a43-ed66b32e8ee4
-# ╠═5fb91e64-8e11-11eb-3ac7-4906f631bd80
-# ╠═8d4d48b4-8e11-11eb-2445-f5196c3666b3
+@testset "check sort_polytomies! works when internal node could belong to more than one mcc" begin
+	t1_strict = copy(t1)
+	t2_strict = copy(t2)
+	rS_strict = TreeKnit.resolve!(t1_strict, t2_strict, MCCs; tau = 0., strict=true)
+	TreeTools.ladderize!(t1_strict)
+	TreeKnit.sort_polytomies!(t1_strict, t2_strict, MCCs; strict=true)
+end

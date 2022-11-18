@@ -177,22 +177,24 @@ end
 
 """
 """
-function compute_F(conf::Array{Bool,1}, g::Graph, γ::Real)
+function compute_F(conf::Array{Bool,1}, g::Graph, γ::Real; mask=Set(), constraint_cost=γ)
 	E = compute_energy(conf, g)
-	return E + γ*(length(conf) - sum(conf))
+	c = sum([Int(i ∈ mask && !conf[i]) for i in 1:length(conf)])*constraint_cost
+	return E + γ*(length(conf) - sum(conf)) + c
 end
 
 """
 """
-function doMCMC(g::Graph, conf::Array{Bool,1}, M::Int64; T=1, γ=1)
+function doMCMC(g::Graph, conf::Array{Bool,1}, M::Int64; T=1, γ=1, mask=Set(), constraint_cost=γ)
 	_conf = copy(conf)
 	E = compute_energy(_conf, g)
-	F = E + γ*(length(conf) - sum(conf))
+	c = sum([Int(i ∈ mask && !conf[i]) for i in 1:length(conf)])*constraint_cost
+	F = E + γ*(length(conf) - sum(conf)) + c
 	Fmin = F
 
 	oconf = [copy(_conf)]
 	for m in 1:M
-		E, F = mcmcstep!(_conf, g, F, T, γ)
+		E, F = mcmcstep!(_conf, g, F, T, γ; mask, constraint_cost)
 		# If new minimum is found
 		if F < Fmin
 			Fmin = F
@@ -208,17 +210,26 @@ function doMCMC(g::Graph, conf::Array{Bool,1}, M::Int64; T=1, γ=1)
 end
 
 """
+mcmcstep!(conf, g, F, T, γ; mask=Set(), constraint_cost=γ)
+
+Perform an mcmc step by removing a node from `conf` at random.
+If `mask` is specified masked nodes will be removed at cost `constraint_cost`,
+per default this is set to the cost of a reassortment event.
 """
-function mcmcstep!(conf, g, F, T, γ)
-	i = rand(1:length(conf))
+function mcmcstep!(conf, g, F, T, γ; mask=Set(), constraint_cost=γ)
+	s = Set(1:length(conf))
+	i = rand(s)
 	conf[i] = !conf[i]
 	Enew = compute_energy(conf, g)
-	Fnew = Enew + γ*(length(conf) - sum(conf))
+	c = sum([Int(i ∈ mask && !conf[i]) for i in 1:length(conf)])*constraint_cost
+	Fnew = Enew + γ*(length(conf) - sum(conf)) + c
 	if Fnew < F || exp(-(Fnew-F)/T) > rand()
+		#return Enew, Fnew, stop
 		return Enew, Fnew
 	else
 		conf[i] = !conf[i]
-		return (round(Int64, F-γ*(length(conf) - sum(conf))), F)
+		#return (round(Int64, F-γ*(length(conf) - sum(conf))), F, stop)
+		return (round(Int64, F-γ*(length(conf) - sum(conf))-c), F)
 	end
 end
 
@@ -227,7 +238,7 @@ end
 
 Call `_sa_opt` repeatedly to find a set of optimal confs.
 """
-function sa_opt(g::Graph; Trange=reverse(1e-3:1e-2:0.6), γ=2., M=10, rep=1, resolve=true)
+function sa_opt(g::Graph; Trange=reverse(1e-3:1e-2:0.6), γ=2., M=10, rep=1, resolve=true, mask=Set(), constraint_cost=γ)
 	set_resolve(resolve)
 	#
 	oconf = Any[]
@@ -235,7 +246,7 @@ function sa_opt(g::Graph; Trange=reverse(1e-3:1e-2:0.6), γ=2., M=10, rep=1, res
 	Fmin = Inf
 	nfound = 0
 	for r in 1:rep
-		oconf_, F_ = _sa_opt(g, γ, Trange, M)
+		oconf_, F_ = _sa_opt(g, γ, Trange, M; mask, constraint_cost)
 		Fm = minimum(F_)
 		if Fm == Fmin
 			append!(oconf, oconf_)
@@ -251,7 +262,7 @@ function sa_opt(g::Graph; Trange=reverse(1e-3:1e-2:0.6), γ=2., M=10, rep=1, res
 	return unique(oconf), F, nfound
 end
 
-function _sa_opt(g::Graph, γ, Trange, M)
+function _sa_opt(g::Graph, γ, Trange, M; mask=Set(), constraint_cost= γ)
 	reset_chance = 0.
 	conf = ones(Bool, length(g.leaves))
 	oconf = [copy(conf)]
@@ -267,9 +278,9 @@ function _sa_opt(g::Graph, γ, Trange, M)
 	)
 	for T in Trange
 		if rand() < reset_chance
-			tmp_oconf, conf, fmin = doMCMC(g, oconf[rand(1:length(oconf))], M, T=T, γ=γ)
+			tmp_oconf, conf, fmin = doMCMC(g, oconf[rand(1:length(oconf))]; M, T, γ, mask, constraint_cost)
 		else
-			tmp_oconf, conf, fmin = doMCMC(g, conf, M, T=T,γ=γ)
+			tmp_oconf, conf, fmin = doMCMC(g, conf, M; T,γ, mask, constraint_cost)
 		end
 		append!(F,fmin)
 		# If a better conf is found than all configurations in oconf

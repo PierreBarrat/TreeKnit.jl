@@ -39,16 +39,20 @@ function opttrees(t...;
 	likelihood_sort=true,
 	resolve=true,
 	sa_rep = 1,
-	verbose=false
+	consistent =false,
+	constraint_cost= γ,
+	verbose=false,
+	shared_maps=nothing
 )
 	opttrees!(
-		γ, Trange, M, seq_lengths, [copy(convert(Tree{TreeTools.EmptyData}, x)) for x in t]...;
-		likelihood_sort, resolve, sa_rep, verbose
+		γ, Trange, M, seq_lengths, [copy(x) for x in t]...;
+		likelihood_sort, resolve, sa_rep, consistent, constraint_cost, verbose, shared_maps
 	)
 end
+
 function opttrees!(
-	γ, Trange, M, seq_lengths, t::Vararg{Tree};
-	likelihood_sort=true, resolve=true, sa_rep=1, verbose=false,
+	γ, Trange, M, seq_lengths, t::Vararg{Tree}; 
+	likelihood_sort=true, resolve=true, sa_rep=1, consistent =false, constraint_cost= γ, verbose=false, shared_maps=nothing
 )
 	set_verbose(verbose)
 
@@ -57,14 +61,19 @@ function opttrees!(
 	if length(mcc) == 1
 		return mcc, 0, 0., Int64[], Float64[], Union{Missing,Float64}[]
 	end
-	mcc_names = TreeKnit.name_mcc_clades!(treelist, mcc)
+	mcc_names = TreeKnit.name_mcc_clades!(treelist, mcc; shared_maps)
 	for (i,t) in enumerate(treelist)
 		TreeKnit.reduce_to_mcc!(t, mcc)
 	end
 	g = trees2graph(treelist)
+	if consistent
+		mask = get_consistency_mask(g, t...; shared_maps)
+	else
+		mask =  []
+	end
 
 	# SA - Optimization
-	oconfs, F, nfound = sa_opt(g, γ=γ, Trange=Trange, M=M, rep=sa_rep, resolve=resolve)
+	oconfs, F, nfound = sa_opt(g; Trange, γ, M, rep=sa_rep, resolve, mask, constraint_cost)
 	# Computing likelihoods
 	if length(oconfs) != 1
 		v() && @info "Sorting $(length(oconfs)) topologically equivalent configurations."
@@ -77,7 +86,7 @@ function opttrees!(
 	end
 	vv() && @info "Final configuration for this iteration: $oconf."
 	vv() && @info "MCCs removed: $([mcc_names[x] for x in g.labels[.!oconf]])"
-	return [mcc_names[x] for x in g.labels[.!oconf]], compute_energy(oconf,g), compute_F(oconf, g, γ), L
+	return [mcc_names[x] for x in g.labels[.!oconf]], compute_energy(oconf,g), compute_F(oconf, g, γ, mask=mask, constraint_cost=constraint_cost), L
 end
 
 
@@ -117,6 +126,31 @@ function sortconf(oconfs, trees, g::Graph, seq_lengths, mcc_names, likelihood_so
 	end
 end
 
+"""
+	get_consistency_mask(g, tree)
 
+Get which branches/ terminal nodes of the current tree (SplitGraph) 
+should not be removed in the subsequent MCMC due to the fact that 
+they have a `shared_branch`.
+"""
+function get_consistency_mask(g::Graph, trees::Vararg{Tree}; shared_maps=nothing)
+	if isnothing(shared_maps)
+		return []
+	end
+
+	mask_names = String[]
+	for (i, tree) in enumerate(trees)
+		for leaf in POTleaves(tree)
+			if shared_maps[i][leaf.label]
+				push!(mask_names, leaf.label)
+			end
+		end
+	end
+	mask_names = sort!(unique!(mask_names))
+
+	mask = [g.labels_to_int[m] for m in mask_names]
+
+	return mask
+end
 
 end # module

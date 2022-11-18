@@ -30,4 +30,9 @@ using Test
 		println("# NY data")
 		include("NYdata/test.jl")
 	end
+
+	@testset "MultiTreeKnit" begin
+		println("# MultiTreeKnit")
+		include("MultiTreeKnit/test.jl")
+	end
 end
