@@ -19,6 +19,7 @@
 - `--no-likelihood`: Do not use branch length likelihood test to sort between different MCCs
 - `--no-resolve`: Do not attempt to resolve trees before inferring MCCs.
 - `--liberal-resolve`: Resolve output trees as much as possible using inferred MCCs, adding splits when order of coalescence and reassortment is unclear (coalescence is set at a time prior to reassortment)
+- `--parallel`: Run sequential multitree-TreeKnit with parallelization (only relevant for 4 or more trees) 
 - `--final-no-resolve`: Not not resolve trees before inferring MCCs in final round of inference (default for more than 2 trees to prevent topological inconsistencies in output MCCs)
 - `--resolve-all-rounds`: Resolve trees before inferring MCCs in all rounds (default for 2 trees, overrides final-no-resolve)
 - `-v, --verbose`: verbosity
@@ -42,6 +43,7 @@
 	resolve_all_rounds::Bool = false,
 	verbose::Bool = false,
 	consistency_constraint::Bool = false,
+	parallel::Bool = false,
 	auspice_view::Bool = false
 )
 
@@ -92,6 +94,11 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 		error(err)
 	end
 
+	##only parallelize if there are 4 or more trees
+	if length(trees)<=3
+		parallel = false
+	end
+
 	println("Performing $rounds rounds of TreeKnit")
 	if resolve_all_rounds || (length(trees)==2 && !final_no_resolve)
 		resolve_all_rounds = true
@@ -119,7 +126,8 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 		nMCMC = n_mcmc_it,
 		seq_lengths = sl,
 		verbose=true,
-		consistent=consistency_constraint
+		consistent=consistency_constraint,
+		parallel=parallel,
 	)
 
 	#

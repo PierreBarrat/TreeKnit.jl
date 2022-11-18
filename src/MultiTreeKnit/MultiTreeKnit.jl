@@ -2,6 +2,7 @@ module MultiTreeKnit
 
 using TreeKnit
 using TreeTools
+using Dagger
 using Combinatorics
 
 include("multitree_objects.jl")

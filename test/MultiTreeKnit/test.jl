@@ -8,6 +8,7 @@ println("##### MultiTreeKnit #####")
 
 include("$(dirname(pathof(TreeKnit)))/..//test/MultiTreeKnit/test_constraints.jl")
 include("$(dirname(pathof(TreeKnit)))/..//test/MultiTreeKnit/test_infer_tree_pairs.jl")
+include("$(dirname(pathof(TreeKnit)))/..//test/MultiTreeKnit/test_parallel_MTK.jl")
 
 using Pkg
 if "ARGTools" in keys(Pkg.project().dependencies)

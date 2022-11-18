@@ -43,6 +43,7 @@ Storing parameters for `SplitGraph.runopt` function.
 	constraint_cost::Float64 = 2*γ
 	rounds::Int=2
 	final_no_resolve::Bool = false
+	parallel::Bool = false
 	# Verbosity
 	verbose::Bool = false
 	vv::Bool = false

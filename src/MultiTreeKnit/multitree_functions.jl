@@ -114,6 +114,40 @@ function run_step!(oa::OptArgs, tree1::Tree, tree2::Tree, constraints, r, pos)
     return MCC
 end
 
+"""
+	parallelized_compute_mccs!(trees::Vector{Tree{T}}, oa::OptArgs, strict) where T
+
+Parallelized version of `compute_mcc_pairs!(trees, oa)`
+
+"""
+function parallelized_compute_mccs!(trees::Vector{Tree{T}}, oa::OptArgs) where T 
+    l_t = length(trees)
+    parallel_MCCs = Dict()
+    for r in 1:oa.rounds
+        for i in 1:(l_t-1)
+            for j in (i+1):l_t
+                MCC_list = nothing
+                if oa.consistent && (i>1 || r>1) && l_t >2
+                    MCC_list = []
+                    if r>1
+                        range = filter(e->e∉Set([i,j]), 1:l_t)
+                    else
+                        range = 1:(i-1)
+                    end
+                    for x in range
+                        append!(MCC_list, [parallel_MCCs[Set([i, x])], parallel_MCCs[Set([j,x])]])
+                    end
+                end
+                parallel_MCCs[Set([i,j])] = Dagger.@spawn run_step!(oa, trees[i], trees[j], MCC_list, r, i)
+            end
+        end
+    end
+    pair_MCCs = MCC_set(l_t, [t.label for t in trees])
+    for (key, mcc) in parallel_MCCs
+        add!(pair_MCCs, fetch(mcc), Tuple(key))
+    end
+    return pair_MCCs
+end
 
 function compute_naive_mcc_pairs!(trees::Vector{Tree{T}}; strict=true) where T 
     l_t = length(trees)
@@ -143,6 +177,7 @@ Combinatorics.combinations(1:length(trees), 2).
 - `strict`: Apply conservative resolution. If a reassortment event happened in a polytomy that could be resolved by a MCC 
 it is unclear if the reassortment or the coalescence happened first, in order to introduce such a split the order must be 
 randomly assigned. If this is desired `strict` should be set to false.
+- `oa.parallel`: Parallelize MCC computation of tree pairs as much as possible.
 - `oa.consistent`: If MCC pairs should be consistent with previous MCCs the `consistent` flag can be set to true, 
 this will discourage TreeKnit from removing nodes in an inconsistent manner during SA (but cannot guarantee a consistent 
 solution). For example, if node `a` and node `b` are both in the same MCC clade for MCC12 and MCC13 they should also 
@@ -155,7 +190,11 @@ function get_infered_MCC_pairs!(trees::Vector{Tree{T}}, oa::OptArgs; naive=false
         return compute_naive_mcc_pairs!(trees; oa.strict)
     end
 
-    pair_MCCs = compute_mcc_pairs!(trees, oa)
+    if oa.parallel == true
+        pair_MCCs = parallelized_compute_mccs!(trees, oa)
+    else
+        pair_MCCs = compute_mcc_pairs!(trees, oa)
+    end
 
     return pair_MCCs
 end

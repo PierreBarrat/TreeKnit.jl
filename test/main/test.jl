@@ -15,10 +15,7 @@ solutions = [
 	[["1"], ["2", "6"], ["3", "4", "5"]],
 	[["6"], ["1", "2"], ["3", "4", "5"]],
 ]
-MCCs = TreeKnit.computeMCCs(
-		t1, t2, OptArgs(likelihood_sort=false, γ=3);
-	)
-@test in(MCCs, solutions)
+
 @testset "Dyn-resolve" begin
 	MCCs = TreeKnit.computeMCCs(
 		t1, t2, OptArgs(likelihood_sort=false, γ=3);
