@@ -3,6 +3,7 @@
 
 Construct an `ARG` from two trees and a set of MCCs.
 """
+
 function arg_from_trees(input_trees::Vector{Tree{T}}, MCCs::MCC_set) where T
     ##assume trees have been resolved compatibly with each other and MCCs are consistent
 	if any([!ismissing(TreeTools.branch_length(t.root)) for t in input_trees])
@@ -17,6 +18,7 @@ function arg_from_trees(input_trees::Vector{Tree{T}}, MCCs::MCC_set) where T
             # Find shared nodes in both trees
 	        X[(i,j)] = SRG.shared_nodes(trees[i], trees[j], get(MCCs, (i,j)))
             # Introduce shared singletons of one into the other, add these to previous dict
+			fix_multitree_singletons!(X, trees, i, j)
 	        fix_shared_singletons!(trees, X, i,j, get(MCCs, (i,j)))
         end
     end
@@ -37,6 +39,28 @@ function arg_from_trees(input_trees::Vector{Tree{T}}, MCCs::MCC_set) where T
     end
 
 	return arg, lm_dict
+end
+
+function fix_multitree_singletons!(X_dict, trees, i, j)
+	if i>1
+		for (key, node) in X_dict[(i,j)][1]
+			if node[1] == :shared_singleton
+				for k in 1:(i-1)
+					shared_node_tree_k = X_dict[(k,i)][2][key][2]
+					if haskey(X_dict[(k,j)][1], shared_node_tree_k)
+						shared_node_tree_j = X_dict[(k,j)][1][shared_node_tree_k][2]
+						if X_dict[(i,j)][2][shared_node_tree_j][1] == :shared_singleton
+							#mark as shared
+							mcc_i = X_dict[(i,j)][1][trees[i].lnodes[key].anc.label][4]
+							mcc_j = X_dict[(i,j)][2][trees[j].lnodes[shared_node_tree_j].anc.label][4]
+							X_dict[(i,j)][1][key] = (:shared, shared_node_tree_j, false, mcc_i)
+							X_dict[(i,j)][2][shared_node_tree_j] = (:shared, key, false, mcc_j)
+						end
+					end
+				end
+			end
+		end
+	end
 end
 
 """
@@ -88,22 +112,17 @@ function fix_shared_singletons!(trees, X_dict, i, j, mcc::Vector{String})
 				if f2
 					# Both are shared.
 					# Choose one and fix it
-					if any([X_dict[(k,i)][2][a1.label][2] == X_dict[(k,j)][2][a2.label][2] for k in 1:(i-1)])
-						X1[a1.label] = (:shared, a2.label, false, X1[n1.label][4])
-						X2[a2.label] = (:shared, a1.label, false, X2[n2.label][4])
-					else
-						if !ismissing(n1.tau) && !ismissing(n2.tau)
-							if n1.tau < n2.tau
-								# a1 in t2
-								introduce_singleton!(n2, a2, a1, n1.tau, X2, X1, x2_toadd, 2, trees2_toadd)
-							else
-								# a2 in t1
-								introduce_singleton!(n1, a1, a2, n2.tau, X1, X2, x1_toadd, 1, trees1_toadd)
-							end
-						else
-							# a1 in t2 by default
+					if !ismissing(n1.tau) && !ismissing(n2.tau)
+						if n1.tau < n2.tau
+							# a1 in t2
 							introduce_singleton!(n2, a2, a1, n1.tau, X2, X1, x2_toadd, 2, trees2_toadd)
+						else
+							# a2 in t1
+							introduce_singleton!(n1, a1, a2, n2.tau, X1, X2, x1_toadd, 1, trees1_toadd)
 						end
+					else
+						# a1 in t2 by default
+						introduce_singleton!(n2, a2, a1, n1.tau, X2, X1, x2_toadd, 2, trees2_toadd)
 					end
 				else
 					# Introduce a1 in t2
@@ -118,8 +137,8 @@ function fix_shared_singletons!(trees, X_dict, i, j, mcc::Vector{String})
 			v2[n2.label] = true
 			n1 = n1.anc
 			n2 = n2.anc
-			@assert X1[n1.label][2] == n2.label "1 - $(n1.label) - $(X1[n1.label]) - $(n2.label)"
-			@assert X2[n2.label][2] == n1.label "2 - $(n2.label) - $(X2[n2.label])"
+			#@assert X1[n1.label][2] == n2.label "1 - $(n1.label) - $(X1[n1.label]) - $(n2.label)"
+			#@assert X2[n2.label][2] == n1.label "2 - $(n2.label) - $(X2[n2.label])"
 		end
 	end
 	node2tree!(t1, t1.root)
