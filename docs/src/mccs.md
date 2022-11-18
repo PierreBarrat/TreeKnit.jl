@@ -1,6 +1,6 @@
 # [Maximally Compatible Clades](@id MCCs)
 
-*TreeKnit* reconstructs the ARG from trees by first inferring Maximally Compatible Clades (MCC). 
+*TreeKnit* reconstructs the ARG from trees by first inferring (topologically) shared regions of the tree, so called Maximally Compatible Clades (MCC). By default if they share the same topology up to [resolution](@ref resolving) TreeKnit will assume the region is shared. 
 
 ## Handling trees
 

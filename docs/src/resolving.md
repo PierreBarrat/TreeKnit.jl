@@ -1,4 +1,4 @@
-# Resolving 
+# [Resolving](@id resolving)
 
 The lack of resolution in the inference of phylogenetic trees results in *polytomies*: internal nodes with more than two offsprings. 
   Polytomies can cause the topology of two trees to differ, which cause problems when inferring reassortments using topological information. 
@@ -44,6 +44,30 @@ new_splits[2]
 ```
 
 If the `resolve` option is passed to `computeMCCs` (through `OptArgs`), `resolve!` will be called on each pair of trees before each iteration of the MCC inference procedure. 
+
+## [Strict vs Liberal Resolve](@id resolve_strict_vs_liberal)
+
+Strict resolve will only resolve a polytomy if the relation of all branches within the polytomy can be determined using the other tree, potentially not fully resolving shared regions of the trees. This can only happen when the order of a coalescence and reassortment event cannot be determined from the MCCs, i.e. if a split should be introduced in a polytomy which has a reassortment event on at least one branch. As this branch is located at a different location in the other tree it is unclear where it should be be added in the new split and no split will be added when we call strict resolve. 
+```@example strict
+using TreeKnit
+t1 = node2tree(parse_newick("(A,B,C,D)"))
+t2 = node2tree(parse_newick("((A,(B,C)),D)"))
+MCCs = [["D"], ["A", "B", "C"]]
+t1_strict, t2_strict, new_splits_strict = resolve(t1, t2, MCCs; strict=true);
+t1_strict
+```
+
+Liberal resolve will resolve trees as much as possible, fully resolving shared regions of the two trees, but randomly choosing the location of these aforementioned branches, leading to potentially wrong splits. 
+```@example strict
+using TreeKnit
+t1 = node2tree(parse_newick("(A,B,C,D)"))
+t2 = node2tree(parse_newick("((A,(B,C)),D)"))
+MCCs = [["D"], ["A", "B", "C"]]
+new_splits = resolve!(t1, t2, MCCs);
+t1
+```
+
+This can be seen in the examples above, the location of the branch "D" in `t1` cannot be fully determined by `t2` as "D" could either be closer to "A" or closer to "B" and "C", but this cannot be determined from `t2` as "D" is not in their shared topology. Thus, using strict resolve the split between `("B", "C")` and "A" will not be added to the tree. When we use liberal resolve TreeKnit will per default choose to add the split `("B", "C")` and not `("B", "C", "D")`, but both would be possible. 
 
 ## Resolving during MCC inference
 The above resolving method works fine for simple "obvious" cases, where a split in one tree directly resolves a polytomy in another. 

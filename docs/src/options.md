@@ -32,7 +32,7 @@ Here, pruning the two leaves `(A,C)` or `(D,E)` results in compatible trees (res
 
 
 ## Resolving trees with polytomies 
-See [Resolving](@ref)
+See [Resolving](@ref resolving)
 
 ## [Degeneracy: sorting with likelihood](@id likelihood)
 When several MCC decompositions are possible, degeneracy is removed by using the `likelihood_sort` option (activated by default). 
