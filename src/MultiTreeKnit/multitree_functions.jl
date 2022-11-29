@@ -34,56 +34,65 @@ In this case, MultiTreeKnit computes a set of constraints on `MCC_ij` for it to 
 with `MCC_ik` and `MCC_jk`. The constraints are not strongly enforced, but simply bias the
 optimization process.
 
-Constraint calculation: constraint on the `MCC_ij` by computing the `MCC_join_constraint` of these 
-MCCs (i.e. if no reassortment occured between leaves A and B in MCC_{k,i} and MCC_{k,j} by 
-transitivity no reassortment should have occured between leaves A and B in MCC_{i,j}). This 
-constraint will be used in SA to make removing these branches indepenedently cost more.
-
+Constraint calculation: constraint on the `MCC_ij` by computing the `MCC_join_constraint` of
+these MCCs (i.e. if no reassortment occured between leaves A and B in `MCC_ik` and `MCC_jk`
+by  transitivity no reassortment should have occured between leaves A and B in `MCC_ij`).
+This constraint will be used in SA to make removing these branches indepenedently cost more.
 """
 function compute_mcc_pairs!(trees::Vector{Tree{T}}, oa::OptArgs) where T 
     l_t = length(trees)
     pair_MCCs = MCC_set(l_t, [t.label for t in trees])
     for r in 1:oa.rounds
         oa.verbose && @info "ROUND:"*string(r)
-        for i in 1:(l_t-1)
-            for j in (i+1):l_t
-                joint_MCCs = nothing
-                if oa.consistent && (i>1 || r>1) && l_t>1
-                    if r>1
-                        range = filter(e->e∉Set([i,j]), 1:l_t)
-                    else
-                        range = 1:(i-1)
-                    end
-                    for x in range
-                        first = get(pair_MCCs, (i, x))
-                        second = get(pair_MCCs, (j, x))
-                        pre_joint_MCCs = MCC_join_constraint([first, second])
-                        if !isnothing(joint_MCCs)
-                            joint_MCCs = MCC_join_constraint([joint_MCCs, pre_joint_MCCs])
-                        else
-                            joint_MCCs = pre_joint_MCCs
-                        end
-                    end
-                end
-                if oa.final_no_resolve && r==oa.rounds
-                    oa.resolve = false
-                    oa.strict = false
-                    add!(pair_MCCs, TreeKnit.runopt(oa, trees[i], trees[j], joint_MCCs; output = :mccs), (i, j))
+        for i in 1:(l_t-1), j in (i+1):l_t
+            # Building constraint from other MCCs and/or previous rounds
+            joint_MCCs = nothing
+            if oa.consistent && (i>1 || r>1) && l_t>1
+                if r>1
+                    range = filter(!in([i,j]), 1:l_t)
                 else
-                    add!(pair_MCCs, TreeKnit.runopt(oa, trees[i], trees[j], joint_MCCs; output = :mccs), (i, j))
+                    range = 1:(i-1)
                 end
-                rS = TreeKnit.resolve!(trees[i], trees[j], get(pair_MCCs, (j, i)); oa.strict)
-                oa.verbose && @info "found MCCs for trees: "*trees[j].label*" and "*trees[i].label
-                if r==oa.rounds 
-                    if i ==1 ##only the first tree should be ladderized
-                        TreeTools.ladderize!(trees[i])
+                for x in range
+                    first = get(pair_MCCs, (i, x))
+                    second = get(pair_MCCs, (j, x))
+                    pre_joint_MCCs = MCC_join_constraint([first, second])
+                    if !isnothing(joint_MCCs)
+                        joint_MCCs = MCC_join_constraint([joint_MCCs, pre_joint_MCCs])
+                    else
+                        joint_MCCs = pre_joint_MCCs
                     end
-                    TreeKnit.sort_polytomies!(trees[i], trees[j], get(pair_MCCs, trees[i].label, trees[j].label); oa.strict)
-                    oa.verbose && @info "ladderized and sorted trees: "*trees[j].label*" and "*trees[i].label
                 end
             end
+
+            # do we resolve for this round?
+            if oa.final_no_resolve && r==oa.rounds
+                oa.resolve = false
+                oa.strict = false
+            end
+
+            # compute MCCs for current tree pair and add it to set
+            mccs = TreeKnit.runopt(oa, trees[i], trees[j], joint_MCCs; output = :mccs)
+            add!(pair_MCCs, mccs, (i, j))
+
+            # Resolve trees
+            rS = TreeKnit.resolve!(trees[i], trees[j], get(pair_MCCs, (j, i)); oa.strict)
+            oa.verbose && @info "found MCCs for trees: "*label(trees[i])*" and "*label(trees[j])
         end
     end
+
+    # Sort trees for future tanglegram display
+	TreeTools.ladderize!(trees[1]) # ladderize first tree
+	for i in 1:l_t, j in (i+1):l_t
+    	TreeKnit.sort_polytomies!(
+    		trees[i],
+    		trees[j],
+    		get(pair_MCCs, label(trees[i]), label(trees[j]));
+    		oa.strict
+    	)
+    	oa.verbose && @info "ladderized and sorted trees: "*label(trees[i])*" and "*label(trees[j])
+    end
+
     return pair_MCCs
 end
 
@@ -160,13 +169,13 @@ function compute_naive_mcc_pairs!(trees::Vector{Tree{T}}; strict=true) where T
         if i==1
             TreeTools.ladderize!(trees[i])
         end
-        TreeKnit.sort_polytomies!(trees[i], trees[j], get(pair_MCCs, trees[i].label, trees[j].label); strict)
+        TreeKnit.sort_polytomies!(trees[i], trees[j], get(pair_MCCs, label(trees[i]), label(trees[j])); strict)
     end
     return pair_MCCs
 end
 
 """
-    function get_infered_MCC_pairs!(trees::Vector{Tree{T}}, oa::OptArgs=OptArgs()) where T
+    get_infered_MCC_pairs!(trees::Vector{Tree{T}}, oa::OptArgs=OptArgs()) where T
 
 Function to compute MCCs of all tree pairs in tree list `trees` using `TreeKnit.run_opt`. Resolved trees
 from previous MCC calculations are used as the input trees for the next pair, the order is specified in
