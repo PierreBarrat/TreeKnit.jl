@@ -17,13 +17,6 @@ let verbose::Bool = false, vverbose::Bool = false
 end
 
 
-# function opttrees(γ, Trange, M, seq_lengths, t...)
-# 	opttrees!(γ, Trange, M, seq_lengths, [copy(x, TreeTools.EmptyData) for x in t]...)
-# end
-
-# function opttrees(t...; kwargs...)
-# 	opttrees!([copy(x, TreeTools.EmptyData) for x in t]...; kwargs...)
-# end
 """
 	opttrees!(t... ; kwargs...)
 
@@ -31,18 +24,19 @@ Return a list of MCCs for input trees.
 Output:
 1.
 """
-function opttrees(t...;
-	γ=2,
-	seq_lengths=1000 * ones(Int64, length(t)),
-	Trange=reverse(0.001:0.01:1.),
+function opttrees(
+	t...;
+	γ = 2,
+	seq_lengths = 1000 * ones(Int64, length(t)),
+	Trange = reverse(0.001:0.01:1.),
 	M = 10,
-	likelihood_sort=true,
-	resolve=true,
+	likelihood_sort = true,
+	resolve = true,
 	sa_rep = 1,
-	consistent =false,
-	constraint_cost= γ,
-	verbose=false,
-	shared_maps=nothing
+	consistent = false,
+	constraint_cost = γ,
+	verbose = false,
+	shared_maps = nothing,
 )
 	opttrees!(
 		γ, Trange, M, seq_lengths, [copy(x) for x in t]...;
@@ -52,7 +46,7 @@ end
 
 function opttrees!(
 	γ, Trange, M, seq_lengths, t::Vararg{Tree}; 
-	likelihood_sort=true, resolve=true, sa_rep=1, consistent =false, constraint_cost= γ, verbose=false, shared_maps=nothing
+	likelihood_sort=true, resolve=true, sa_rep=1, consistent=false, constraint_cost=γ, verbose=false, shared_maps=nothing
 )
 	set_verbose(verbose)
 
@@ -66,11 +60,7 @@ function opttrees!(
 		TreeKnit.reduce_to_mcc!(t, mcc)
 	end
 	g = trees2graph(treelist)
-	if consistent
-		mask = get_consistency_mask(g, t...; shared_maps)
-	else
-		mask =  []
-	end
+	mask = consistent ? get_consistency_mask(g, t...; shared_maps) : []
 
 	# SA - Optimization
 	oconfs, F, nfound = sa_opt(g; Trange, γ, M, rep=sa_rep, resolve, mask, constraint_cost)
@@ -79,18 +69,23 @@ function opttrees!(
 		v() && @info "Sorting $(length(oconfs)) topologically equivalent configurations."
 		vv() && @info "Configurations\n $oconfs"
 		vv() && @info g.labels
-		oconf, L = sortconf(oconfs, treelist, g, seq_lengths, mcc_names, likelihood_sort, false)
+		oconf, L = sortconf(oconfs, treelist, g, seq_lengths, mcc_names, likelihood_sort)
 	else
 		oconf = oconfs[1]
 		L = Union{Missing,Float64}[]
 	end
 	vv() && @info "Final configuration for this iteration: $oconf."
 	vv() && @info "MCCs removed: $([mcc_names[x] for x in g.labels[.!oconf]])"
-	return [mcc_names[x] for x in g.labels[.!oconf]], compute_energy(oconf,g), compute_F(oconf, g, γ, mask=mask, constraint_cost=constraint_cost), L
+	return (
+		[mcc_names[x] for x in g.labels[.!oconf]],
+		compute_energy(oconf,g),
+		compute_F(oconf, g, γ, mask=mask, constraint_cost=constraint_cost),
+		L
+	)
 end
 
 
-function sortconf(oconfs, trees, g::Graph, seq_lengths, mcc_names, likelihood_sort, E_sort)
+function sortconf(oconfs, trees, g, seq_lengths, mcc_names, likelihood_sort, E_sort=false)
 	if E_sort # Only considering configurations of lowest energies
 		E = [compute_energy(conf,g) for conf in oconfs]
 		Emin = minimum(E)

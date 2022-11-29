@@ -185,7 +185,10 @@ end
 
 """
 """
-function doMCMC(g::Graph, conf::Array{Bool,1}, M::Int64; T=1, γ=1, mask=Set(), constraint_cost=γ)
+function doMCMC(
+	g::Graph, conf::Array{Bool,1}, M::Int64;
+	T=1, γ=1, mask=Set(), constraint_cost=γ
+)
 	_conf = copy(conf)
 	E = compute_energy(_conf, g)
 	c = sum([Int(i ∈ mask && !conf[i]) for i in 1:length(conf)])*constraint_cost
@@ -210,7 +213,7 @@ function doMCMC(g::Graph, conf::Array{Bool,1}, M::Int64; T=1, γ=1, mask=Set(), 
 end
 
 """
-mcmcstep!(conf, g, F, T, γ; mask=Set(), constraint_cost=γ)
+	mcmcstep!(conf, g, F, T, γ; mask=Set(), constraint_cost=γ)
 
 Perform an mcmc step by removing a node from `conf` at random.
 If `mask` is specified masked nodes will be removed at cost `constraint_cost`,
@@ -224,11 +227,9 @@ function mcmcstep!(conf, g, F, T, γ; mask=Set(), constraint_cost=γ)
 	c = sum([Int(i ∈ mask && !conf[i]) for i in 1:length(conf)])*constraint_cost
 	Fnew = Enew + γ*(length(conf) - sum(conf)) + c
 	if Fnew < F || exp(-(Fnew-F)/T) > rand()
-		#return Enew, Fnew, stop
 		return Enew, Fnew
 	else
 		conf[i] = !conf[i]
-		#return (round(Int64, F-γ*(length(conf) - sum(conf))), F, stop)
 		return (round(Int64, F-γ*(length(conf) - sum(conf))-c), F)
 	end
 end
@@ -238,7 +239,10 @@ end
 
 Call `_sa_opt` repeatedly to find a set of optimal confs.
 """
-function sa_opt(g::Graph; Trange=reverse(1e-3:1e-2:0.6), γ=2., M=10, rep=1, resolve=true, mask=Set(), constraint_cost=γ)
+function sa_opt(
+	g::Graph;
+	Trange=OptArgs().Trange, γ=2., M=10, rep=1, resolve=true, mask=Set(), constraint_cost=γ
+)
 	set_resolve(resolve)
 	#
 	oconf = Any[]

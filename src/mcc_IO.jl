@@ -79,7 +79,7 @@ function write_mccs(filePath, MCCs::MCC_set, mode="w")
 end
 
 """
-function write_auspice_json(filepath, trees::Vector{Tree{T}}, MCCs::MCC_set) where T 
+	write_auspice_json(filepath, trees::Vector{Tree}, MCCs::MCC_set)
 
 Returns a .json file that can be used by auspice to plot a dendrogram of two trees 
 with their MCCs drawn on in color. The format used is specified in 

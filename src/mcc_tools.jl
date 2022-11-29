@@ -165,22 +165,22 @@ end
 
 
 """
-	sort_polytomies!(t1::Tree, t2::Tree, MCCs)
+	sort_polytomies!(t1::Tree, t2::Tree, MCCs; strict=false)
 
 Sort nodes of `t2` such that leaves of `t1` and `t2` in the same MCC face each other.
 In a tanglegram with nodes colored according to MCC, lines of the same color will not cross.
 The order of `t1` serves as a guide and is left unchanged.
-Note that if strict `sort_polytomies!` is applied to multiple tree pairs it may not have the desired outcome as 
-it will reorder each tree in the tree pair. 
+Note that if strict `sort_polytomies!` is applied to multiple tree pairs it may not have
+the desired outcome as it will reorder each tree in the tree pair.
 """
 function sort_polytomies!(t1::Tree{T}, t2::Tree{T}, MCCs; strict=false) where T
 	if strict 
-		##create a copy of the trees which are then fully resolved so that they can be sorted correctly
+		## liberally resolve and sort a copy of trees to get the good leaf order
 		t1_, t2_ = copy(t1), copy(t2)
 		resolve!(t1_, t2_, MCCs; strict=false)
 		TreeTools.ladderize!(t1_)
 		sort_polytomies!(t1_, t2_, MCCs)
-		##get order of leaves in sorted liberal resolved trees and apply this order to strict resolved trees
+		## get order of leaves in sorted liberal resolved trees and apply this order to strict resolved trees
 		fixed_order_1 =  Dict(n.label => i for (i,n) in enumerate(POTleaves(t1_)))
 		fixed_order_2 =   Dict(n.label => i for (i,n) in enumerate(POTleaves(t2_)))
 		sort_polytomies!(t1.root, fixed_order_1)
@@ -262,43 +262,6 @@ function _sort_children!(n, rank)
 	n.child = n.child[children_order]
 end
 
-
-
-## BEFORE REMOVING `write_mccs!`:
-## Check whether it's used in annotating auspice json files
-# """
-#     write_mccs!(trees::Dict, MCCs::Dict, key=:mcc_id)
-
-# Write MCCs id to field `data.dat[key]` of tree nodes. Expect `trees` indexed by single segments, and `MCCs` indexed by pairs of segments.
-# """
-# function write_mccs!(trees::Dict, MCCs::Dict, key=:mcc_id; overwrite=false)
-#     for ((i,j), mccs) in MCCs
-#         k = Symbol(key,"_$(i)_$(j)")
-#         write_mccs!(trees[i], mccs, k, overwrite=overwrite)
-#         write_mccs!(trees[j], mccs, k, overwrite=overwrite)
-#     end
-# end
-# """
-#     write_mccs!(t::Tree, MCCs, key=:mcc_id)
-
-# Write MCCs id to field `data.dat[key]` of tree nodes.
-# """
-# function write_mccs!(t::Tree{TreeTools.MiscData}, MCCs, key=:mcc_id; overwrite=false)
-#     for (i,mcc) in enumerate(MCCs)
-#         for label in mcc
-#             t.lleaves[label].data.dat[key] = i
-#         end
-#         for n in Iterators.filter(n->!n.isleaf, values(t.lnodes))
-#             if is_branch_in_mcc(n, mcc)
-#                 if !overwrite && haskey(n.data.dat, key)
-#                     error("Node $(n.label) already has an MCC attributed")
-#                 end
-#                 n.data.dat[key] = i
-#             end
-#         end
-#     end
-#     nothing
-# end
 
 """
     is_branch_in_mccs(n::TreeNode, mccs::Array)

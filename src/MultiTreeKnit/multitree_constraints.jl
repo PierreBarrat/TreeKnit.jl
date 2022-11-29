@@ -1,10 +1,7 @@
-
-
 """
-MCC_join_constraint(MCCs::Vector{Vector{Vector{String}}}; dict=false)
+	MCC_join_constraint(MCCs::Vector{Vector{Vector{String}}}; dict=false)
 
-given as input a list of MCCs this function joins these MCC lists (sets) by calculating their intersection recursively
-and returning their intersection
+Join input lists of MCCs by recursively calculating their intersection.
 """
 function MCC_join_constraint(MCCs::Vector{Vector{Vector{String}}}; dict=false)
     sets = [union([Set([m... ]) for m in mcc]...) for mcc in MCCs]
@@ -45,7 +42,7 @@ function MCC_join_constraint(MCCs::Vector{Vector{Vector{String}}}; dict=false)
 end
 
 """
-is_MCC_subset(MCC1::Vector{Vector{String}}, MCC2::Vector{Vector{String}})
+	is_MCC_subset(MCC1::Vector{Vector{String}}, MCC2::Vector{Vector{String}})
 
 function to check that every set in MCC1 is a subset of a set in MCC2
 """

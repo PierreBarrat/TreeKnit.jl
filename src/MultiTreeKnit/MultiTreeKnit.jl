@@ -5,6 +5,8 @@ using TreeTools
 using Dagger
 using Combinatorics
 
+import Base: get, print, copy
+
 include("multitree_objects.jl")
 export MCC_set
 include("multitree_constraints.jl")

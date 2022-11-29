@@ -11,7 +11,7 @@
 - `-g, --gamma <arg>`: value of γ; Example `-g=2`
 - `--seq-lengths <arg>`: length of the sequences. Example: `--seq-length "1500 2000"`
 - `--n-mcmc-it <arg>`: number of MCMC iterations per leaf; default 25
-- `--rounds`: Number of times to run inference on input trees, when rounds >1 MCCs will be reinferred using resolved trees from the last iteration. (default: 1 - for 2 input trees, 2 - for >2 input trees)
+- `--rounds`: Number of times to run inference on input trees. If `rounds > 1` MCCs will be re-inferred using resolved trees from the last iteration. (default: `1` for 2 input trees, `2` for >2 input trees)
 
 # Flags
 
@@ -19,15 +19,14 @@
 - `--no-likelihood`: Do not use branch length likelihood test to sort between different MCCs
 - `--no-resolve`: Do not attempt to resolve trees before inferring MCCs.
 - `--liberal-resolve`: Resolve output trees as much as possible using inferred MCCs, adding splits when order of coalescence and reassortment is unclear (coalescence is set at a time prior to reassortment)
-- `--parallel`: Run sequential multitree-TreeKnit with parallelization (only relevant for 4 or more trees) 
-- `--final-no-resolve`: Not not resolve trees before inferring MCCs in final round of inference (default for more than 2 trees to prevent topological inconsistencies in output MCCs)
+- `--parallel`: Run sequential multitree-TreeKnit with parallelization (only relevant for 4 or more trees)
+- `--final-no-resolve`: Do not resolve trees before inferring MCCs in final round of inference (default for more than 2 trees to prevent topological inconsistencies in output MCCs)
 - `--resolve-all-rounds`: Resolve trees before inferring MCCs in all rounds (default for 2 trees, overrides final-no-resolve)
 - `-v, --verbose`: verbosity
 - `--auspice-view`: return ouput files for auspice
 """
 @main function treeknit(
-	nwk_file1::AbstractString, nwk_file2::AbstractString,
-	nwk_files::AbstractString...;
+	nwk_file1::AbstractString, nwk_file2::AbstractString, nwk_files::AbstractString...;
 	# options
 	outdir::AbstractString = "treeknit_results",
 	gamma::Float64 = 2.,
@@ -95,7 +94,8 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 	end
 
 	##only parallelize if there are 4 or more trees
-	if length(trees)<=3
+	if length(trees)<=3 && parallel
+		@warn "Not running in parallel for less than 4 trees (got $(length(trees)))"
 		parallel = false
 	end
 
@@ -125,9 +125,9 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 		rounds = rounds, 
 		nMCMC = n_mcmc_it,
 		seq_lengths = sl,
-		verbose=true,
-		consistent=consistency_constraint,
-		parallel=parallel,
+		verbose = true,
+		consistent = consistency_constraint,
+		parallel = parallel,
 	)
 
 	#
@@ -214,10 +214,10 @@ function get_tree_names(nwk_files)
 	fn = [basename(nwk) for nwk in nwk_files]
 	name, ext = splitext(fn[1])
 	fn = [splitext(f)[1] for f in fn]
-	if unique(fn) != fn
+	if !allunique(fn)
 		d = [split(dirname(nwk), '/')[end] for nwk in nwk_files]
 		fn = [name * "_$(d_i)" for d_i in d]
 	end
-	@assert unique(fn) == fn "Input trees must be identifiable by file name"
+	@assert allunique(fn) "Input trees must be identifiable by file name"
 	return (fn, ext)
 end

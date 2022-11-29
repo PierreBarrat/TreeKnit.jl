@@ -15,9 +15,11 @@ struct MCC_set
     mccs :: Dict{Set{String}, Vector{Vector{String}}}
 end
 
-MCC_set(no_trees::Int, order_trees:: Vector{String}; mccs =Dict{Set{String}, Vector{Vector{String}}}()) = MCC_set(no_trees, order_trees, mccs)
+function MCC_set(no_trees, order_trees; mccs = Dict())
+	return MCC_set(no_trees, order_trees, mccs)
+end
  
-function MCC_set(no_trees::Int, order_trees::Vector{String}, MCC_list::Vector{Vector{Vector{String}}})
+function MCC_set(no_trees, order_trees, MCC_list::Vector{Vector{Vector{String}}})
     @assert length(MCC_list) >= (no_trees*(no_trees-1)/2)
     M = MCC_set(no_trees, order_trees)
     iters = Combinatorics.combinations(1:no_trees, 2)
@@ -64,7 +66,7 @@ function add!(M::MCC_set, value::Vector{Vector{String}}, pos::Vararg{Int})
 end
 
 """
-iter_pairs(M::MCC_set)
+	iter_pairs(M::MCC_set)
 
 Iterate over all tree pairs and their calculated MCCs in order of calculation.
 """
@@ -74,7 +76,7 @@ function iter_pairs(M::MCC_set)
 end
 
 """
-iter_pairs(M::MCC_set, tree_label::String)
+	iter_pairs(M::MCC_set, tree_label::String)
 
 Iterate over all tree pairs with tree `tree_label` and their calculated MCCs in order of calculation.
 """
