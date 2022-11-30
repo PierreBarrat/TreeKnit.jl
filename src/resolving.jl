@@ -146,6 +146,9 @@ end
 Resolve `t1` using splits of `t2` and inversely.
 Every split of `t2` a tree that is compatible with `t1` is introduced in `t1` with branch
 length `tau` (and inversely). Return new splits in each tree.
+Optionally add a `shared_maps` dictionary (`Dict{String, Bool}`) with the tree 
+node label names as keys and if the corresponding branch is shared or not as value. 
+The resolve function will update this dictionary with any new nodes/branches.
 """
 function resolve!(t1::Tree, t2::Tree; tau=0., shared_maps=nothing)
 	S = [SplitList(t) for t in (t1,t2)]

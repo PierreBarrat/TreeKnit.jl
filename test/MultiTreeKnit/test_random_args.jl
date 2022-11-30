@@ -12,7 +12,7 @@ println("######## MultiTreeKnit on random ARGs ##########")
         label!(trees[1], "a")
         label!(trees[2], "b")
         label!(trees[3], "c")
-        iMCCs = MTK.get_infered_MCC_pairs!(trees, consistent = true, constraint_cost=4.)
+        iMCCs = MTK.get_infered_MCC_pairs!(trees, consistent = true, consistency_cost=4.)
         @test MTKTools.is_degenerate(iMCCs) == (MTKTools.consistency_rate(iMCCs, trees)!=0.0)
         repeat += 1
     end

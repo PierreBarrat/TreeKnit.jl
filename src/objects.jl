@@ -40,7 +40,7 @@ Storing parameters for `SplitGraph.runopt` function.
 	sa_rep::Int64 = 1
 	# Cost of breaking a constraint (nodes that should be connected)
 	consistent::Bool = false ##if constraints should be added to enforce consistency
-	constraint_cost::Float64 = 2*γ
+	consistency_cost::Float64 = 2*γ
 	rounds::Int=2
 	final_no_resolve::Bool = false
 	parallel::Bool = false

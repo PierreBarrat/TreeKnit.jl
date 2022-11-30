@@ -20,6 +20,9 @@ end
 """
 	opttrees!(t... ; kwargs...)
 
+Optionally add `shared_maps` (`Dict{String, Bool}`) for consistency, with the tree 
+node label names as keys and if the corresponding branch is shared as value. 
+
 Return a list of MCCs for input trees.
 Output:
 1.
@@ -34,19 +37,19 @@ function opttrees(
 	resolve = true,
 	sa_rep = 1,
 	consistent = false,
-	constraint_cost = γ,
+	consistency_cost = γ,
 	verbose = false,
 	shared_maps = nothing,
 )
 	opttrees!(
 		γ, Trange, M, seq_lengths, [copy(x) for x in t]...;
-		likelihood_sort, resolve, sa_rep, consistent, constraint_cost, verbose, shared_maps
+		likelihood_sort, resolve, sa_rep, consistent, consistency_cost, verbose, shared_maps
 	)
 end
 
 function opttrees!(
 	γ, Trange, M, seq_lengths, t::Vararg{Tree}; 
-	likelihood_sort=true, resolve=true, sa_rep=1, consistent=false, constraint_cost=γ, verbose=false, shared_maps=nothing
+	likelihood_sort=true, resolve=true, sa_rep=1, consistent=false, consistency_cost=γ, verbose=false, shared_maps=nothing
 )
 	set_verbose(verbose)
 
@@ -63,7 +66,7 @@ function opttrees!(
 	mask = consistent ? get_consistency_mask(g, t...; shared_maps) : []
 
 	# SA - Optimization
-	oconfs, F, nfound = sa_opt(g; Trange, γ, M, rep=sa_rep, resolve, mask, constraint_cost)
+	oconfs, F, nfound = sa_opt(g; Trange, γ, M, rep=sa_rep, resolve, mask, consistency_cost)
 	# Computing likelihoods
 	if length(oconfs) != 1
 		v() && @info "Sorting $(length(oconfs)) topologically equivalent configurations."
@@ -79,7 +82,7 @@ function opttrees!(
 	return (
 		[mcc_names[x] for x in g.labels[.!oconf]],
 		compute_energy(oconf,g),
-		compute_F(oconf, g, γ, mask=mask, constraint_cost=constraint_cost),
+		compute_F(oconf, g, γ; mask, consistency_cost),
 		L
 	)
 end
@@ -127,6 +130,9 @@ end
 Get which branches/ terminal nodes of the current tree (SplitGraph) 
 should not be removed in the subsequent MCMC due to the fact that 
 they have a `shared_branch`.
+
+The `shared_maps` dictionary (`Dict{String, Bool}`) contains the tree 
+node label names as keys and if the corresponding branch is shared or not as value. 
 """
 function get_consistency_mask(g::Graph, trees::Vararg{Tree}; shared_maps=nothing)
 	if isnothing(shared_maps)

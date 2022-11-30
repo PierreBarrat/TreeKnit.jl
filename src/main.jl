@@ -60,7 +60,7 @@ Run optimization at constant γ. See `?Optargs` for arguments.
 In the first form, keyword arguments are given to `OptArgs`.
 
 A `constraint` can be given in the form of an MCC where nodes that should be together are in
- the same cluster.
+ the same cluster, i.e. Vector{Vector{String}}.
 It will be used as `shared_branch` constraint while performing simulated annealing,
  lowering the likelihood that nodes that should be in the same MCC are
  split from each other.
@@ -83,7 +83,7 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree, constraint=nothing; output = :m
 		shared_maps = [
 			MTK.map_shared_branches(constraint, ot1),
 			MTK.map_shared_branches(constraint, ot2)
-		]
+		] #dictionary from node name to boolean if branch is shared
 	else
 		shared_maps = nothing
 	end
@@ -112,7 +112,7 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree, constraint=nothing; output = :m
 			oa.resolve,
 			oa.sa_rep,
 			oa.consistent,
-			oa.constraint_cost,
+			oa.consistency_cost,
 			oa.verbose,
 			shared_maps
 		)

@@ -19,9 +19,8 @@
 - `--no-likelihood`: Do not use branch length likelihood test to sort between different MCCs
 - `--no-resolve`: Do not attempt to resolve trees before inferring MCCs.
 - `--liberal-resolve`: Resolve output trees as much as possible using inferred MCCs, adding splits when order of coalescence and reassortment is unclear (coalescence is set at a time prior to reassortment)
-- `--parallel`: Run sequential multitree-TreeKnit with parallelization (only relevant for 4 or more trees)
-- `--final-no-resolve`: Do not resolve trees before inferring MCCs in final round of inference (default for more than 2 trees to prevent topological inconsistencies in output MCCs)
-- `--resolve-all-rounds`: Resolve trees before inferring MCCs in all rounds (default for 2 trees, overrides final-no-resolve)
+- `--parallel`: Run sequential multitree-TreeKnit with parallelization (only used for 4 or more trees)
+- `--resolve-all-rounds`: Resolve trees before inferring MCCs in all rounds, overrides `--no-resolve` (default for 2 trees, for more than 2 trees default is to not resolve in the final round)
 - `-v, --verbose`: verbosity
 - `--auspice-view`: return ouput files for auspice
 """
@@ -38,7 +37,6 @@
 	no_likelihood::Bool = false,
 	no_resolve::Bool = false,
 	liberal_resolve::Bool = false,
-	final_no_resolve::Bool = false,
 	resolve_all_rounds::Bool = false,
 	verbose::Bool = false,
 	consistency_constraint::Bool = false,
@@ -100,19 +98,20 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 	end
 
 	println("Performing $rounds rounds of TreeKnit")
-	if resolve_all_rounds || (length(trees)==2 && !final_no_resolve)
+	if resolve_all_rounds || (length(trees)==2 && !no_resolve)
 		resolve_all_rounds = true
+		no_resolve = false
 		println("Resolving tree topology prior to inference")
 	end
 	if no_resolve
 		println("Not resolving tree topology prior to inference")
-		if no_resolve && final_no_resolve ##do not print twice
-			final_no_resolve = false
-		end
+		final_no_resolve = true 
 	end
-	if final_no_resolve || (length(trees)>2 && !resolve_all_rounds)
+	if (length(trees)>2 && !resolve_all_rounds && !no_resolve)
 		final_no_resolve = true
 		println("Resolving tree topology prior to inference in all rounds but final round")
+	else
+		final_no_resolve = false
 	end
 
 	# Setting up OptArgs

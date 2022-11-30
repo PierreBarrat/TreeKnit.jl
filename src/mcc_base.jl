@@ -156,7 +156,8 @@ For each clade `m` in `MCC`:
   is an integer starting at `label_init`.
 - Rename each non-leaf internal node of `m` to `shared_\$i_\$j` where `j` is an index
   specific to `m`.
-If given as a parameter update the `shared_maps` dictionary with the new node label names
+If given as a parameter update the `shared_maps` dictionary (`Dict{String, Bool}`) with the new 
+node label names as keys and if the corresponding branch is shared or not. 
 """
 function name_mcc_clades!(treelist, MCC; shared_maps=nothing)
     # Finding initial label

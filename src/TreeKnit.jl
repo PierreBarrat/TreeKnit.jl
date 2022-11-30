@@ -6,7 +6,6 @@ using Logging
 using LoggingExtras
 using Parameters
 using Random
-using Combinatorics
 using Setfield
 # Personal modules
 using TreeTools
