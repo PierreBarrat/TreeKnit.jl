@@ -214,8 +214,7 @@ function reduce_to_mcc!(tree::Tree, MCC)
                 ))
         elseif !r.isleaf
         	for c in reverse(r.child)
-        		# prunenode!(c)
-        		prunesubtree!(tree, c; remove_singletons=false)
+        		prunesubtree!(tree, c; remove_singletons=false, create_leaf=true)
         	end
         	r.isleaf = true
         	r.isroot = false

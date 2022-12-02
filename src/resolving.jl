@@ -31,10 +31,10 @@ function resolve!(
 				nr = TreeNode(T(), label="RESOLVED_$(label_i)")
 				label_i += 1
 				for r in roots
-					prunenode!(r)
-					graftnode!(nr,r)
+					TreeTools.prunenode!(r)
+					TreeTools.graftnode!(nr,r)
 				end
-				graftnode!(R, nr, tau=tau)
+				TreeTools.graftnode!(R, nr, tau=tau)
 				push!(tsplits.splits, s)
 			elseif conflict != :ignore
 				error("Tried to resolve tree with an incompatible split.")

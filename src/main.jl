@@ -194,9 +194,9 @@ Prune `clades` from `trees...`.
 function pruneconf!(clades, trees::Vararg{Tree})
 	for t in trees
 		for st in clades
-			TreeTools.prunesubtree!(t, st, clade_only=false)
+			TreeTools.prunesubtree!(t, st, clade_only=false, create_leaf=true)
 		end
-		TreeTools.remove_internal_singletons!(t, ptau=true)
+		TreeTools.remove_internal_singletons!(t, delete_time=false)
 	end
 end
 """
