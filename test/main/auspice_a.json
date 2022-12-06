@@ -1,0 +1,136 @@
+{
+    "meta": {
+        "filters": [
+        ],
+        "panels": [
+            "tree"
+        ],
+        "colorings": [
+            {
+                "key": "mcc_a_b",
+                "title": "mcc_a_b",
+                "type": "ordinal"
+            }
+        ],
+        "updated": ""
+    },
+    "tree": {
+        "name": "NODE_1",
+        "branch_attrs": {
+        },
+        "node_attrs": {
+            "div": 0.0,
+            "mcc_a_b": {
+                "value": "null"
+            }
+        },
+        "children": [
+            {
+                "name": "NODE_2",
+                "branch_attrs": {
+                },
+                "node_attrs": {
+                    "div": 1.0,
+                    "mcc_a_b": {
+                        "value": "null"
+                    }
+                },
+                "children": [
+                    {
+                        "name": "1",
+                        "branch_attrs": {
+                        },
+                        "node_attrs": {
+                            "div": 2.0,
+                            "mcc_a_b": {
+                                "value": "1"
+                            }
+                        }
+                    },
+                    {
+                        "name": "2",
+                        "branch_attrs": {
+                        },
+                        "node_attrs": {
+                            "div": 2.0,
+                            "mcc_a_b": {
+                                "value": "2"
+                            }
+                        }
+                    }
+                ]
+            },
+            {
+                "name": "NODE_3",
+                "branch_attrs": {
+                },
+                "node_attrs": {
+                    "div": 1.5,
+                    "mcc_a_b": {
+                        "value": "3"
+                    }
+                },
+                "children": [
+                    {
+                        "name": "6",
+                        "branch_attrs": {
+                        },
+                        "node_attrs": {
+                            "div": 2.5,
+                            "mcc_a_b": {
+                                "value": "3"
+                            }
+                        }
+                    },
+                    {
+                        "name": "5",
+                        "branch_attrs": {
+                        },
+                        "node_attrs": {
+                            "div": 2.5,
+                            "mcc_a_b": {
+                                "value": "3"
+                            }
+                        }
+                    },
+                    {
+                        "name": "NODE_4",
+                        "branch_attrs": {
+                        },
+                        "node_attrs": {
+                            "div": 2.5,
+                            "mcc_a_b": {
+                                "value": "3"
+                            }
+                        },
+                        "children": [
+                            {
+                                "name": "3",
+                                "branch_attrs": {
+                                },
+                                "node_attrs": {
+                                    "div": 3.5,
+                                    "mcc_a_b": {
+                                        "value": "3"
+                                    }
+                                }
+                            },
+                            {
+                                "name": "4",
+                                "branch_attrs": {
+                                },
+                                "node_attrs": {
+                                    "div": 3.5,
+                                    "mcc_a_b": {
+                                        "value": "3"
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "version": "v2"
+}
