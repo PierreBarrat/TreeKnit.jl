@@ -30,20 +30,20 @@ Storing parameters for `SplitGraph.runopt` function.
 	resolve::Bool = true
 	strict::Bool = true ##when resolving the final tree only add non-ambiguous splits
 	seq_lengths::Vector{Int} = [1, 1]
-	# For the annealing
-	nMCMC::Int = 50
-	Tmin::Float64 = 0.05; @assert Tmin > 0
-	Tmax::Float64 = 1; @assert Tmax > Tmin
-	nT::Int = 100
-	cooling_schedule = :geometric
-	Trange = get_cooling_schedule(Tmin, Tmax, nT, type=cooling_schedule)
-	sa_rep::Int64 = 1
 	# Cost of breaking a constraint (nodes that should be connected)
 	consistent::Bool = false ##if constraints should be added to enforce consistency
 	consistency_cost::Float64 = 2*γ
 	rounds::Int=2
 	final_no_resolve::Bool = false
 	parallel::Bool = false
+	# For the annealing
+	nMCMC::Int = 50
+	sa_rep::Int64 = 1
+	Tmin::Float64 = 0.05; @assert Tmin > 0
+	Tmax::Float64 = 1; @assert Tmax > Tmin
+	nT::Int = 100
+	cooling_schedule = :geometric
+	Trange = get_cooling_schedule(Tmin, Tmax, nT, type=cooling_schedule)
 	# Verbosity
 	verbose::Bool = false
 	vv::Bool = false

@@ -53,6 +53,7 @@ The directory will contain:
 }
 ```
 - resolved trees, where polytomies have been reduced using the MCCs. We allow for both strict (default) and liberal tree resolution (`--liberal-resolve` flag). Strict resolve will only resolve a polytomy if the relation of all branches within the polytomy can be determined using the other tree, potentially not fully resolving shared regions of the trees. Liberal resolve will resolve trees as much as possible, fully resolving shared regions of the two trees, but randomly choosing the location of some branches, leading to potentially wrong splits. (For more information see the [resolving section](@ref resolve_strict_vs_liberal). We do not recommend the use of liberal resolve when applying TreeKnit to more than two trees. The output will be written to a file with the label `_resolved` added behind the tree label, e.g. `tree_ha_resolved.nwk`. 
+- a file with all parameters used by TreeKnit during inference titled `parameters.json`.
 
 When TreeKnit is called on two trees the directory will additionally contain a separate ARG folder with:
 - the ARG, written as an extended [Newick string](https://doi.org/10.1186/1471-2105-9-532).    

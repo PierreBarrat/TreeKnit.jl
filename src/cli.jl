@@ -129,6 +129,12 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 		parallel = parallel,
 	)
 
+	json_string = JSON3.write(oa)
+	
+	open(outdir * "/" *"parameters.json", "w") do f
+		JSON3.pretty(f, json_string)
+	end
+
 	#
 	@info "Parameters: $oa"
 
@@ -155,16 +161,17 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 	verbose && println()
 
 	if length(trees) ==2
+		mkpath(outdir*"/ARG")
 		rS = resolve!(trees[1], trees[2], get(MCCs, trees[1].label, trees[2].label))
 		out_nwk = make_output_tree_names(fn, ext; liberal=true)
 		for i in 1:MCCs.no_trees
-			write_newick(outdir * "/" * out_nwk[i], trees[i])
+			write_newick(outdir * "/ARG/" * out_nwk[i], trees[i])
 		end
 		@info "Building ARG from trees and MCCs..."
 		arg, rlm, lm1, lm2 = SRG.arg_from_trees(trees[1], trees[2], get(MCCs, trees[1].label, trees[2].label))
 		@info "Found $(length(arg.hybrids)) reassortments in the ARG.\n"
-		write(outdir * "/" * "arg.nwk", arg)
-		write_rlm(outdir * "/" * "nodes.dat", rlm)
+		write(outdir * "/ARG/" * "arg.nwk", arg)
+		write_rlm(outdir * "/ARG/" * "nodes.dat", rlm)
 	end
 
 	close(io)
