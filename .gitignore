@@ -28,8 +28,7 @@ Manifest.toml
 
 # Files generated during tests
 examples/_tests
-examples/treeknit_results/
-examples/_tests
+examples/*/treeknit_results/
 
 # files generated during debuging
 *.nwk

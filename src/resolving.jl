@@ -28,10 +28,10 @@ function resolve!(
 				nr = TreeNode(T(), label="RESOLVED_$(label_i)")
 				label_i += 1
 				for r in roots
-					prunenode!(r)
-					graftnode!(nr,r)
+					TreeTools.prunenode!(r)
+					TreeTools.graftnode!(nr,r)
 				end
-				graftnode!(R, nr, tau=tau)
+				TreeTools.graftnode!(R, nr, tau=tau)
 				if typeof(R.data) != TreeTools.EmptyData && haskey(R.data.dat, "shared_branch") && all([haskey(r.data.dat, "shared_branch") for r in roots])
 					if R.data.dat["shared_branch"] && any([r.data.dat["shared_branch"] for r in roots])
 						nr.data.dat["shared_branch"] = true
