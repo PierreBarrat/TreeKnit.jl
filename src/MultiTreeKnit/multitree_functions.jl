@@ -75,24 +75,17 @@ function compute_mcc_pairs!(trees::Vector{Tree{T}}, oa::OptArgs) where T
             mccs = TreeKnit.runopt(oa, trees[i], trees[j], joint_MCCs; output = :mccs)
             add!(pair_MCCs, mccs, (i, j))
 
-            # Resolve trees
             rS = TreeKnit.resolve!(trees[i], trees[j], get(pair_MCCs, (j, i)); oa.strict)
-            oa.verbose && @info "found MCCs for trees: "*label(trees[i])*" and "*label(trees[j])
+            oa.verbose && @info "found MCCs for trees: "*trees[j].label*" and "*trees[i].label
+            if r==oa.rounds 
+                if i ==1 ##only the first tree should be ladderized
+                    TreeTools.ladderize!(trees[i])
+                end
+                TreeKnit.sort_polytomies!(trees[i], trees[j], get(pair_MCCs, trees[i].label, trees[j].label); oa.strict)
+                oa.verbose && @info "ladderized and sorted trees: "*trees[j].label*" and "*trees[i].label
+            end
         end
     end
-
-    # Sort trees for future tanglegram display
-	TreeTools.ladderize!(trees[1]) # ladderize first tree
-	for i in 1:l_t, j in (i+1):l_t
-    	TreeKnit.sort_polytomies!(
-    		trees[i],
-    		trees[j],
-    		get(pair_MCCs, label(trees[i]), label(trees[j]));
-    		oa.strict
-    	)
-    	oa.verbose && @info "ladderized and sorted trees: "*label(trees[i])*" and "*label(trees[j])
-    end
-
     return pair_MCCs
 end
 
@@ -127,28 +120,25 @@ end
 	parallelized_compute_mccs!(trees::Vector{Tree{T}}, oa::OptArgs, strict) where T
 
 Parallelized version of `compute_mcc_pairs!(trees, oa)`
-
 """
 function parallelized_compute_mccs!(trees::Vector{Tree{T}}, oa::OptArgs) where T 
     l_t = length(trees)
     parallel_MCCs = Dict()
     for r in 1:oa.rounds
-        for i in 1:(l_t-1)
-            for j in (i+1):l_t
-                MCC_list = nothing
-                if oa.consistent && (i>1 || r>1) && l_t >2
-                    MCC_list = []
-                    if r>1
-                        range = filter(e->e∉Set([i,j]), 1:l_t)
-                    else
-                        range = 1:(i-1)
-                    end
-                    for x in range
-                        append!(MCC_list, [parallel_MCCs[Set([i, x])], parallel_MCCs[Set([j,x])]])
-                    end
+        for i in 1:(l_t-1), j in (i+1):l_t
+            MCC_list = nothing
+            if oa.consistent && (i>1 || r>1) && l_t >2
+                MCC_list = []
+                if r>1
+                    range = filter(!in([i,j]), 1:l_t)
+                else
+                    range = 1:(i-1)
                 end
-                parallel_MCCs[Set([i,j])] = Dagger.@spawn run_step!(oa, trees[i], trees[j], MCC_list, r, i)
+                for x in range
+                    append!(MCC_list, [parallel_MCCs[Set([i, x])], parallel_MCCs[Set([j,x])]])
+                end
             end
+            parallel_MCCs[Set([i,j])] = Dagger.@spawn run_step!(oa, trees[i], trees[j], MCC_list, r, i)
         end
     end
     pair_MCCs = MCC_set(l_t, [t.label for t in trees])
@@ -169,7 +159,7 @@ function compute_naive_mcc_pairs!(trees::Vector{Tree{T}}; strict=true) where T
         if i==1
             TreeTools.ladderize!(trees[i])
         end
-        TreeKnit.sort_polytomies!(trees[i], trees[j], get(pair_MCCs, label(trees[i]), label(trees[j])); strict)
+        TreeKnit.sort_polytomies!(trees[i], trees[j], get(pair_MCCs, trees[i].label, trees[j].label); strict)
     end
     return pair_MCCs
 end
@@ -191,7 +181,6 @@ randomly assigned. If this is desired `strict` should be set to false.
 this will discourage TreeKnit from removing nodes in an inconsistent manner during SA (but cannot guarantee a consistent 
 solution). For example, if node `a` and node `b` are both in the same MCC clade for MCC12 and MCC13 they should also 
 be together in MCC23, otherwise the MCC pairs are inconsistent.
-
 """
 function get_infered_MCC_pairs!(trees::Vector{Tree{T}}, oa::OptArgs; naive=false) where T 
 
