@@ -30,7 +30,7 @@ function extended_newick(arg::ARG)
 			#(ii)
 			str1 = extended_newick!(arg.roots[1], nothing, hybrids)
 			str2 = extended_newick!(arg.roots[2], nothing, hybrids)
-			return "($(str1),$(str2))GlobalRoot:0.;"
+			return "($(str1),$(str2))GlobalRoot[&segments={0,1}]:0.;"
 		elseif isshared(arg.roots[1])
 			#(iii)
 			str = extended_newick!(arg.roots[2], nothing, hybrids)
