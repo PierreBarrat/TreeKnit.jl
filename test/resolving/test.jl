@@ -35,6 +35,30 @@ t1 = node2tree(TreeTools.parse_newick("(A,B,C,D)"))
 t2 = node2tree(TreeTools.parse_newick("(A,(B,C,D))"))
 t3 = node2tree(TreeTools.parse_newick("(A,B,(C,D))"))
 
+trees = [copy(t1), copy(t2), copy(t3)]
+ns123 = resolve!(trees...)
+ns12 = resolve!(t1,t2)
+ns13 = resolve!(t1,t3)
+
+println("##### Resolve Multiple Trees at once #####")
+@testset "3 tree compatible resolution" begin
+	@test ns123[2] == [["C", "D"]]
+	@test ns123[3] == [["B", "C", "D"]]
+	@test union(ns12[1], ns13[1])== ns123[1]
+end
+
+t1 = node2tree(TreeTools.parse_newick("(A,B,C,D)"))
+t2 = node2tree(TreeTools.parse_newick("(A,(B,C,D))"))
+t3 = node2tree(TreeTools.parse_newick("((A,B),(C,D))"))
+
+@testset "3 tree incompatible resolution" begin
+	ns123 = resolve!(t1,t2, t3)
+	@test ns123[1] == [["C", "D"]]
+	@test ns123[2] == [["C", "D"]]
+	@test union(ns12[1], ns13[1]) != ns123[1]
+	@test isempty(ns123[3])
+end
+
 @testset "Node naming" begin
 	ns12 = resolve!(t1,t2)
 	ns13 = resolve!(t1,t3)

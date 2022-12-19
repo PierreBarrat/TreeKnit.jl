@@ -72,41 +72,55 @@ end
 
 
 """
-	resolve!(S1::SplitList, t1::Tree, S2::SplitList)
+	resolve!(S::SplitList, t::Tree, S2::SplitList)
 
-Add splits of `S2` in `S1` if they resolve `t1`.
+Add splits of `Sk` in `S` list if they resolve `t` in list.
 """
-function resolve!(S1new, S1::SplitList, t1::Tree, S2::SplitList)
+function resolve!(Snew, S::Vector{SplitList{String}}, t::Vector{Tree{T}}, Sk::SplitList) where T
 	c = 0
-	for s2 in S2
-		r1 = t1.lleaves[S2.leaves[s2.dat[1]]]
-		for i in 2:length(s2.dat)
-			r1 = lca(r1, t1.lleaves[S2.leaves[s2.dat[i]]])
-		end
-		#r1 = lca(t1, S2.leaves[s2.dat]) # Ancestor of nodes in s2 in t1
-		s1 = S1.splitmap[r1.label]
-		if s1 != s2 && !in(s2, S1new) && arecompatible(s1, s2)
-			# Consider the set of splits just below r1 that are subsplits of s2
-			# If I join those, I should get exactly s2
-			# Otherwise, can't use s2 to resolve r1
-			stmp = Split(0)
-			for n in r1.child
-				if n.isleaf
-					i = findfirst(==(n.label), S2.leaves)
-					if in(i, s2.dat)
-						TreeTools.joinsplits!(stmp, Split([i]))
-					end
-				else
-					if TreeTools.is_sub_split(S1.splitmap[n.label], s2)
-						TreeTools.joinsplits!(stmp, S1.splitmap[n.label])
+	for sk in Sk
+		count = 0
+		resolve_list = []
+		for i in 1:length(t)
+			ri = t[i].lleaves[Sk.leaves[sk.dat[1]]]
+			for l in 2:length(sk.dat)
+				ri = lca(ri, t[i].lleaves[Sk.leaves[sk.dat[l]]])
+			end
+			si = S[i].splitmap[ri.label]
+			if si==sk
+				count +=1
+			elseif si != sk && !in(sk, Snew[i]) && arecompatible(si, sk)
+				# Consider the set of splits just below ri that are subsplits of sk
+				# If I join those, I should get exactly sk
+				# Otherwise, can't use sk to resolve ri
+				stmp = Split(0)
+				for n in ri.child
+					if n.isleaf
+						l = findfirst(==(n.label), Sk.leaves)
+						if in(l, sk.dat)
+							TreeTools.joinsplits!(stmp, Split([l]))
+						end
+					else
+						if TreeTools.is_sub_split(S[i].splitmap[n.label], sk)
+							TreeTools.joinsplits!(stmp, S[i].splitmap[n.label])
+						end
 					end
 				end
-			end
 
-			if stmp == s2
-				push!(S1.splits, s2)
-				push!(S1new.splits, s2)
-				c += 1
+				if stmp == sk
+					count +=1
+					push!(resolve_list, i)
+				else
+					break
+				end
+			end
+			## only resolve if compatible with all other trees
+			if count==length(t)
+				for i in resolve_list
+					push!(S[i].splits, sk)
+					push!(Snew[i].splits, sk)
+					c += 1
+				end
 			end
 		end
 	end
@@ -114,18 +128,17 @@ function resolve!(S1new, S1::SplitList, t1::Tree, S2::SplitList)
 	return c
 end
 
-function resolve!(S1::SplitList, S2::SplitList, t1::Tree, t2::Tree)
+function resolve!(S::Vector{SplitList{String}}, t::Vector{Tree{T}}) where T
 	nit = 0
 	nitmax = 20
 	flag = true
-	S1new = SplitList(S1.leaves)
-	S2new = SplitList(S2.leaves)
+	Snew = [SplitList(s.leaves) for s in S]
 	while flag && nit < nitmax
 		flag = false
-		c = resolve!(S1new, S1, t1, S2)
-		c != 0 && (flag = true)
-		c = resolve!(S2new, S2, t2, S1)
-		c != 0 && (flag = true)
+		for k in 1:length(S)
+			c = resolve!(Snew[1:end .!= k], S[1:end .!= k], t[1:end .!= k], S[k])
+			c != 0 && (flag = true)
+		end
 		nit += 1
 	end
 
@@ -133,7 +146,7 @@ function resolve!(S1::SplitList, S2::SplitList, t1::Tree, t2::Tree)
 		@warn "Maximum number of iterations reached"
 	end
 
-	return [S1new, S2new]
+	return Snew
 end
 
 ###############################################################################################################
@@ -141,25 +154,27 @@ end
 ###############################################################################################################
 
 """
-	resolve!(t1::Tree, t2::Tree; tau=0.)
+	resolve!(t1::Tree, t2::Tree, tn::Vararg{Tree}; tau=0., shared_maps=nothing)
 
-Resolve `t1` using splits of `t2` and inversely.
-Every split of `t2` a tree that is compatible with `t1` is introduced in `t1` with branch
-length `tau` (and inversely). Return new splits in each tree.
+Resolve `t1` using splits of `t2` and inversely. Every split of `t2` a tree that is
+compatible with `t1` is introduced in `t1` with branch length `tau` (and inversely). 
+Return new splits in each tree.
+If more than two trees are given, only introduce a split from `ti` in tree `tj` if 
+the split is compatible with all trees.
 Optionally add a `shared_maps` dictionary (`Dict{String, Bool}`) with the tree 
 node label names as keys and if the corresponding branch is shared or not as value. 
 The resolve function will update this dictionary with any new nodes/branches.
 """
-function resolve!(t1::Tree, t2::Tree; tau=0., shared_maps=nothing)
-	S = [SplitList(t) for t in (t1,t2)]
-	Snew = resolve!(S[1], S[2], t1, t2)
-	if !isnothing(shared_maps)
+function resolve!(t1::Tree, t2::Tree, tn::Vararg{Tree}; tau=0., shared_maps=nothing)
+	S = [SplitList(t) for t in (t1,t2, tn...)]
+	Snew = resolve!(S, [t1, t2, tn...])
+	if !isnothing(shared_maps) && length(S) == 2
 		for (t, s, d) in zip((t1,t2), S, shared_maps)
 			resolve!(t, s; conflict=:fail, usemask=false, tau, shared_map=d)
 		end
 	else
-		for (t, s) in zip((t1,t2), S)
-			resolve!(t, s, conflict=:fail, usemask=false, tau=tau)
+		for (t, s) in zip((t1,t2,tn...), S)
+			resolve!(t, s; conflict=:fail, usemask=false, tau)
 		end
 	end
 
@@ -173,7 +188,7 @@ end
 ###############################################################################################################
 
 """
-	resolve!(t1::Tree{MiscData}, t2::Tree{MiscData}, MCCs; tau = 0.)
+	resolve!(t1::Tree{T}, t2::Tree{T}, MCCs; tau = 0.)
 
 Resolve `t1` using `t2` and inversely using the list of MCCs.
 New branches have a length `tau`.

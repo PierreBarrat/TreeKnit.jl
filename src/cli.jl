@@ -16,11 +16,12 @@
 # Flags
 
 - `--naive`: Naive inference (overrides `-g`).
+- `--pre-resolve`: Resolve all trees before inferring MCCs only by adding splits that are compatible with all trees 
 - `--no-likelihood`: Do not use branch length likelihood test to sort between different MCCs
-- `--no-resolve`: Do not attempt to resolve trees before inferring MCCs.
+- `--no-resolve`: Do not attempt to resolve trees before inferring pairwise MCCs.
 - `--liberal-resolve`: Resolve output trees as much as possible using inferred MCCs, adding splits when order of coalescence and reassortment is unclear (coalescence is set at a time prior to reassortment)
 - `--parallel`: Run sequential multitree-TreeKnit with parallelization (only used for 4 or more trees)
-- `--resolve-all-rounds`: Resolve trees before inferring MCCs in all rounds, overrides `--no-resolve` (default for 2 trees, for more than 2 trees default is to not resolve in the final round)
+- `--resolve-all-rounds`: Resolve trees before inferring pairwise MCCs in all rounds, overrides `--no-resolve` (default for 2 trees, for more than 2 trees default is to not resolve in the final round)
 - `-v, --verbose`: verbosity
 - `--auspice-view`: return ouput files for auspice
 """
@@ -34,6 +35,7 @@
 	rounds::Int = (length(nwk_files)>0) ? 2 : 1,
 	# flags
 	naive::Bool = false,
+	pre_resolve::Bool = false,
 	no_likelihood::Bool = false,
 	no_resolve::Bool = false,
 	liberal_resolve::Bool = false,
@@ -140,6 +142,7 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 
 	@info "Inferring MCCs...\n"
 	infered_trees = [copy(t) for t in trees]
+	pre_resolve && resolve!(infered_trees...)
 	out = @timed MTK.get_infered_MCC_pairs!(infered_trees, oa; naive)
 	MCCs = out[1]
 
