@@ -75,7 +75,9 @@ function compute_mcc_pairs!(trees::Vector{Tree{T}}, oa::OptArgs) where T
             mccs = TreeKnit.runopt(oa, trees[i], trees[j], joint_MCCs; output = :mccs)
             add!(pair_MCCs, mccs, (i, j))
 
-            rS = TreeKnit.resolve!(trees[i], trees[j], get(pair_MCCs, (j, i)); oa.strict)
+            if oa.resolve 
+                rS = TreeKnit.resolve!(trees[i], trees[j], get(pair_MCCs, (j, i)); oa.strict)
+            end
             oa.verbose && @info "found MCCs for trees: "*trees[j].label*" and "*trees[i].label
             if r==oa.rounds 
                 if i ==1 ##only the first tree should be ladderized
@@ -105,8 +107,8 @@ function run_step!(oa::OptArgs, tree1::Tree, tree2::Tree, constraints, r, pos)
         MCC = TreeKnit.runopt(oa, tree1, tree2, constraint; output = :mccs)
     else
         MCC = TreeKnit.runopt(oa, tree1, tree2, constraint; output = :mccs)
+        rS = TreeKnit.resolve!(tree1, tree2, MCC; oa.strict)
     end
-    rS = TreeKnit.resolve!(tree1, tree2, MCC; oa.strict)
     if r==oa.rounds 
         if pos ==1
             TreeTools.ladderize!(tree1)
@@ -187,6 +189,8 @@ function get_infered_MCC_pairs!(trees::Vector{Tree{T}}, oa::OptArgs; naive=false
     if naive
         return compute_naive_mcc_pairs!(trees; oa.strict)
     end
+
+    oa.pre_resolve && resolve!(trees...)
 
     if oa.parallel == true
         pair_MCCs = parallelized_compute_mccs!(trees, oa)

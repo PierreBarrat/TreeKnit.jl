@@ -129,6 +129,7 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 		verbose = true,
 		consistent = consistency_constraint,
 		parallel = parallel,
+		pre_resolve = pre_resolve,
 	)
 
 	json_string = JSON3.write(oa)
@@ -142,7 +143,6 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 
 	@info "Inferring MCCs...\n"
 	infered_trees = [copy(t) for t in trees]
-	pre_resolve && resolve!(infered_trees...)
 	out = @timed MTK.get_infered_MCC_pairs!(infered_trees, oa; naive)
 	MCCs = out[1]
 
