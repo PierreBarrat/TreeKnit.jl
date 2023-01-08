@@ -150,18 +150,24 @@ function parallelized_compute_mccs!(trees::Vector{Tree{T}}, oa::OptArgs) where T
     return pair_MCCs
 end
 
-function compute_naive_mcc_pairs!(trees::Vector{Tree{T}}; strict=true) where T 
+function compute_naive_mcc_pairs!(trees::Vector{Tree{T}}; oa::OptArgs) where T 
     l_t = length(trees)
     pair_MCCs = MCC_set(l_t, [t.label for t in trees])
-    for i in 1:(l_t-1)
-        for j in (i+1):l_t
+    for r in 1:oa.rounds
+        for i in 1:(l_t-1), j in (i+1):l_t
+            if oa.final_no_resolve && r==oa.rounds
+                oa.resolve = false
+                oa.strict = false
+            end
             TreeKnit.add!(pair_MCCs, TreeKnit.naive_mccs(trees[i], trees[j]))
+            if oa.resolve
+                rS = TreeKnit.resolve!(trees[i], trees[j], get(pair_MCCs, (j, i)); oa.strict)
+            end
+            if i==1
+                TreeTools.ladderize!(trees[i])
+            end
+            TreeKnit.sort_polytomies!(trees[i], trees[j], get(pair_MCCs, trees[i].label, trees[j].label); strict)
         end
-        rS = TreeKnit.resolve!(trees[i], trees[j], get(pair_MCCs, (j, i)); strict)
-        if i==1
-            TreeTools.ladderize!(trees[i])
-        end
-        TreeKnit.sort_polytomies!(trees[i], trees[j], get(pair_MCCs, trees[i].label, trees[j].label); strict)
     end
     return pair_MCCs
 end
@@ -186,11 +192,11 @@ be together in MCC23, otherwise the MCC pairs are inconsistent.
 """
 function get_infered_MCC_pairs!(trees::Vector{Tree{T}}, oa::OptArgs; naive=false) where T 
 
-    if naive
-        return compute_naive_mcc_pairs!(trees; oa.strict)
-    end
-
     oa.pre_resolve && resolve!(trees...)
+
+    if naive
+        return compute_naive_mcc_pairs!(trees; oa)
+    end
 
     if oa.parallel == true
         pair_MCCs = parallelized_compute_mccs!(trees, oa)

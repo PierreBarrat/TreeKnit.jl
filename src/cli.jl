@@ -11,17 +11,17 @@
 - `-g, --gamma <arg>`: value of γ; Example `-g=2`
 - `--seq-lengths <arg>`: length of the sequences. Example: `--seq-length "1500 2000"`
 - `--n-mcmc-it <arg>`: number of MCMC iterations per leaf; default 25
-- `--rounds`: Number of times to run inference on input trees. If `rounds > 1` MCCs will be re-inferred using resolved trees from the last iteration. (default: `1` for 2 input trees, `2` for >2 input trees)
+- `--rounds`: Number of times to run inference on input trees. If `rounds > 1` MCCs will be re-inferred using resolved trees from the last iteration. (default: `1`)
 
 # Flags
 
 - `--naive`: Naive inference (overrides `-g`).
-- `--pre-resolve`: Resolve all trees before inferring MCCs only by adding splits that are compatible with all trees 
 - `--no-likelihood`: Do not use branch length likelihood test to sort between different MCCs
 - `--no-resolve`: Do not attempt to resolve trees before inferring pairwise MCCs.
 - `--liberal-resolve`: Resolve output trees as much as possible using inferred MCCs, adding splits when order of coalescence and reassortment is unclear (coalescence is set at a time prior to reassortment)
-- `--parallel`: Run sequential multitree-TreeKnit with parallelization (only used for 4 or more trees)
 - `--resolve-all-rounds`: Resolve trees before inferring pairwise MCCs in all rounds, overrides `--no-resolve` (default for 2 trees, for more than 2 trees default is to not resolve in the final round)
+- `--no-pre-resolve`: MultiTreeKnit flag - Do not compatibly resolve all trees with each other before inferring MCCs (default is to pre-resolve)
+- `--parallel`: MultiTreeKnit flag - Run sequential MultiTreeKnit with parallelization (only used for 4 or more trees)
 - `-v, --verbose`: verbosity
 - `--auspice-view`: return ouput files for auspice
 """
@@ -32,10 +32,10 @@
 	gamma::Float64 = 2.,
 	seq_lengths::AbstractString = join([string(i) for i in repeat([1], 2+ length(nwk_files))], " "),
 	n_mcmc_it::Int = 25,
-	rounds::Int = (length(nwk_files)>0) ? 2 : 1,
+	rounds::Int = 1,
 	# flags
 	naive::Bool = false,
-	pre_resolve::Bool = false,
+	no_pre_resolve::Bool = false,
 	no_likelihood::Bool = false,
 	no_resolve::Bool = false,
 	liberal_resolve::Bool = false,
@@ -98,6 +98,8 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 		@warn "Not running in parallel for less than 4 trees (got $(length(trees)))"
 		parallel = false
 	end
+
+	pre_resolve = !no_pre_resolve
 
 	println("Performing $rounds rounds of TreeKnit")
 	if resolve_all_rounds || (length(trees)==2 && !no_resolve)
