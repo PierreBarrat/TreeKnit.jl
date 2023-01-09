@@ -31,10 +31,10 @@ Storing parameters for `SplitGraph.runopt` function.
 	strict::Bool = true ##when resolving the final tree only add non-ambiguous splits
 	seq_lengths::Vector{Int} = [1, 1]
 	# Cost of breaking a constraint (nodes that should be connected)
-	pre_resolve::Bool = false
+	pre_resolve::Bool = true
 	consistent::Bool = false ##if constraints should be added to enforce consistency
 	consistency_cost::Float64 = 2*γ
-	rounds::Int=2
+	rounds::Int=1
 	final_no_resolve::Bool = false
 	parallel::Bool = false
 	# For the annealing
