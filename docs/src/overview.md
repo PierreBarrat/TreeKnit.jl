@@ -62,15 +62,18 @@ When TreeKnit is called on two trees the directory will additionally contain a s
 
 ### Options
 
-The main options for simulated annealing that you can play with are:  
+The options for simulated annealing that you can play with are:  
 - the parsimony parameter $\gamma$, `--gamma` or `-g`.   
 - naive inference `--naive`. Using this flag is equivalent to setting $\gamma \rightarrow \infty$.  
 - Length of sequences used to infer trees: `--seq-lengths`. These are used for likelihood test to break degeneracy between topologically equivalent MCCs.  
 - Do not use branch length to sort the likelihood of different MCCs: `--no-likelihood`.
 - Do not attempt to resolve trees before inferring MCCs: `--no-resolve`.
+- Resolve trees as much as possible, when location of reassorted clade in relation to new split cannot be determined, choose this location at random to still be able to introduce the split: `--liberal-resolve`. (For more information see the [resolving section](@ref resolve_strict_vs_liberal.)
+- Resolve trees before inferring pairwise MCCs in all rounds, overrides `--no-resolve` (default for 2 trees, for more than 2 trees default is to not resolve in the final round): `--resolve-all-rounds`.
 
-When running `TreeKnit` on multiple trees further options are available:
-- Run sequential `TreeKnit` with parallelization (only used for 4 or more trees): `--parallel`
+Additional options for [MultiTreeKnit](@ref multitreeknit): 
+- Do not compatibly resolve all trees with each other before inferring MCCs (default is to pre-resolve): `--no-pre-resolve`.
+- Run sequential MultiTreeKnit with parallelization (only used for 4 or more trees): `--parallel`.
 
 Furthermore, adding the argument `--auspice-view` will create files that can be used to view a tanglegram of the two trees with colored maximally compatible clades in [auspice](https://docs.nextstrain.org/projects/auspice/en/stable/advanced-functionality/second-trees.html). For more information see [Visualization of MCCs in a tanglegram](@ref view_auspice).  
 
@@ -90,8 +93,8 @@ t_na = read_tree(dirname(pathof(TreeKnit)) * "/../examples/tree_h3n2_na.nwk", la
 !!! info "Tree Labels" 
     When computing the MCCs for tree pairs `TreeKnit` uses a tree's `label` as a unique identifier when computing MCCs between tree pairs, these labels are also written to the output `.json` file. When `TreeKnit`is used via the command line the filename and/or folder name is used as a label for the input trees if these are unique, otherwise an error is thrown. When using `TreeKnit` from a julia session the `label` should be assigned when reading in the tree, otherwise the tree will be assigned a random unique string as an identifying label.  
 
-We now proceed in three steps: 
-1. Compute MCCs for these two trees. See the [options](@ref options) or [MCCs](@ref MCCs) for more details.
+We now proceed in the following steps:
+1. Compute the MCCs of the two trees. By default, if `TreeKnit` receives two trees as input, these will be resolved with each other prior to inference unless `--no-resolve` is activated. See the [options](@ref options) or [MCCs](@ref MCCs) for more details, additionally see [MultiTreeKnit](@ref multitreeknit) to learn how this is handled when more than two trees are given as input.
 2. Resolve the trees using these MCCs. 
 3. Optionally the first input tree can be ladderized, and the polytomies of two trees can be sorted w.r.t to the MCCs, allowing for clearer visualization (e.g. if the tree pair should be later visualized in a dendrogram).
 4. Compute the ARG from the resolved trees and the MCCs. 
