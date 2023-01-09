@@ -30,11 +30,8 @@ Storing parameters for `SplitGraph.runopt` function.
 	resolve::Bool = true
 	strict::Bool = true ##when resolving the final tree only add non-ambiguous splits
 	seq_lengths::Vector{Int} = [1, 1]
-	# Cost of breaking a constraint (nodes that should be connected)
-	pre_resolve::Bool = false
-	consistent::Bool = false ##if constraints should be added to enforce consistency
-	consistency_cost::Float64 = 2*γ
-	rounds::Int=2
+	pre_resolve::Bool = true
+	rounds::Int=1
 	final_no_resolve::Bool = false
 	parallel::Bool = false
 	# For the annealing
@@ -82,19 +79,3 @@ end
 
 get_linear_cooling_schedule(Tmin, Tmax, nT) = return collect(reverse(range(Tmin, stop = Tmax, length = nT)))
 
-"""
-	format_constraint!(constraint, tree)
-
-Make sure constraint has required formating (same as MCC) to be used in SA
-"""
-function format_constraint!(constraint, tree)
-	if !isnothing(constraint)
-		constraint_leaves = union([Set([m... ]) for m in constraint]...)
-		for l in keys(tree.lleaves)
-			if l ∉ constraint_leaves
-				append!(constraint, [l])
-			end
-		end
-	end
-	return constraint
-end

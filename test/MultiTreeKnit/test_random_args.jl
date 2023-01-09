@@ -12,7 +12,7 @@ println("######## MultiTreeKnit on random ARGs ##########")
         label!(trees[1], "a")
         label!(trees[2], "b")
         label!(trees[3], "c")
-        iMCCs = MTK.get_infered_MCC_pairs!(trees, consistent = true, consistency_cost=4.)
+        iMCCs = MTK.get_infered_MCC_pairs!(trees)
         @test MTKTools.is_degenerate(iMCCs) == (MTKTools.consistency_rate(iMCCs, trees)!=0.0)
         repeat += 1
     end
@@ -30,7 +30,7 @@ function check_parallelized_TK()
 
             i_trees = [copy(t) for t in unresolved_trees]
             try
-                fc_i_MCCs = MTK.get_infered_MCC_pairs!(i_trees, TreeKnit.OptArgs(consistent = true, parallel=true))
+                fc_i_MCCs = MTK.get_infered_MCC_pairs!(i_trees, TreeKnit.OptArgs(parallel=true))
             catch e
                 print("n: "*string(no_trees))
                 for t in true_trees

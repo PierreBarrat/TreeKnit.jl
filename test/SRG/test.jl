@@ -1,3 +1,7 @@
+using TreeKnit
+using TreeKnit.SRG
+using Test
+using TreeTools
 include("$(dirname(pathof(TreeKnit)))/..//test/SRG/fix_shared_singletons.jl")
 include("$(dirname(pathof(TreeKnit)))/..//test/SRG/construct_arg.jl")
 include("$(dirname(pathof(TreeKnit)))/..//test/SRG/test3.jl")

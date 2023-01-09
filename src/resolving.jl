@@ -9,11 +9,10 @@ Add splits in `S` to `t` by introducing internal nodes.
 New nodes are assigned a time `tau` (`0` by default).
 If `conflict != :ignore`, will fail if a split `s` in `S` is not compatible with `t`.
 Otherwise, silently skip the conflicting splits.
-Add shared identity to nodes or `shared_map` if given as input.
 """
 function resolve!(
 	t::Tree{T}, S::SplitList;
-	conflict=:fail, usemask=false, tau=0., safe=false, shared_map = nothing
+	conflict=:fail, usemask=false, tau=0., safe=false
 ) where T
 	# Label for created nodes
 	label_i = parse(Int64, TreeTools.create_label(t, "RESOLVED")[10:end])
@@ -32,20 +31,6 @@ function resolve!(
 					TreeTools.graftnode!(nr,r)
 				end
 				TreeTools.graftnode!(R, nr, tau=tau)
-				if typeof(R.data) != TreeTools.EmptyData && haskey(R.data.dat, "shared_branch") && all([haskey(r.data.dat, "shared_branch") for r in roots])
-					if R.data.dat["shared_branch"] && any([r.data.dat["shared_branch"] for r in roots])
-						nr.data.dat["shared_branch"] = true
-					else
-						nr.data.dat["shared_branch"] = false
-					end
-				end
-				if !isnothing(shared_map)
-					if shared_map[R.label] && any([shared_map[r.label] for r in roots])
-						shared_map[nr.label] = true
-					else
-						shared_map[nr.label] = false
-					end
-				end
 				push!(tsplits.splits, s)
 			elseif conflict != :ignore
 				error("Tried to resolve tree with an incompatible split.")
@@ -154,28 +139,19 @@ end
 ###############################################################################################################
 
 """
-	resolve!(t1::Tree, t2::Tree, tn::Vararg{Tree}; tau=0., shared_maps=nothing)
+	resolve!(t1::Tree, t2::Tree, tn::Vararg{Tree}; tau=0.)
 
 Resolve `t1` using splits of `t2` and inversely. Every split of `t2` a tree that is
 compatible with `t1` is introduced in `t1` with branch length `tau` (and inversely). 
 Return new splits in each tree.
 If more than two trees are given, only introduce a split from `ti` in tree `tj` if 
 the split is compatible with all trees.
-Optionally add a `shared_maps` dictionary (`Dict{String, Bool}`) with the tree 
-node label names as keys and if the corresponding branch is shared or not as value. 
-The resolve function will update this dictionary with any new nodes/branches.
 """
-function resolve!(t1::Tree, t2::Tree, tn::Vararg{Tree}; tau=0., shared_maps=nothing)
+function resolve!(t1::Tree, t2::Tree, tn::Vararg{Tree}; tau=0.)
 	S = [SplitList(t) for t in (t1,t2, tn...)]
 	Snew = resolve!(S, [t1, t2, tn...])
-	if !isnothing(shared_maps) && length(S) == 2
-		for (t, s, d) in zip((t1,t2), S, shared_maps)
-			resolve!(t, s; conflict=:fail, usemask=false, tau, shared_map=d)
-		end
-	else
-		for (t, s) in zip((t1,t2,tn...), S)
+	for (t, s) in zip((t1,t2,tn...), S)
 			resolve!(t, s; conflict=:fail, usemask=false, tau)
-		end
 	end
 
 	return Snew

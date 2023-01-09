@@ -53,40 +53,23 @@ end
 ###############################################################################################################
 
 """
-		runopt(t1::Tree, t2::Tree[, constraint]; kwargs...)
+		runopt(t1::Tree, t2::Tree; kwargs...)
 		runopt(oa::OptArgs, t1::Tree, t2::Tree)
 
 Run optimization at constant γ. See `?Optargs` for arguments.
 In the first form, keyword arguments are given to `OptArgs`.
-
-A `constraint` can be given in the form of an MCC where nodes that should be together are in
- the same cluster, i.e. Vector{Vector{String}}.
-It will be used as `shared_branch` constraint while performing simulated annealing,
- lowering the likelihood that nodes that should be in the same MCC are
- split from each other.
 """
-function runopt(t1::Tree, t2::Tree, constraint=nothing; kwargs...)
-	runopt(OptArgs(;kwargs...), t1, t2, constraint)
+function runopt(t1::Tree, t2::Tree; kwargs...)
+	runopt(OptArgs(;kwargs...), t1, t2)
 end
 
-function runopt(oa::OptArgs, t1::Tree, t2::Tree, constraint=nothing; output = :mccs)
+function runopt(oa::OptArgs, t1::Tree, t2::Tree; output = :mccs)
 	# Copying input trees for optimization
 	ot1 = copy(t1)
 	ot2 = copy(t2)
 
 	# Resolve
 	oa.resolve && resolve!(ot1, ot2)
-
-	# Constraint
-	format_constraint!(constraint, t1)
-	if !isnothing(constraint)
-		shared_maps = [
-			MTK.map_shared_branches(constraint, ot1),
-			MTK.map_shared_branches(constraint, ot2)
-		] #dictionary from node name to boolean if branch is shared
-	else
-		shared_maps = nothing
-	end
 
 	# Initial state
 	iMCCs = naive_mccs(ot1, ot2)
@@ -111,10 +94,7 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree, constraint=nothing; output = :m
 			oa.likelihood_sort,
 			oa.resolve,
 			oa.sa_rep,
-			oa.consistent,
-			oa.consistency_cost,
-			oa.verbose,
-			shared_maps
+			oa.verbose
 		)
 		!isempty(mccs) && append!(MCCs, mccs)
 		oa.verbose && @info "Found $(length(mccs)) new mccs."
@@ -122,7 +102,7 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree, constraint=nothing; output = :m
 
 		# Stopping condition
 		oa.verbose && @info "Proceeding based on newly found MCCs..."
-		flag, rMCCs = stop_conditions!(MCCs, mccs, oa, it, ot1, ot2; hardstop=true, shared_maps)
+		flag, rMCCs = stop_conditions!(MCCs, mccs, oa, it, ot1, ot2; hardstop=true)
 
 		#=
 			Note on variables at this point
@@ -147,7 +127,7 @@ end
 
 function stop_conditions!(
 	previous_mccs, new_mccs, oa, it, trees... ;
-	hardstop=true, shared_maps=nothing,
+	hardstop=true
 )
 	# If no solution was found
 	if length(new_mccs) == 0
@@ -181,7 +161,7 @@ function stop_conditions!(
 	oa.vv && @info "Pruned MCCs and trees: " new_mccs
 	oa.vv && show(trees)
 	pruneconf!(new_mccs, trees...)
-	oa.resolve && resolve!(trees...; shared_maps)
+	oa.resolve && resolve!(trees...)
 	remaining_mccs = naive_mccs(trees)
 	### If they new trees have an obvious solution, append it to new_mccs and stop
 	if length(remaining_mccs) == 1

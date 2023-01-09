@@ -60,11 +60,7 @@ However, fixing resolution issues as described above does not necessarily fix tr
 }
 ```
 These MCCs show that no reassortment has occurred between leaves `B` and `C` in `tree a` and `tree b` and no reassortment has occurred between these leaves in `tree_a` and `tree_c`. Thus, for transitivity to hold reassortment cannot have occurred between `B` and `C` in `tree b` and `tree c`. But this is not the case.
-Such inconsistencies make it impossible to visualize an ARG.
-
-To decrease the number of inconsistencies in `MultiTreeKnit` we give previously inferred MCCs as a constraint to the simulated annealing. For example, assume that in `tree a` and `tree b` as well as in `tree a` and `tree c` the leaves `B` and `C` were both found to be in an MCC together and no reassortment event to have occurred between them. The branches between leaves `B` and `C` are marked as shared in trees `tree b` and `tree c` and their removal is assigned a higher cost (`oa.consistency_cost `$= 2*\gamma$) than removing a node that is not on a shared branch. In this manner we push the simulated annealing to find MCCs between `tree b` and `tree c` that are consistent with the other MCCs, however we still enable it to split such branches if it leads to a more optimal energy cost if, for example, the previously inferred MCCs were inaccurate. Assume we run two rounds of pair-wise MCC inference in `MultiTreeKnit`. In the first round the initial tree pairs have no constraints but in the second round they also have constraints from other tree pairs, enabling optimal information transfer. In the final round we additionally do not resolve polytomies any further, as we assume by now each tree has been resolved as much as possible using every other tree. This prevents topological incompatibilities and ensures that all inferred MCCs are compatible with the output resolved trees.
-
-However, even using these approaches MCCs may still be inconsistent as simulated annealing is a stochastic process. Inconsistent MCCs cannot be viewed together in a ARG. Currently, we are not able to fully fix such incompatibilities. 
+Such inconsistencies make it impossible to visualize an ARG. Currently, we are not able to fully fix such incompatibilities. 
 
 ## Parallel MultiTreeKnit
 

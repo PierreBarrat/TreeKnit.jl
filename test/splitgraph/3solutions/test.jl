@@ -1,3 +1,8 @@
+using TreeKnit
+using TreeKnit.SplitGraph
+using Test
+using TreeTools
+
 t1 = read_tree("$(dirname(pathof(TreeKnit)))/..//test/splitgraph/3solutions/t1.nwk")
 t2 = read_tree("$(dirname(pathof(TreeKnit)))/..//test/splitgraph/3solutions/t2.nwk")
 

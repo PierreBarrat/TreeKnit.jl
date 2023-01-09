@@ -9,7 +9,6 @@ import Base: get, print, copy
 
 include("multitree_objects.jl")
 export MCC_set
-include("multitree_constraints.jl")
 include("multitree_functions.jl")
 
 let verbose::Bool = false, vverbose::Bool = false

@@ -41,7 +41,6 @@
 	liberal_resolve::Bool = false,
 	resolve_all_rounds::Bool = false,
 	verbose::Bool = false,
-	consistency_constraint::Bool = false,
 	parallel::Bool = false,
 	auspice_view::Bool = false
 )
@@ -129,7 +128,6 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 		nMCMC = n_mcmc_it,
 		seq_lengths = sl,
 		verbose = true,
-		consistent = consistency_constraint,
 		parallel = parallel,
 		pre_resolve = pre_resolve,
 	)
