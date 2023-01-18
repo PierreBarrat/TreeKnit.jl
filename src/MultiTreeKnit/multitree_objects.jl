@@ -21,6 +21,10 @@ end
  
 function MCC_set(no_trees, order_trees, MCC_list::Vector{Vector{Vector{String}}})
     @assert length(MCC_list) >= (no_trees*(no_trees-1)/2)
+    if !allunique(order_trees)
+    	@warn "Tree labels are not unique: this will cause issues when labeling MCC pairs." order_trees
+    end
+
     M = MCC_set(no_trees, order_trees)
     iters = Combinatorics.combinations(1:no_trees, 2)
     for (i, comb) in enumerate(iters)
@@ -37,17 +41,11 @@ function Base.get(M::MCC_set, pos::Vararg{String})
     end
 end
 
-function Base.get(M::MCC_set, pos::Tuple{Vararg{String}})
-    return get(M, pos...)
-end
+Base.get(M::MCC_set, pos::Tuple{Vararg{String}}) = get(M, pos...)
+Base.get(M::MCC_set, pos::Vararg{Int}) = get(M, [M.order_trees[i] for i in pos]...)
+Base.get(M::MCC_set, pos::Tuple{Vararg{Int}}) = get(M, [M.order_trees[i] for i in pos]...)
 
-function Base.get(M::MCC_set, pos::Vararg{Int})
-    return get(M, [M.order_trees[i] for i in pos]...)
-end
-
-function Base.get(M::MCC_set, pos::Tuple{Vararg{Int}})
-    return get(M, [M.order_trees[i] for i in pos]...)
-end
+Base.getindex(M::MCC_set, pos...) = get(M, pos...) # for M[i,j] syntax
 
 function add!(M::MCC_set, value::Vector{Vector{String}}, pos::Vararg{String})
     M.mccs[Set(pos)] = value
