@@ -5,13 +5,13 @@ The lack of resolution in the inference of phylogenetic trees results in *polyto
   Suppose for instance that we have a first tree (*e.g.* for a given segment of flu): 
 ```@example 1
 using TreeKnit # hide
-t1 = node2tree(parse_newick("(A,(B,C))"))
+t1 = parse_newick_string("(A,(B,C));")
 ```
 where we can identify the clade `(B,C)` because of a mutation in this segment present in `B` and `C` but not in `A`. 
 
 If this mutation does not exist in a second segment, then in the absence of reassortment its tree will look something like this: 
 ```@example 1
-t2 = node2tree(parse_newick("(A,B,C)"))
+t2 = parse_newick_string("(A,B,C);")
 ```
 As a result, `t1` and `t2` differ for a reason unrelated with reassortment. 
 
@@ -29,8 +29,8 @@ In this case, we can simply resolve `t2` by adding each split in `t1` with which
   This operation is performed by the `resolve!` function: 
 ```@setup 2
 using TreeKnit
-t1 = node2tree(parse_newick("(A,(B,C))"))
-t2 = node2tree(parse_newick("(A,B,C)"))
+t1 = parse_newick_string("(A,(B,C));")
+t2 = parse_newick_string("(A,B,C);")
 ```
 ```@example 2
 new_splits = resolve!(t1, t2);
@@ -54,8 +54,8 @@ However, consider the following case:
 using TreeKnit
 ```
 ```@example 3; continued = true
-t1 = node2tree(parse_newick("((A,B),(C,(D,(E,X))))"))
-t2 = node2tree(parse_newick("((A,(B,X)),(C,D,E))"))
+t1 = parse_newick_string("((A,B),(C,(D,(E,X))));")
+t2 = parse_newick_string("((A,(B,X)),(C,D,E));")
 ```
 There are now two sources of topological differences between `t1` and `t2`: 
 - The reassorted strain `X`. 

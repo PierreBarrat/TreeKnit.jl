@@ -17,8 +17,8 @@ Here, we assign the score $\gamma$ to each pruned clade, and count as $1$ each i
 The example below illustrates the difference between different $\gamma$ values: 
 ```@example gamma1
 using TreeKnit # hide
-t1 = node2tree(parse_newick("((((A,B),C),D),E)"))
-t2 = node2tree(parse_newick("((((D,B),E),A),C)")) # Same topology, but shuffled leaves
+t1 = parse_newick_string("((((A,B),C),D),E);")
+t2 = parse_newick_string("((((D,B),E),A),C);") # Same topology, but shuffled leave
 nothing # hide
 ```
 Here, pruning the two leaves `(A,C)` or `(D,E)` results in compatible trees (resp. `((B,D),E)` and `((A,B),C)`). 
@@ -26,12 +26,12 @@ Here, pruning the two leaves `(A,C)` or `(D,E)` results in compatible trees (res
   They will only be accepted if $\gamma \leq 2.5$. 
 
 ```@repl gamma1
-  computeMCCs(t1, t2, OptArgs(γ=2))
-  computeMCCs(t1, t2, OptArgs(γ=3))
+computeMCCs(t1, t2, OptArgs(γ=2))
+computeMCCs(t1, t2, OptArgs(γ=3))
 ```
 
 
-## Resolving trees with polytomies 
+## Resolving trees with polytomies
 See [Resolving](@ref resolving)
 
 ## [Degeneracy: sorting with likelihood](@id likelihood)
@@ -39,8 +39,8 @@ When several MCC decompositions are possible, degeneracy is removed by using the
 In the example below, there are three equivalent decompositions if only topology is considered: 
 ```@example degeneracy
 using TreeKnit # hide
-t1 = node2tree(parse_newick("((A:2,B:2):2,C:4)"))
-t2 = node2tree(parse_newick("(A:2,(B:1,C:1):1)"))
+t1 = parse_newick_string("((A:2,B:2):2,C:4);")
+t2 = parse_newick_string("(A:2,(B:1,C:1):1);")
 oa = OptArgs(likelihood_sort = false)
 unique([computeMCCs(t1, t2, oa) for rep in 1:50]) # Repeating computation many times 
 ```

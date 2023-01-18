@@ -5,10 +5,10 @@ The core of the heuristic *TreeKnit* is based on happens in the `opttrees` funct
   A quick description of different steps in this function is given here, with the two simple trees below as an example case: 
 ```@example opttrees
 using TreeKnit# hide
-nwk1 = "(((A1:1,A2:2):2,(B1:2,(B2:1,B3:1):1):2):2,(C1:1,C2:2):4)";
-nwk2 = "((A1:1,A2:2):2,((B1:2,(B2:1,B3:1):1):1,(C1:1,C2:2):1):1)";
-t1 = node2tree(parse_newick(nwk1))
-t2 = node2tree(parse_newick(nwk2))
+nwk1 = "(((A1:1,A2:2):2,(B1:2,(B2:1,B3:1):1):2):2,(C1:1,C2:2):4);";
+nwk2 = "((A1:1,A2:2):2,((B1:2,(B2:1,B3:1):1):1,(C1:1,C2:2):1):1);";
+t1 = parse_newick_string(nwk1)
+t2 = parse_newick_string(nwk2)
 nothing # hide
 ```
 Trees are not displayed here for space reasons, but you're encouraged to draw them if you want to follow along! 
@@ -40,7 +40,7 @@ treelist[2]
 mcc_names
 ```
 
-## The `SplitGraph` object 
+## The `SplitGraph` object
 
 Once the trees reduced to their naive MCCs, we construct a `SplitGraph` object from them. 
 
@@ -144,7 +144,7 @@ computeMCCs(t1, t2, OptArgs(γ=3.1))
 computeMCCs(t1, t2, OptArgs(γ=2.9))
 ```
 
-## Simulated annealing 
+## Simulated annealing
 
 The `opttrees` function attempts to find the configuration, *i.e.* a set of leaves to remove, that minimizes the compatibility score presented above. 
   Since this is a discrete optimization problem with no clear mathematical formalization, we choose to use the [simulated annealing](https://en.wikipedia.org/wiki/Simulated_annealing) technique. 

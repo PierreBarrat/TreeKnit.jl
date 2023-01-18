@@ -81,7 +81,7 @@ Additional options can be used for "advanced users":
 - `rounds`: number of rounds of TreeKnit. Trees are resolved at each TreeKnit run, meaning subsequent rounds can give different results. This is especially useful for more than two trees, see [MultiTreeKnit](@ref multitreeknit).
 - `--no-pre-resolve`: do not compatibly resolve all trees with each other before inferring MCCs (default is to pre-resolve).
 - `--resolve-all-rounds`: resolve trees before inferring pairwise MCCs in all rounds Overrides `--no-resolve`. Default for 2 trees. For more than 2 trees the default is to not resolve in the final round.
-- `--liberal-resolve`: use liberal resolving method, see [here](@ref resolve_s trict_vs_liberal). In short, with this option, TreeKnit will try to resolve trees as much as possible even in ambiguous situations. It results in more resolved trees but also more wrong splits. 
+- `--liberal-resolve`: use liberal resolving method, see [here](@ref resolve_strict_vs_liberal). In short, with this option, TreeKnit will try to resolve trees as much as possible even in ambiguous situations. It results in more resolved trees but also more wrong splits. 
 
 More details on the options can be found throughout the documentation. 
 In particular, the parsimony parameter is explained [here](@ref gamma) and resolution of trees [here](@ref resolving).
