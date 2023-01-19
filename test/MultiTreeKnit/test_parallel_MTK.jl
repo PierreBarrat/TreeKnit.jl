@@ -6,12 +6,12 @@ using TreeKnit.MTK
 
 println("#### test parallelized recursive MultiTreeKnit ###")
 
-nwk1 = "((A,B),C)R"
-nwk2 = "(A,(B,C))R"
-nwk3 = "(A,B,C)R"
-t1 = node2tree(TreeTools.parse_newick(nwk1, node_data_type=TreeTools.MiscData), label = "a")
-t2 = node2tree(TreeTools.parse_newick(nwk2, node_data_type=TreeTools.MiscData), label = "b")
-t3 = node2tree(TreeTools.parse_newick(nwk3, node_data_type=TreeTools.MiscData), label = "c")
+nwk1 = "((A,B),C)R;"
+nwk2 = "(A,(B,C))R;"
+nwk3 = "(A,B,C)R;"
+t1 = parse_newick_string(nwk1, node_data_type=TreeTools.MiscData, label = "a")
+t2 = parse_newick_string(nwk2, node_data_type=TreeTools.MiscData, label = "b")
+t3 = parse_newick_string(nwk3, node_data_type=TreeTools.MiscData, label = "c")
 pre_trees = [t1, t2, t3]
 
 @testset "3 trees" begin
@@ -36,16 +36,16 @@ pre_trees = [t1, t2, t3]
     @test SplitList(trees[3]) != SplitList(trees[1])
 end
 
-nwk1 = "(((A,B),C),(D,E,F))R"
-nwk2 = "((A,(B,C)),(D,E,F))R"
-nwk3 = "((A,B,C),((D,E),F))R"
-nwk4 = "((A,B,C),(D,(E,F)))R"
-nwk5 = "((A,(B,C)),(D,(E,F)))R"
-t1 = node2tree(TreeTools.parse_newick(nwk1), label = "a")
-t2 = node2tree(TreeTools.parse_newick(nwk2), label = "b")
-t3 = node2tree(TreeTools.parse_newick(nwk3), label = "c")
-t4 = node2tree(TreeTools.parse_newick(nwk4), label = "d")
-t5 = node2tree(TreeTools.parse_newick(nwk5), label = "e")
+nwk1 = "(((A,B),C),(D,E,F))R;"
+nwk2 = "((A,(B,C)),(D,E,F))R;"
+nwk3 = "((A,B,C),((D,E),F))R;"
+nwk4 = "((A,B,C),(D,(E,F)))R;"
+nwk5 = "((A,(B,C)),(D,(E,F)))R;"
+t1 = parse_newick_string(nwk1, label = "a")
+t2 = parse_newick_string(nwk2, label = "b")
+t3 = parse_newick_string(nwk3, label = "c")
+t4 = parse_newick_string(nwk4, label = "d")
+t5 = parse_newick_string(nwk5, label = "e")
 pre_trees = [t1, t2, t3, t4]
 
 pre_trees_for_preresolve = [t2, t3, t4, t5]

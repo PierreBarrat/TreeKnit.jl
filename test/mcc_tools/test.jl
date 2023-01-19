@@ -4,7 +4,7 @@ using TreeTools
 
 println("##### mcc_tools.jl #####")
 
-t1 = node2tree(parse_newick("((A,B)i1,(((C,D)i2,(E,(F1,F2)i3)i4)i5,G)i6)i7"))
+t1 = parse_newick_string("((A,B)i1,(((C,D)i2,(E,(F1,F2)i3)i4)i5,G)i6)i7;")
 t1_md = convert(Tree{TreeTools.MiscData}, t1)
 MCCs = TreeKnit.sort([["A", "B", "E", "F1", "F2"], ["G"], ["C", "D"]], lt=TreeKnit.clt)
 real_map = Dict{String, Union{Int, Nothing}}(
@@ -61,7 +61,7 @@ end
 
 
 
-tree = node2tree(parse_newick("((A,B)i1,((C,D)i2,(E,(F1,F2)i6,G)i5)i3)i7"))
+tree = parse_newick_string("((A,B)i1,((C,D)i2,(E,(F1,F2)i6,G)i5)i3)i7;")
 tree_misc = convert(Tree{TreeTools.MiscData}, tree)
 
 MCC = [["G"], ["A", "B"], ["C", "D"], ["E", "F1", "F2"]]
