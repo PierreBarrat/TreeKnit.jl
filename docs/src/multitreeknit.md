@@ -17,7 +17,7 @@ Both approaches follow the same structure:
 3. Ladderize the first tree and sort all polytomies according to to this tree to allow for visualization as a tanglegram. 
 
 ![plot](./Pictures/MultiTK_example.png)
-## Consistent Resolution
+## Consistent resolution
 
 When `TreeKnit` is run individually on all tree pairs trees could be resolved inconsistently. By default `TreeKnit` resolves trees when searching for reassortment events, this is especially important for influenza where resolution is often low and not resolving trees can lead to much higher rates of reassortment being inferred. 
 

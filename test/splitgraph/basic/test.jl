@@ -41,8 +41,8 @@ end
 end
 
 # For exactly matching trees
-t1 = node2tree(parse_newick("((A,B),(C,D))"))
-t2 = node2tree(parse_newick("((A,B),(C,D))"))
+t1 = parse_newick_string("((A,B),(C,D));")
+t2 = parse_newick_string("((A,B),(C,D));")
 g = trees2graph(t1,t2);
 
 @testset "Compute energy for identical trees" begin

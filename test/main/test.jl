@@ -3,11 +3,14 @@ using TreeTools
 using TreeKnit, TreeKnit.SplitGraph, TreeKnit.MTK
 using JSON3
 
-nwk1 = "((1:1.0,2:1.0):1.0,((3:1.0,4:1.0):1.0,5:1.0,6:1.0):1.5)"
-nwk2 = "((6:1,2:1):1,((3:1,4:1):1,5:1,1:1):1)"
+nwk1 = "((1:1.0,2:1.0):1.0,((3:1.0,4:1.0):1.0,5:1.0,6:1.0):1.5);"
+nwk2 = "((6:1,2:1):1,((3:1,4:1):1,5:1,1:1):1);"
 
-t1 = node2tree(TreeTools.parse_newick(nwk1), label = "a")
-t2 = node2tree(TreeTools.parse_newick(nwk2), label = "b")
+t1 = parse_newick_string(nwk1)
+label!(t1, "a")
+
+t2 = parse_newick_string(nwk2)
+label!(t2, "b")
 
 solutions = [
 	[["1"], ["2"], ["3", "4", "5", "6"]],

@@ -12,10 +12,10 @@ For larger trees, `opttrees` will not find all reassortments at once.
 Below is a relatively simple example of trees for which `opttrees` does not find all reassorted leaves in one go: 
 
 ```@example runopt
-nwk1 = "(Z,(G,(((A,X),(B,C)),((D,Y),(E,F)))))"
-nwk2 = "(G,((A,(B,(C,X))),((D,(E,(F,Y))),Z)))"
-t1 = node2tree(parse_newick(nwk1))
-t2 = node2tree(parse_newick(nwk2))
+nwk1 = "(Z,(G,(((A,X),(B,C)),((D,Y),(E,F)))));"
+nwk2 = "(G,((A,(B,(C,X))),((D,(E,(F,Y))),Z)));"
+t1 = parse_newick_string(nwk1)
+t2 = parse_newick_string(nwk2)
 nothing # hide
 ```
 

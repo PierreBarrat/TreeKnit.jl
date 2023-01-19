@@ -1,8 +1,8 @@
-nwk1 = "((A,B),(D,(E,(F,C))))"
-nwk2 = "((A,(B,C)),(D,E,F))"
+nwk1 = "((A,B),(D,(E,(F,C))));"
+nwk2 = "((A,(B,C)),(D,E,F));"
 
-t1 = node2tree(parse_newick(nwk1))
-t2 = node2tree(parse_newick(nwk2))
+t1 = parse_newick_string(nwk1)
+t2 = parse_newick_string(nwk2)
 
 g = SplitGraph.trees2graph((t1,t2))
 

@@ -48,8 +48,7 @@ include("cli.jl")
 
 # TreeTools re-exports for docs
 import TreeTools: node2tree, parse_newick
-export node2tree
-export parse_newick
+export parse_newick_string
 
 
 end # module

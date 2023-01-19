@@ -5,13 +5,13 @@ The lack of resolution in the inference of phylogenetic trees results in *polyto
   Suppose for instance that we have a first tree (*e.g.* for a given segment of flu): 
 ```@example 1
 using TreeKnit # hide
-t1 = node2tree(parse_newick("(A,(B,C))"))
+t1 = parse_newick_string("(A,(B,C));")
 ```
 where we can identify the clade `(B,C)` because of a mutation in this segment present in `B` and `C` but not in `A`. 
 
 If this mutation does not exist in a second segment, then in the absence of reassortment its tree will look something like this: 
 ```@example 1
-t2 = node2tree(parse_newick("(A,B,C)"))
+t2 = parse_newick_string("(A,B,C);")
 ```
 As a result, `t1` and `t2` differ for a reason unrelated with reassortment. 
 
@@ -29,8 +29,8 @@ In this case, we can simply resolve `t2` by adding each split in `t1` with which
   This operation is performed by the `resolve!` function: 
 ```@setup 2
 using TreeKnit
-t1 = node2tree(parse_newick("(A,(B,C))"))
-t2 = node2tree(parse_newick("(A,B,C)"))
+t1 = parse_newick_string("(A,(B,C));")
+t2 = parse_newick_string("(A,B,C);")
 ```
 ```@example 2
 new_splits = resolve!(t1, t2);
@@ -45,29 +45,7 @@ new_splits[2]
 
 If the `resolve` option is passed to `computeMCCs` (through `OptArgs`), `resolve!` will be called on each pair of trees before each iteration of the MCC inference procedure. 
 
-## [Strict vs Liberal Resolve](@id resolve_strict_vs_liberal)
 
-Strict resolve will only resolve a polytomy if the relation of all branches within the polytomy can be determined using the other tree, potentially not fully resolving shared regions of the trees. This can only happen when the order of a coalescence and reassortment event cannot be determined from the MCCs, i.e. if a split should be introduced in a polytomy which has a reassortment event on at least one branch. As this branch is located at a different location in the other tree it is unclear where it should be be added in the new split and no split will be added when we call strict resolve. 
-```@example strict
-using TreeKnit
-t1 = node2tree(parse_newick("(A,B,C,D)"))
-t2 = node2tree(parse_newick("((A,(B,C)),D)"))
-MCCs = [["D"], ["A", "B", "C"]]
-t1_strict, t2_strict, new_splits_strict = resolve(t1, t2, MCCs; strict=true);
-t1_strict
-```
-
-Liberal resolve will resolve trees as much as possible, fully resolving shared regions of the two trees, but randomly choosing the location of these aforementioned branches, leading to potentially wrong splits. 
-```@example strict
-using TreeKnit
-t1 = node2tree(parse_newick("(A,B,C,D)"))
-t2 = node2tree(parse_newick("((A,(B,C)),D)"))
-MCCs = [["D"], ["A", "B", "C"]]
-new_splits = resolve!(t1, t2, MCCs);
-t1
-```
-
-This can be seen in the examples above, the location of the branch "D" in `t1` cannot be fully determined by `t2` as "D" could either be closer to "A" or closer to "B" and "C", but this cannot be determined from `t2` as "D" is not in their shared topology. Thus, using strict resolve the split between `("B", "C")` and "A" will not be added to the tree. When we use liberal resolve TreeKnit will per default choose to add the split `("B", "C")` and not `("B", "C", "D")`, but both would be possible. 
 
 ## Resolving during MCC inference
 The above resolving method works fine for simple "obvious" cases, where a split in one tree directly resolves a polytomy in another. 
@@ -76,8 +54,8 @@ However, consider the following case:
 using TreeKnit
 ```
 ```@example 3; continued = true
-t1 = node2tree(parse_newick("((A,B),(C,(D,(E,X))))"))
-t2 = node2tree(parse_newick("((A,(B,X)),(C,D,E))"))
+t1 = parse_newick_string("((A,B),(C,(D,(E,X))));")
+t2 = parse_newick_string("((A,(B,X)),(C,D,E));")
 ```
 There are now two sources of topological differences between `t1` and `t2`: 
 - The reassorted strain `X`. 
@@ -123,3 +101,64 @@ t2
 The split `(D,E)` is now present in `t2`. 
 Note that it was not present in `t1`: only the splits `(D,E,X)` and `(E,X)` existed there. 
 However, since `resolve!` now knows `(A,B,C,D,E)` is an MCC, the `resolve!` function can "ignore" leaf `X` when resolving.   
+
+## [Strict vs liberal resolve](@id resolve_strict_vs_liberal)
+
+When resolving using MCCs, TreeKnit uses one of two options: strict (default) or liberal resolution (`--liberal-resolve` flag). 
+Given two trees `t1` and `t2` and their MCCs, it is not always possible to unambiguously resolve `t2` using the splits of `t1` *even* in an MCC. 
+To explain this, we consider the two following trees: 
+```@repl strict_lib
+using TreeKnit # hide
+using TreeTools # hide
+t1 = parse_newick_string("((A,(B,C)),D);")
+t2 = parse_newick_string("(A,B,C,D);")
+```
+
+Assume that the MCCs are `[A,B,C]` and `[D]`. In this minimal example this is a bit contrived, but this type of situation can take place in larger  trees. 
+The essential ingredients here are 
+- the polytomy `(A,B,C,D)` in `t2`. 
+- the fact that the `(A,(B,C))` clade is nicely resolved in `t1`
+- `(A,B,C)`, `D`, and the other nodes being in different MCCs, meaning there is a reassortment above leaf `D` and above the MRCA of `(A,B,C)`
+
+At first sight, we would like to introduce the splits `(A,B,C)` and `(B,C)` into `t2`: these splits exist in `t1` and are in the shared region `(A,B,C)`. 
+This would result in the following for `t2`: 
+
+```@example strict_lib
+t2_resolved_1 = parse_newick_string("((A,(B,C)),D);")
+```
+
+However, since there is a reassortment above `D`, we cannot exclude `D` being nested in the `(A,B,C)` clade 
+This gives us other possibilities for `t2` (non-exhaustive):
+
+```@repl strict_lib
+t2_resolved_2 = parse_newick_string("(A,(B,(C,D)));")
+t2_resolved_3 = parse_newick_string("(A,((B,C),D));")
+```
+
+All the above possibilities to resolve `t2` are compatible with the found MCCs and the splits in `t1`. 
+
+The `strict` and `liberal` options for resolution make different choices in this situation. 
+- Strict resolve will consider this situation as ambiguous, and not attempt any resolution. Hence the final `t2` will have a Newick string `"(A,B,C,D);"`. 
+  More generally, with the `strict` option, TreeKnit ill only resolve a polytomy if the relation of all branches within the polytomy can be unambiguously determined using the other tree, potentially not fully resolving shared regions of the trees. 
+
+```@repl strict_lib
+MCCs = [["D"], ["A", "B", "C"]]
+new_splits_strict = resolve!(t1, t2, MCCs; strict=true);
+isempty(new_splits_strict)
+t2
+```
+
+- Liberal resolve will resolve trees as much as possible, fully resolving shared regions of the two trees, but arbitrarily choosing the location of these aforementioned branches, leading to potentially wrong splits. 
+  As in the example below, liberal resolve will always try to "pull" MCCs out of polytomies 
+```@example strict_lib
+t1 = parse_newick_string("((A,(B,C)),D);") # hide
+t2 = parse_newick_string("(A,B,C,D);") # hide
+new_splits_liberal = resolve!(t1, t2, MCCs; strict=false);
+new_splits_liberal[2]
+t2
+```
+
+Here are a few extra notes on strict vs liberal options: 
+- liberal resolve will in general result in significantly more wrong splits placed in the trees
+- to create an ARG, it is necessary that MCCs are resolved exactly the same in both trees: the trees must be *knitted* together in those regions. 
+  For this reason, it is also necessary to use liberal resolve in this case. 

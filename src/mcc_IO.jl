@@ -1,31 +1,37 @@
 """
-	write_mccs(of, MCCs::AbstractArray)
+	write_mccs(filename, MCCs::AbstractArray[, mode="w"])
+	write_mccs(filename, MCCs::MCC_set[, mode="w"])
 
-Write MCCs to file. A dat file can only be produced for one tree pair MCC, each line in the dat file
-will represent one mcc.
+Write MCCs to file.
 
-If multiple MCCs should be written to a file they need to be written to a JSON file. This will have the form:
+In the first form, the writing format is csv with one MCC per line.
+This only makes sense for two MCCs
 
+The second form is also adapted to multiple MCCs.
+The format is JSON:
+
+```
 { 
     "MCC_dict" : {
         "1": { 
             "trees":["a", "b"],
-            "mccs": [["A"],["B","C"]]
+            "mccs": [["A"],["B","C"]],
             },
         "2": { 
             "trees":["a", "c"],
-            "mccs": [["A","B","C"]]
+            "mccs": [["A","B","C"]],
             },
         ...
     }
 }
+```
 """
-function write_mccs(filePath, MCCs::AbstractArray, mode="w")
-	file_type = split(filePath, ".")[end]
+function write_mccs(filename, MCCs::AbstractArray, mode="w")
+	file_type = split(filename, ".")[end]
 	if file_type !="dat"
 		print("File type not supported")
 	end
-	open(filePath, mode) do w
+	open(filename, mode) do w
 		for (i,m) in enumerate(MCCs)
 			for x in m[1:end-1]
 				write(w, x * ",")
@@ -48,15 +54,15 @@ function read_mccs(file)
     end
 end
 
-function write_mccs(filePath, MCCs::MCC_set, mode="w")
-	file_type = split(filePath, ".")[end]
+function write_mccs(filename, MCCs::MCC_set, mode="w")
+	file_type = split(filename, ".")[end]
 	if file_type !="json"
 		print("File type not supported")
 	end
 
 	json_string = write_mccs(MCCs)
 
-	open(filePath, mode) do f
+	open(filename, mode) do f
 		JSON3.pretty(f, json_string)
 	end
 end

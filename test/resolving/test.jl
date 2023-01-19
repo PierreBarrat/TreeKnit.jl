@@ -10,8 +10,8 @@ using TreeTools
 
 println("### Basic resolving")
 
-t1 = node2tree(TreeTools.parse_newick("(((A,B),C),D)"))
-t2 = node2tree(TreeTools.parse_newick("(B,C,(A,D))"))
+t1 = parse_newick_string("(((A,B),C),D);")
+t2 = parse_newick_string("(B,C,(A,D));")
 @testset "1" begin
 	newsplits = resolve!(t1,t2)
 	@test length(newsplits[1]) == 0
@@ -31,9 +31,9 @@ t2 = read_tree("$(dirname(pathof(TreeKnit)))/..//test/resolving/tree2.nwk")
 end
 
 
-t1 = node2tree(TreeTools.parse_newick("(A,B,C,D)"))
-t2 = node2tree(TreeTools.parse_newick("(A,(B,C,D))"))
-t3 = node2tree(TreeTools.parse_newick("(A,B,(C,D))"))
+t1 = parse_newick_string("(A,B,C,D);")
+t2 = parse_newick_string("(A,(B,C,D));")
+t3 = parse_newick_string("(A,B,(C,D));")
 
 trees = [copy(t1), copy(t2), copy(t3)]
 ns123 = resolve!(trees...)
@@ -47,9 +47,9 @@ println("##### Resolve Multiple Trees at once #####")
 	@test union(ns12[1], ns13[1])== ns123[1]
 end
 
-t1 = node2tree(TreeTools.parse_newick("(A,B,C,D)"))
-t2 = node2tree(TreeTools.parse_newick("(A,(B,C,D))"))
-t3 = node2tree(TreeTools.parse_newick("((A,B),(C,D))"))
+t1 = parse_newick_string("(A,B,C,D);")
+t2 = parse_newick_string("(A,(B,C,D));")
+t3 = parse_newick_string("((A,B),(C,D));")
 
 @testset "3 tree incompatible resolution" begin
 	ns123 = resolve!(t1,t2, t3)
@@ -81,8 +81,8 @@ end
 
 ##### map_split_to_tree functions
 
-nwk1 = "(((A1,A2),(B1,B2),(C1,C2)),D,E)"
-t = node2tree(TreeTools.parse_newick(nwk1)) #
+nwk1 = "(((A1,A2),(B1,B2),(C1,C2)),D,E);"
+t = parse_newick_string(nwk1) #
 S = SplitList(t)
 
 # Let's pretend we found (A1,A2,B1,B2) and (C1,C2,D) to be MCCs
@@ -100,10 +100,10 @@ end
 
 println("### Strict resolving")
 
-nwk1 = "((A,B,C,D),E)"
-nwk2 = "(((A,B),C),(D,E))"
-input_t1 = node2tree(TreeTools.parse_newick(nwk1; node_data_type=TreeTools.MiscData))
-input_t2 = node2tree(TreeTools.parse_newick(nwk2; node_data_type=TreeTools.MiscData))
+nwk1 = "((A,B,C,D),E);"
+nwk2 = "(((A,B),C),(D,E));"
+input_t1 = parse_newick_string(nwk1; node_data_type=TreeTools.MiscData)
+input_t2 = parse_newick_string(nwk2; node_data_type=TreeTools.MiscData)
 
 @testset "strict `map_split_to_tree` functions, Example 1" begin
 	t1 = copy(input_t1)
@@ -124,28 +124,28 @@ input_t2 = node2tree(TreeTools.parse_newick(nwk2; node_data_type=TreeTools.MiscD
 end
 
 ##assume true trees
-true_nwk1 = "((((A,B),(C,D)),E),F)"
-true_nwk2 = "((((A,B),(C,D)),E),F)"
-true_t2 = node2tree(TreeTools.parse_newick(true_nwk2; node_data_type=TreeTools.MiscData))
+true_nwk1 = "((((A,B),(C,D)),E),F);"
+true_nwk2 = "((((A,B),(C,D)),E),F);"
+true_t2 = parse_newick_string(true_nwk2; node_data_type=TreeTools.MiscData)
 MCCs = TreeKnit.sort([["A", "B", "E", "F"], ["C", "D"]], lt=TreeKnit.clt)
 
 @testset "strict `map_split_to_tree` functions, Example 2" begin
-	unresolved_nwk1 = "((((A,B),C,D),E),F)"
-	unresolved_t1 = node2tree(TreeTools.parse_newick(unresolved_nwk1; node_data_type=TreeTools.MiscData))
+	unresolved_nwk1 = "((((A,B),C,D),E),F);"
+	unresolved_t1 = parse_newick_string(unresolved_nwk1; node_data_type=TreeTools.MiscData)
 	new_splits = TreeKnit.new_splits(unresolved_t1, MCCs, true_t2; strict=false)
 	new_splits_strict = TreeKnit.new_splits(unresolved_t1, MCCs, true_t2; strict=true)
 	@test new_splits_strict ==[["C", "D"]]
 	@test new_splits ==[["C", "D"]]
 
-	unresolved_nwk1 = "(((A,B),C,D,E),F)"
-	unresolved_t1 = node2tree(TreeTools.parse_newick(unresolved_nwk1; node_data_type=TreeTools.MiscData))
+	unresolved_nwk1 = "(((A,B),C,D,E),F);"
+	unresolved_t1 = parse_newick_string(unresolved_nwk1; node_data_type=TreeTools.MiscData)
 	new_splits = TreeKnit.new_splits(unresolved_t1, MCCs, true_t2; strict=false)
 	new_splits_strict = TreeKnit.new_splits(unresolved_t1, MCCs, true_t2; strict=true)
 	@test new_splits_strict ==[["C", "D"]]
 	@test new_splits ==[["C", "D"], ["A", "B", "E"]]
 
-	unresolved_nwk1 = "((A,B),C,D,E,F)"
-	unresolved_t1 = node2tree(TreeTools.parse_newick(unresolved_nwk1; node_data_type=TreeTools.MiscData))
+	unresolved_nwk1 = "((A,B),C,D,E,F);"
+	unresolved_t1 = parse_newick_string(unresolved_nwk1; node_data_type=TreeTools.MiscData)
 	new_splits = TreeKnit.new_splits(unresolved_t1, MCCs, true_t2; strict=false)
 	new_splits_strict = TreeKnit.new_splits(unresolved_t1, MCCs, true_t2; strict=true)
 	@test isempty(new_splits_strict)
@@ -153,22 +153,22 @@ MCCs = TreeKnit.sort([["A", "B", "E", "F"], ["C", "D"]], lt=TreeKnit.clt)
 end
 
 ##assume true trees
-true_nwk1 = "(((3,2),(1,7)),(5,(4,6)))"
-true_nwk2 = "((((3,2),(4,6)),(7,1)),5)"
-unresolved_nwk2 = "(((3,2),(4,6)),(7,1),5)"
-true_t1 = node2tree(TreeTools.parse_newick(true_nwk1; node_data_type=TreeTools.MiscData))
+true_nwk1 = "(((3,2),(1,7)),(5,(4,6)));"
+true_nwk2 = "((((3,2),(4,6)),(7,1)),5);"
+unresolved_nwk2 = "(((3,2),(4,6)),(7,1),5);"
+true_t1 = parse_newick_string(true_nwk1; node_data_type=TreeTools.MiscData)
 MCCs = TreeKnit.sort([["5"],["4"],["6"],["1", "2", "3", "7"]], lt=TreeKnit.clt)
 
 @testset "strict `map_split_to_tree` functions, sister.mcc==nothing and anc.mcc==nothing" begin
-	unres_t2 = node2tree(TreeTools.parse_newick(unresolved_nwk2; node_data_type=TreeTools.MiscData))
+	unres_t2 = parse_newick_string(unresolved_nwk2; node_data_type=TreeTools.MiscData)
 	new_splits_strict = TreeKnit.new_splits(unres_t2, MCCs, true_t1; strict=true)
 	@test isempty(new_splits_strict) 
 end
 
-nwk_1 = "((A,B,C,D,E),X)"
-nwk_2 = "((((A,B),C),(D,E)),X)"
-t1 = node2tree(TreeTools.parse_newick(nwk_1; node_data_type=TreeTools.MiscData); label="t1")
-t2 = node2tree(TreeTools.parse_newick(nwk_2; node_data_type=TreeTools.MiscData); label="t2")
+nwk_1 = "((A,B,C,D,E),X);"
+nwk_2 = "((((A,B),C),(D,E)),X);"
+t1 = parse_newick_string(nwk_1; node_data_type=TreeTools.MiscData, label="t1")
+t2 = parse_newick_string(nwk_2; node_data_type=TreeTools.MiscData, label="t2")
 MCCs = TreeKnit.sort([["A","B","C"],["D","E","X"]], lt=TreeKnit.clt)
 
 @testset "strict_resolve - do not add unneeded splits" begin
@@ -192,12 +192,12 @@ MCCs = TreeKnit.sort([["A","B","C"],["D","E","X"]], lt=TreeKnit.clt)
 	@test write_newick(t1_copy) =="(X,(D,E,(C,(A,B)RESOLVED_1:0.0)RESOLVED_2:0.0)NODE_2)NODE_1:0;"
 end
 
-nwk_1 = "((A,B,C,(D,E)),X)"
-nwk_2 = "((((A,B),C),(D,E)),X)"
-t1 = node2tree(TreeTools.parse_newick(nwk_1; node_data_type=TreeTools.MiscData); label="t1")
-t2 = node2tree(TreeTools.parse_newick(nwk_2; node_data_type=TreeTools.MiscData); label="t2")
-t1_empty = node2tree(TreeTools.parse_newick(nwk_1; node_data_type=TreeTools.EmptyData); label="t1")
-t2_empty = node2tree(TreeTools.parse_newick(nwk_2; node_data_type=TreeTools.EmptyData); label="t2")
+nwk_1 = "((A,B,C,(D,E)),X);"
+nwk_2 = "((((A,B),C),(D,E)),X);"
+t1 = parse_newick_string(nwk_1; node_data_type=TreeTools.MiscData, label="t1")
+t2 = parse_newick_string(nwk_2; node_data_type=TreeTools.MiscData, label="t2")
+t1_empty = parse_newick_string(nwk_1; node_data_type=TreeTools.EmptyData, label="t1")
+t2_empty = parse_newick_string(nwk_2; node_data_type=TreeTools.EmptyData, label="t2")
 MCCs = TreeKnit.sort([["A","B","C"],["D","E","X"]], lt=TreeKnit.clt)
 
 @testset "check sort_polytomies! acts the same on strictly resolved trees" begin
@@ -218,12 +218,12 @@ MCCs = TreeKnit.sort([["A","B","C"],["D","E","X"]], lt=TreeKnit.clt)
 	@test write_newick(t2_copy) == write_newick(t2_strict)
 end
 
-nwk_1 = "(A,(C,D,E,B))"
-nwk_2 = "(A,(E,(C,D),B))"
-t1 = node2tree(TreeTools.parse_newick(nwk_1; node_data_type=TreeTools.MiscData); label="t1")
-t2 = node2tree(TreeTools.parse_newick(nwk_2; node_data_type=TreeTools.MiscData); label="t2")
-t1_empty = node2tree(TreeTools.parse_newick(nwk_1; node_data_type=TreeTools.EmptyData); label="t1")
-t2_empty = node2tree(TreeTools.parse_newick(nwk_2; node_data_type=TreeTools.EmptyData); label="t2")
+nwk_1 = "(A,(C,D,E,B));"
+nwk_2 = "(A,(E,(C,D),B));"
+t1 = parse_newick_string(nwk_1; node_data_type=TreeTools.MiscData, label="t1")
+t2 = parse_newick_string(nwk_2; node_data_type=TreeTools.MiscData, label="t2")
+t1_empty = parse_newick_string(nwk_1; node_data_type=TreeTools.EmptyData, label="t1")
+t2_empty = parse_newick_string(nwk_2; node_data_type=TreeTools.EmptyData, label="t2")
 MCCs = TreeKnit.sort([["B"], ["A","C","D","E"]], lt=TreeKnit.clt)
 
 function get_leaf_order(t)
@@ -250,10 +250,10 @@ end
 	@test filter(e -> e!="B", get_leaf_order(t1_strict)) == filter(e -> e!="B", get_leaf_order(t2_strict))
 end
 
-nwk_1 = "(E,(B,C,D,A),K)"
-nwk_2 = "(A,E,B,C,D,K)"
-t1 = node2tree(TreeTools.parse_newick(nwk_1; node_data_type=TreeTools.MiscData); label="t1")
-t2 = node2tree(TreeTools.parse_newick(nwk_2; node_data_type=TreeTools.MiscData); label="t2")
+nwk_1 = "(E,(B,C,D,A),K);"
+nwk_2 = "(A,E,B,C,D,K);"
+t1 = parse_newick_string(nwk_1; node_data_type=TreeTools.MiscData, label="t1")
+t2 = parse_newick_string(nwk_2; node_data_type=TreeTools.MiscData, label="t2")
 MCCs = TreeKnit.sort([["A","B","C","D","E"], ["K"]], lt=TreeKnit.clt)
 
 @testset "check sort_polytomies! strict works on strictly resolved trees, 1" begin
@@ -265,8 +265,8 @@ MCCs = TreeKnit.sort([["A","B","C","D","E"], ["K"]], lt=TreeKnit.clt)
 	@test filter(e -> e!="K", get_leaf_order(t1_strict)) == filter(e -> e!="K", get_leaf_order(t2_strict))
 end
 
-t1 = node2tree(TreeTools.parse_newick("((A,B1),B2,C,D)"))
-t2 = node2tree(TreeTools.parse_newick("((A,B1,B2,D),C)"))
+t1 = parse_newick_string("((A,B1),B2,C,D);")
+t2 = parse_newick_string("((A,B1,B2,D),C);")
 MCCs = [["D"], ["A", "B1", "B2", "C"]]
 rS_strict = TreeKnit.resolve!(t1, t2, MCCs; tau = 0., strict=true)
 TreeTools.ladderize!(t1)
@@ -275,10 +275,10 @@ TreeKnit.sort_polytomies!(t1, t2, MCCs; strict=true)
 	@test filter(e -> e!="D", get_leaf_order(t1)) == filter(e -> e!="D", get_leaf_order(t2))
 end
 
-nwk_1 = "(A,B,C,D)"
-nwk_2 = "(A,C,(D,B))"
-t1 = node2tree(TreeTools.parse_newick(nwk_1; node_data_type=TreeTools.MiscData); label="t1")
-t2 = node2tree(TreeTools.parse_newick(nwk_2; node_data_type=TreeTools.MiscData); label="t2")
+nwk_1 = "(A,B,C,D);"
+nwk_2 = "(A,C,(D,B));"
+t1 = parse_newick_string(nwk_1; node_data_type=TreeTools.MiscData, label="t1")
+t2 = parse_newick_string(nwk_2; node_data_type=TreeTools.MiscData, label="t2")
 MCCs = TreeKnit.sort([["B"], ["A","C","D"]], lt=TreeKnit.clt)
 
 @testset "check sort_polytomies! works when internal node could belong to more than one mcc" begin

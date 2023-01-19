@@ -22,7 +22,7 @@ The minimal number of rounds should be 2, but the effect of more than 2 rounds h
 tested. During the final round, the trees are not resolved anymore. This can be changed
 by setting `oa.final_no_resolve=false`, but it is not recommended for more than two trees.
 """
-function compute_mcc_pairs!(trees::Vector{Tree{T}}, oa::OptArgs) where T 
+function compute_mcc_pairs!(trees::AbstractVector{Tree{T}}, oa::OptArgs) where T
     l_t = length(trees)
     pair_MCCs = MCC_set(l_t, [t.label for t in trees])
     for r in 1:oa.rounds
@@ -44,9 +44,7 @@ function compute_mcc_pairs!(trees::Vector{Tree{T}}, oa::OptArgs) where T
             end
             oa.verbose && @info "found MCCs for trees: "*trees[j].label*" and "*trees[i].label
             if r==oa.rounds 
-                if i ==1 ##only the first tree should be ladderized
-                    TreeTools.ladderize!(trees[i])
-                end
+				i == 1 && TreeTools.ladderize!(trees[i]) # only the first tree is ladderized
                 TreeKnit.sort_polytomies!(trees[i], trees[j], get(pair_MCCs, trees[i].label, trees[j].label); oa.strict)
                 oa.verbose && @info "ladderized and sorted trees: "*trees[j].label*" and "*trees[i].label
             end
