@@ -29,7 +29,7 @@
 	nwk_file1::AbstractString, nwk_file2::AbstractString, nwk_files::AbstractString...;
 	# options
 	outdir::AbstractString = "treeknit_results",
-	gamma::Float64 = OptArgs().γ,
+	gamma::Real = OptArgs().γ,
 	seq_lengths::AbstractString = join([string(i) for i in repeat([1], 2+ length(nwk_files))], " "),
 	n_mcmc_it::Int = OptArgs().nMCMC,
 	rounds::Int = 1,
