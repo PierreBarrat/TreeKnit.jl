@@ -1,55 +1,167 @@
 """
+	run_standard_treeknit!(trees::AbstractVector{Tree{T}}, oa::OptArgs, func_::Function)
+
+Subfunction to sequentially compute MCCs for each pair of trees in `trees`. Iterate over
+all pairs in the same order a total of `oa.rounds` times.
+
+## Details
+
+Let `l_t = length(trees)`. Then for each round and for `1 <= i < j <= l_t`:
+
+- calculate the `MCC_ij` between `trees[i]` and `trees[j]` using the standard TreeKnit
+  procedure.
+
+- resolve `trees[i]` and `trees[j]` using `MCC_ij`, unless this is the last round.
+
+### Rounds
+
+Going over all pairs of trees once is called a *round*. MultiTreeKnit performs several
+rounds for reasons of consistency between inferred MCCs and tree topology.
+
+The minimal number of rounds should be 2, but the effect of more than 2 rounds has not been
+tested. During the final round, the trees are not resolved anymore. This can be changed
+by setting `oa.final_no_resolve=false`, but it is not recommended for more than two trees.
+"""
+function run_standard_treeknit!(trees::AbstractVector{Tree{T}}, oa::OptArgs; func_=TreeKnit.runopt) where T
+    l_t = length(trees)
+    pair_MCCs = MCC_set(l_t, [t.label for t in trees])
+    for r in 1:oa.rounds
+        oa.verbose && @info "ROUND:"*string(r)
+        for i in 1:(l_t-1), j in (i+1):l_t
+
+            # do we resolve for this round?
+            if oa.final_no_resolve && r==oa.rounds
+                oa.resolve = false
+                oa.strict = false
+            end
+
+            # compute MCCs for current tree pair and add it to set
+            mccs = func_(oa, trees[i], trees[j]; output = :mccs)
+            add!(pair_MCCs, mccs, (i, j))
+
+            if oa.resolve 
+                rS = TreeKnit.resolve!(trees[i], trees[j], get(pair_MCCs, (j, i)); oa.strict)
+            end
+            oa.verbose && @info "found MCCs for trees: "*trees[j].label*" and "*trees[i].label
+            if r==oa.rounds 
+				i == 1 && TreeTools.ladderize!(trees[i]) # only the first tree is ladderized
+                TreeKnit.sort_polytomies!(trees[i], trees[j], get(pair_MCCs, trees[i].label, trees[j].label); oa.strict)
+                oa.verbose && @info "ladderized and sorted trees: "*trees[j].label*" and "*trees[i].label
+            end
+        end
+    end
+    return pair_MCCs
+end
+
+function run_step!(oa::OptArgs, tree1::Tree, tree2::Tree, func_::Function, r, pos)
+    if oa.final_no_resolve && r==oa.rounds
+        oa = fetch(oa)
+        oa.resolve = false
+        oa.strict = false
+        MCC = func_(oa, tree1, tree2; output = :mccs)
+    else
+        MCC = func_(oa, tree1, tree2; output = :mccs)
+        rS = TreeKnit.resolve!(tree1, tree2, MCC; oa.strict)
+    end
+    if r==oa.rounds 
+        if pos ==1
+            TreeTools.ladderize!(tree1)
+        end
+        TreeKnit.sort_polytomies!(tree1, tree2, MCC; oa.strict)
+    end
+    return MCC
+end
+
+"""
+	run_parallel_treeknit!(trees::Vector{Tree{T}}, oa::OptArgs, func_::Function) where T
+
+Parallelized version of `run_standard_treeknit!(trees, oa, func_)`.
+"""
+function run_parallel_treeknit!(trees::Vector{Tree{T}}, oa::OptArgs; func_=TreeKnit.runopt) where T 
+    l_t = length(trees)
+    parallel_MCCs = Dict()
+    for r in 1:oa.rounds
+        for i in 1:(l_t-1), j in (i+1):l_t
+            parallel_MCCs[Set([i,j])] = Dagger.@spawn run_step!(oa, trees[i], trees[j], func_, r, i)
+        end
+    end
+    pair_MCCs = MCC_set(l_t, [t.label for t in trees])
+    for (key, mcc) in parallel_MCCs
+        add!(pair_MCCs, fetch(mcc), Tuple(key))
+    end
+    return pair_MCCs
+end
+
+"""
+	run_treeknit!(trees::Vector{Tree{T}}, oa::OptArgs=OptArgs(); naive=false) where T
+
+Main TreeKnit run function. 
+
+Computes MCCs of all tree pairs in tree list `trees` using `TreeKnit.run_opt`. 
+
+## Parameters:
+- `pre_resolve=true`: input trees are resolved with each other prior to MCC computation.
+- `resolve=true`: input trees are resolved in each pair-wise MCC computation, resolved trees are used as 
+input trees for the next pair, the order is specified in Combinatorics.combinations(1:length(trees), 2). 
+- `naive`: return naive MCCs of all tree pairs.
+- `strict`: Apply conservative resolution. If an MCC implies a coalescence event occured, but the order of reassortment and
+coalescence is ambiguous, more than one split could be added to the tree. In such an event `strict` resolve does not add a
+split, however `liberal = (strict==false)` resolution would choose one such order of events and add that respective split. 
+- `parallel`: Parallelize MCC computation of tree pairs as much as possible.
+"""
+function run_treeknit!(trees::Vector{Tree{T}}, oa::OptArgs; naive=false) where T 
+
+    oa.pre_resolve && resolve!(trees...)
+
+    if naive
+		func_ = TreeKnit.naive_mccs
+	else
+		func_ = TreeKnit.runopt
+	end
+
+    if oa.parallel == true
+        pair_MCCs = run_parallel_treeknit!(trees, oa; func_)
+    else
+        pair_MCCs = run_standard_treeknit!(trees, oa; func_)
+    end
+
+    return pair_MCCs
+end
+
+function run_treeknit!(trees::Vector{Tree{T}}; kwargs...) where T 
+    return run_treeknit!(trees, OptArgs(;kwargs...))
+end
+
+function run_treeknit!(t1::Tree{T}, t2::Tree{T}; kwargs...) where T 
+    return run_treeknit!([t1,t2], OptArgs(;kwargs...))
+end
+
+function run_treeknit!(t1::Tree{T}, t2::Tree{T}, oa::OptArgs) where T 
+    return run_treeknit!([t1,t2], oa)
+end
+
+###############################################################################################################
+####################################### ARG inference - for 1 tree pair #######################################
+###############################################################################################################
+
+"""
 	inferARG(
-		t1::Tree, t2::Tree, oa::OptArgs = OptArgs();
-		naive = false, seqlengths = [1,1],
+		t1::Tree, t2::Tree, oa::OptArgs = OptArgs()
 	)
 """
 function inferARG(
-	t1::Tree, t2::Tree, oa::OptArgs = OptArgs();
-	naive = false,
+	t1::Tree, t2::Tree, oa::OptArgs = OptArgs()
 )
-	MCCs = computeMCCs(t1, t2, oa)
+	oa.resolve= false
+	oa.strict = false #liberal resolve is needed for reconstructing ARGs
+	MCCs = run_standard_treeknit!(trees, oa)
 	arg = SRG.arg_from_trees(t1, t2, MCCs)[1]
 	return arg[1]
 end
 
-"""
-	computeMCCs(
-		t1::Tree, t2::Tree, oa::OptArgs = OptArgs();
-		naive = false, seqlengths = [1,1],
-	)
-
-Compute pairwise MCCs for trees. Return MCCs and resolved splits. The `computeMCCs!`
-version resolves the input trees with newly found splits.
-
-# Inputs
-### `oa::OptArgs`
-Controls parameters of the MCC inference (unless `naive=true`). See `?OptArgs` for details.
-
-In general, this should be set to `true` if more than two trees are used, and to `false`
-for only two trees (for speed).
-
-### `naive = false`
-- If `true`, use a naive estimation for MCCs, *i.e.* find all clades that have an exactly
-  matching topology in all trees.
-- Else, use a pseudo-parsimonious method based (mostly) on topology. The method
-  `runopt(oa,t1,t2)` is called on every pair of trees.
-"""
-function computeMCCs(
-	t1::Tree, t2::Tree, oa::OptArgs=OptArgs();
-	naive=false
-)
-	if naive
-		return naive_mccs(t1, t2)
-	else
-		return runopt(oa, t1, t2; output = :mccs)
-	end
-end
-
-
 
 ###############################################################################################################
-########################################## Main inference function ############################################
+############################### Main inference function - for 1 tree pair #####################################
 ###############################################################################################################
 
 """

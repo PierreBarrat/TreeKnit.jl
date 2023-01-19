@@ -8,11 +8,14 @@ using Parameters
 using Random
 using Setfield
 using JSON3
+using Combinatorics
+using Dagger
 # Personal modules
 using TreeTools
 
+import Base: get, getindex, print, copy
 include("objects.jl")
-export OptArgs
+export OptArgs, MCC_set
 
 include("mcc_base.jl")
 export naive_mccs
@@ -21,12 +24,6 @@ include("mcc_splits.jl")
 
 include("mcc_tools.jl")
 export map_mccs, map_mccs!
-
-include("MultiTreeKnit/MultiTreeKnit.jl")
-import TreeKnit.MultiTreeKnit: MTK
-import TreeKnit.MultiTreeKnit: MCC_set
-export MTK
-export MCC_set
 
 include("mcc_IO.jl")
 export read_mccs, write_mccs
@@ -38,7 +35,7 @@ include("SplitGraph/SplitGraph.jl")
 using TreeKnit.SplitGraph
 
 include("main.jl")
-export computeMCCs, inferARG
+export run_treeknit!, inferARG
 
 include("SimpleReassortmentGraph/SimpleReassortmentGraph.jl")
 import TreeKnit.SimpleReassortmentGraph: SRG

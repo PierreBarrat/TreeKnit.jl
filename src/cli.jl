@@ -1,6 +1,15 @@
 """
 	treeknit
 
+We suggest two methods for running TreeKnit:
+- `--better-trees`: This method is recommended for most users using >2 trees. It will attempt to resolve all trees compatibly before inferring MCCs, it will then run 1 round of 
+pair-wise treeknit inference on all tree pairs individually - not further resolving trees. This technique will produce the most accurate output trees and the most homogeneous MCCs -
+this means that if nodes are inferred to be in a shared MCC they are infact shared. This method is also the fastest.
+- `--better-MCCs`: This method is recommended for users using 2 trees, or users who are more interested in inferring accurate MCCs. It will also attempt to resolve all trees compatibly
+before inferring MCCs, it will then run 1 round of sequential treeknit inference on all tree pairs, further resolving trees using the MCCs inferred in the previous treeknit calls. It will
+then run one final round of pairwise TreeKnit on all tree pairs individually - not further resolving trees. This technique will produce the most accurate MCCs, but the output trees will
+potentially have a higher rate of inaccurate splits. 
+
 # Arguments
 
 - `nwk_files`: Newick files (requires 2 or more trees - note an ARG currently cannot be created for more than 2 trees)
@@ -15,6 +24,8 @@
 
 # Flags
 
+- `--better-trees`: Use the `--better-trees` method (default for >2 trees) (overrides `--better-MCCs`)
+- `--better-MCCs`: Use the `--better-MCCs` method (default for 2 trees)
 - `--naive`: Naive inference (overrides `-g`).
 - `--no-likelihood`: Do not use branch length likelihood test to sort between different MCCs
 - `--no-resolve`: Do not attempt to resolve trees before inferring pairwise MCCs.
@@ -34,6 +45,8 @@
 	n_mcmc_it::Int = OptArgs().nMCMC,
 	rounds::Int = 1,
 	# flags
+	better_trees::Bool = false,
+	better_MCCs::Bool = false,
 	naive::Bool = false,
 	no_pre_resolve::Bool = false,
 	no_likelihood::Bool = false,
@@ -92,10 +105,31 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 		error(err)
 	end
 
-	##only parallelize if there are 4 or more trees
-	if length(trees)<=3 && parallel
-		@warn "Not running in parallel for less than 4 trees (got $(length(trees)))"
+	##only parallelize if there are 3 or more trees
+	if length(trees)<3 && parallel
+		@warn "Cannot run in parallel for less than 3 trees (got $(length(trees)))"
 		parallel = false
+	end
+	if parallel
+		@info "Running in parallel"
+	end
+
+	if better_trees
+		rounds = 1
+		naive = false
+		no_pre_resolve = false
+		no_resolve = true
+		liberal_resolve = false
+		resolve_all_rounds = false
+		final_no_resolve = true
+	elseif better_MCCs
+		rounds = 2
+		naive = false
+		no_pre_resolve = false
+		no_resolve = false
+		liberal_resolve = false 
+		resolve_all_rounds = false
+		final_no_resolve = true
 	end
 
 	pre_resolve = !no_pre_resolve
@@ -143,7 +177,7 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 
 	@info "Inferring MCCs...\n"
 	infered_trees = [copy(t) for t in trees]
-	out = @timed MTK.get_infered_MCC_pairs!(infered_trees, oa; naive)
+	out = @timed run_treeknit!(infered_trees, oa; naive)
 	MCCs = out[1]
 
 	l = [length(m) for (key,m) in MCCs.mccs]

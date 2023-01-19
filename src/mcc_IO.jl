@@ -70,7 +70,7 @@ end
 function write_mccs(MCCs::MCC_set)
 
 	MCC_dict = Dict{Int, Any}()
-	tree_pairs, Ms = MTK.iter_pairs(MCCs)
+	tree_pairs, Ms = iter_pairs(MCCs)
 	for i in 1:binomial(MCCs.no_trees, 2)
 		MCC_dict[i] = Dict{String, Any}("trees"=> tree_pairs[i], "mccs"=>Ms[i])
 	end

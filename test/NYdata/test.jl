@@ -1,7 +1,6 @@
 using Test
 using TreeTools
 using TreeKnit
-using TreeKnit.MTK
 
 MCCs_ref = [
 	["A/NewYork/105/2002"],
@@ -14,16 +13,18 @@ MCCs_ref = [
 
 t1 = read_tree("$(dirname(pathof(TreeKnit)))/../test/NYdata/tree_ha.nwk")
 t2 = read_tree("$(dirname(pathof(TreeKnit)))/../test/NYdata/tree_na.nwk")
-MTK_trees = [copy(t1), copy(t2)]
+standard_trees = [copy(t1), copy(t2)]
+parallel_trees = [copy(t1), copy(t2)]
 t1_original = copy(t1)
 t2_original = copy(t2)
 
-MCCs = computeMCCs(t1, t2, TreeKnit.OptArgs(rounds=1))
+MCCs = run_treeknit!(t1, t2, TreeKnit.OptArgs(rounds=1, pre_resolve=false))
+MCC_pair = MCCs.mccs[Set([t1.label, t2.label])]
 
-@testset "computeMCCs on NY data" begin
-	@test MCCs[1:end-1] == MCCs_ref
+@testset "run_treeknit! on NY data" begin
+	@test MCC_pair[1:end-1] == MCCs_ref
 end
-if MCCs[1:end-1] != MCCs_ref
+if MCC_pair[1:end-1] != MCCs_ref
 	@warn "Found different MCCs for the NewYork data. Could indicate a problem..."
 end
 
@@ -64,25 +65,28 @@ function check_sort_polytomies(t1, t2, MCCs)
 	return sorted
 end
 
-rS_strict = TreeKnit.resolve!(t1, t2, MCCs; tau = 0., strict=true)
+rS_strict = TreeKnit.resolve!(t1, t2, MCC_pair; tau = 0., strict=true)
 TreeTools.ladderize!(t1)
-TreeKnit.sort_polytomies!(t1, t2, MCCs; strict=true)
+TreeKnit.sort_polytomies!(t1, t2, MCC_pair; strict=true)
 @testset "sort_polytomies! on strict resolve! NY trees" begin
-	@test check_sort_polytomies(t1, t2, MCCs)
+	@test check_sort_polytomies(t1, t2, MCC_pair)
 end
 
-MCCs_MTK = MTK.compute_mcc_pairs!(MTK_trees, TreeKnit.OptArgs(rounds=1))
-@testset "infer MCCs works the same" begin
-	@test MCCs == get(MCCs_MTK, (1,2))
-	@test SplitList(t1) == SplitList(MTK_trees[1])
+MCCs_standard = TreeKnit.run_standard_treeknit!(standard_trees, TreeKnit.OptArgs(rounds=1))
+@testset "run_standard_treeknit! produces the same MCCs as run_treeknit! without preresolve" begin
+	@test MCC_pair == get(MCCs_standard, (1,2))
+	@test SplitList(t1) == SplitList(standard_trees[1])
+end
+@testset "run_standard_treeknit! correctly sorts polytomies" begin
+	@test check_sort_polytomies(standard_trees[1], standard_trees[2], get(MCCs_standard, (1,2)))
 end
 
-@testset "compute_mcc_pairs! correctly sorts polytomies" begin
-	@test check_sort_polytomies(MTK_trees[1], MTK_trees[2], get(MCCs_MTK, (1,2)))
+MCCs_parallel = TreeKnit.run_parallel_treeknit!(parallel_trees, TreeKnit.OptArgs(rounds=1))
+@testset "run_parallel_treeknit! produces the same MCCs as run_treeknit! without preresolve" begin
+	@test MCC_pair == get(MCCs_parallel, (1,2))
+	@test SplitList(t1) == SplitList(parallel_trees[1])
 end
-
-MCCs_MTK = MTK.get_infered_MCC_pairs!(MTK_trees, TreeKnit.OptArgs(rounds=1))
-@testset "get_infered_MCC_pairs! correctly sorts polytomies" begin
-	@test check_sort_polytomies(MTK_trees[1], MTK_trees[2], get(MCCs_MTK, (1,2)))
+@testset "run_parallel_treeknit! correctly sorts polytomies" begin
+	@test check_sort_polytomies(parallel_trees[1], parallel_trees[2], get(MCCs_parallel, (1,2)))
 end
 
