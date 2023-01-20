@@ -10,6 +10,8 @@ jobs:
       - uses: julia-actions/setup-julia@latest
         with:
           version: '1.7'
+      - name: Install dependencies
+        run: julia --project=. -e 'using Pkg; Pkg.add("TreeTools")'
       - name: Build and Run TreeKnit CLI tests
         run: bash test/command_line_tests.sh
       - name: Run TreeKnit function tests
