@@ -1,6 +1,6 @@
 # [Options](@id options)
 
-`computeMCCs` uses a topogy based heuristic optimization to find maximally compatible clades. 
+`run_treeknit!` uses a topogy based heuristic optimization to find maximally compatible clades. 
   Options to this heuristic are provided through the `OptArgs` object, that is optionally passed as a second argument.
   Essential options are detailed here. 	
 
@@ -26,8 +26,8 @@ Here, pruning the two leaves `(A,C)` or `(D,E)` results in compatible trees (res
   They will only be accepted if $\gamma \leq 2.5$. 
 
 ```@repl gamma1
-computeMCCs(t1, t2, OptArgs(γ=2))
-computeMCCs(t1, t2, OptArgs(γ=3))
+run_treeknit!(t1, t2, OptArgs(γ=2))
+run_treeknit!(t1, t2, OptArgs(γ=3))
 ```
 
 
@@ -42,11 +42,11 @@ using TreeKnit # hide
 t1 = parse_newick_string("((A:2,B:2):2,C:4);")
 t2 = parse_newick_string("(A:2,(B:1,C:1):1);")
 oa = OptArgs(likelihood_sort = false)
-unique([computeMCCs(t1, t2, oa) for rep in 1:50]) # Repeating computation many times 
+unique([run_treeknit!(t1, t2, oa) for rep in 1:50]) # Repeating computation many times 
 ```
 
 When taking branch lengths into account, this degeneracy vanishes: 
 ```@example degeneracy
 oa = OptArgs(likelihood_sort = true)
-unique([computeMCCs(t1, t2, oa) for rep in 1:50])
+unique([run_treeknit!(t1, t2, oa) for rep in 1:50])
 ```

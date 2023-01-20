@@ -43,7 +43,7 @@ isempty(new_splits[1])
 new_splits[2]
 ```
 
-If the `resolve` option is passed to `computeMCCs` (through `OptArgs`), `resolve!` will be called on each pair of trees before each iteration of the MCC inference procedure. 
+If the `resolve` option is passed to `run_treeknit!` (through `OptArgs`), `resolve!` will be called on each pair of trees before each iteration of the MCC inference procedure, MCC inference will allow for resolution and after each pair-wise iteration of `TreeKnit` the trees shall be resolved using the inferred MCCs.
 
 
 
@@ -76,7 +76,7 @@ However, the topology-based heuristic used by *TreeKnit* is not able to detect t
   For instance, the split above `E` will be `(D,E)` in the first tree and `(C,D,E)` in the second. 
   Without resolving, the heuristic will predict a reassortment above almost every leaf: 
 ```@example 3
-computeMCCs(t1, t2, OptArgs(;resolve=false))
+run_treeknit!(t1, t2, OptArgs(;resolve=false))
 ```
 
 In order to achieve progress in this kind of situation, we have to perform two operations at the same time: 
@@ -85,7 +85,7 @@ In order to achieve progress in this kind of situation, we have to perform two o
 
 This is done automatically during MCC inference if the `resolve` option of `OptArgs` is given (default):  
 ```@example 3
-MCCs = computeMCCs(t1, t2, OptArgs(;resolve=true))
+MCCs = run_treeknit!(t1, t2, OptArgs(;resolve=true))
 ```
 
 ## Resolving with inferred MCCs

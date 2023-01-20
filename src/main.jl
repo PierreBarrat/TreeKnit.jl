@@ -36,6 +36,7 @@ function run_standard_treeknit!(trees::AbstractVector{Tree{T}}, oa::OptArgs; fun
             end
 
             # compute MCCs for current tree pair and add it to set
+			println("Infering MCCs for trees: "*trees[j].label*" and "*trees[i].label)
             mccs = func_(oa, trees[i], trees[j]; output = :mccs)
             add!(pair_MCCs, mccs, (i, j))
 

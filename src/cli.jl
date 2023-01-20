@@ -24,15 +24,15 @@ but the output trees will potentially have a higher rate of inaccurate splits.
 
 # Flags
 
-- `--better-trees`: Use the `--better-trees` method (default for >2 trees) (overrides `--better-MCCs`)
+- `--better-trees`: Use the `--better-trees` method (default for >2 trees)
 - `--better-MCCs`: Use the `--better-MCCs` method (default for 2 trees)
 - `--naive`: Naive inference (overrides `-g`).
-- `--no-likelihood`: Do not use branch length likelihood test to sort between different MCCs
 - `--no-resolve`: Do not attempt to resolve trees before inferring pairwise MCCs.
 - `--liberal-resolve`: Resolve output trees as much as possible using inferred MCCs, adding splits when order of coalescence and reassortment is unclear (coalescence is set at a time prior to reassortment)
 - `--resolve-all-rounds`: Resolve trees before inferring pairwise MCCs in all rounds, overrides `--no-resolve` (default for 2 trees, for more than 2 trees default is to not resolve in the final round)
-- `--no-pre-resolve`: MultiTreeKnit flag - Do not compatibly resolve all trees with each other before inferring MCCs (default is to pre-resolve)
-- `--parallel`: MultiTreeKnit flag - Run sequential MultiTreeKnit with parallelization (only used for 4 or more trees)
+- `--no-pre-resolve`: Do not compatibly resolve all trees with each other before inferring MCCs (default is to pre-resolve)
+- `--no-likelihood`: Do not use branch length likelihood test to sort between different MCCs
+- `--parallel`: Run sequential TreeKnit with parallelization (only used for 3 or more trees)
 - `-v, --verbose`: verbosity
 - `--auspice-view`: return ouput files for auspice
 """
@@ -49,10 +49,10 @@ but the output trees will potentially have a higher rate of inaccurate splits.
 	better_MCCs::Bool = false,
 	naive::Bool = false,
 	no_pre_resolve::Bool = false,
-	no_likelihood::Bool = false,
 	no_resolve::Bool = false,
 	liberal_resolve::Bool = false,
 	resolve_all_rounds::Bool = false,
+	no_likelihood::Bool = false,
 	verbose::Bool = false,
 	parallel::Bool = false,
 	auspice_view::Bool = false
@@ -114,76 +114,19 @@ but the output trees will potentially have a higher rate of inaccurate splits.
 		@info "Running in parallel"
 	end
 
-	# Setting up OptArgs
+	naive==true && println("Performing naive inference")
 
-	_naive = naive #default false or input value
-	_no_pre_resolve = no_pre_resolve #default false or input value
-	_liberal_resolve = liberal_resolve #default false or input value
-	_resolve_all_rounds = resolve_all_rounds #default false or input value
-	_rounds = rounds #default 1 or input value
-	_no_resolve = no_resolve #default false or input value
-
-	if length(trees)>2 && no_resolve==false && resolve_all_rounds==true
-		println("WARNING: For $(length(trees)) we do not recommend resolving during MCC inference in the final round.")
-	end
-
-	if better_trees == true
-		_naive = false
-		_no_pre_resolve = false
-		_liberal_resolve = false
-		_resolve_all_rounds = false
-		_rounds = 1
-		_no_resolve = true
-	elseif better_MCCs == true
-		_naive = false
-		_no_pre_resolve = false
-		_liberal_resolve = false
-		if length(trees)>2
-			_rounds = 2
-		else
-			_rounds = 1
-			_resolve_all_rounds = true
-		end
-		_no_resolve = false
-	end
-
-	_pre_resolve = !_no_pre_resolve
-	_final_no_resolve = !_resolve_all_rounds
-
-	if (_final_no_resolve==true)
-		println("WARNING: Default set to not resolve in final round. This can be disabled using `--resolve-all-rounds`")
-	end
-
-	if (_final_no_resolve==true) && (_rounds==1) && (_no_resolve==false)
-		_no_resolve=true
-		_final_no_resolve=false
-	end
-
-	println("Performing $_rounds rounds of TreeKnit")
-	_naive==true && println("Performing naive inference")
-	_pre_resolve==true && println("Preresolving all trees before MCC inference")
-	if _no_resolve==false
-		println("Resolving trees during MCC inference")
-		_liberal_resolve==true && println("Resolve ambiguous splits with the most parsimonious option")
-		_liberal_resolve==false && println("Only resolving unambiguous splits")
-		_final_no_resolve==true && println("Not resolving trees in the final round of MCC inference")
-	else
-		println("Not resolving trees during MCC inference")
-	end
+	# Setting up parameters
 
 	oa = OptArgs(;
-		γ = gamma,
-		likelihood_sort = !no_likelihood,
-		resolve = !_no_resolve,
-		strict=!_liberal_resolve,
-		final_no_resolve = _final_no_resolve,
-		rounds = _rounds, 
-		nMCMC = n_mcmc_it,
-		seq_lengths = sl,
-		verbose = true,
-		parallel = parallel,
-		pre_resolve = _pre_resolve,
+	γ = gamma,
+	likelihood_sort = !no_likelihood,
+	nMCMC = n_mcmc_it,
+	seq_lengths = sl,
+	verbose = true,
+	parallel = parallel,
 	)
+	oa = set_up_OptArgs!(oa, length(trees), rounds, better_trees, better_MCCs, no_pre_resolve, no_resolve, liberal_resolve, resolve_all_rounds)
 
 	json_string = JSON3.write(oa)
 	
@@ -191,8 +134,8 @@ but the output trees will potentially have a higher rate of inaccurate splits.
 		JSON3.pretty(f, json_string)
 	end
 
-	#
 	@info "Parameters: $oa"
+	# Infer MCCs
 
 	@info "Inferring MCCs...\n"
 	infered_trees = [copy(t) for t in trees]
@@ -258,11 +201,72 @@ function write_rlm(filename, rlm)
 	end
 end
 
+function set_up_OptArgs!(oa::OptArgs, K::Int, rounds::Int, better_trees::Bool, better_MCCs::Bool, no_pre_resolve::Bool, no_resolve::Bool, liberal_resolve::Bool, resolve_all_rounds::Bool)
+
+	if (better_trees == true) && (better_MCCs == true)
+		error("Cannot use both `--better-trees` and `--better-MCCs`")
+	end
+
+	if (better_trees == true) || (better_MCCs == false && K>2)
+		@info "Using `--better-trees` method"
+		oa.pre_resolve = true
+		oa.strict = true
+		oa.final_no_resolve = true
+		oa.rounds = 1
+		oa.resolve = false	
+	elseif (better_MCCs == true) || (better_trees == false && K==2)
+		@info "Using `--better-MCCs` method"
+		oa.pre_resolve = true
+		oa.strict = true
+		if K>2
+			oa.rounds = 2
+			oa.final_no_resolve = true
+		else
+			oa.rounds = 1
+			oa.final_no_resolve = false
+		end
+		oa.resolve = true
+	end
+
+	(no_pre_resolve==true) && (oa.pre_resolve=false) #default false or input value
+	(liberal_resolve==true) && (oa.strict=false) #default false or input value
+	(resolve_all_rounds==true) && (oa.final_no_resolve=false) #default false or input value
+	(rounds!=1) && (oa.rounds=rounds) #default 1 or input value
+	(no_resolve==true) && (oa.resolve=false) #default false or input value
+
+	##clean up
+	if (oa.final_no_resolve==true) && (oa.rounds==1) && (oa.resolve==true)
+		oa.resolve=false
+		oa.final_no_resolve=false
+	end
+
+	if K>2 && oa.resolve==true && oa.final_no_resolve==false
+		println("WARNING: For $K) we do not recommend resolving during MCC inference in the final round.")
+	end
+
+	if (oa.final_no_resolve==true)
+		println("WARNING: Default set to not resolve in final round. This can be disabled using `--resolve-all-rounds`")
+	end
+
+	println("Performing $(oa.rounds) rounds of TreeKnit")
+	oa.pre_resolve==true && println("Preresolving all trees before MCC inference")
+	if oa.resolve==true
+		println("Resolving trees during MCC inference")
+		oa.strict==false && println("Resolve ambiguous splits with the most parsimonious option")
+		oa.strict==true && println("Only resolving unambiguous splits")
+		oa.final_no_resolve==true && println("Not resolving trees in the final round of MCC inference")
+	else
+		println("Not resolving trees during MCC inference")
+	end
+
+	return oa
+end
+
 function make_output_tree_names(nwk_names, ext; ARG=false)
 
 	f = [splitext(n)[1] for n in nwk_names]
 	if ARG
-		names = [f_i * "_ARG_resolved" * ext for f_i in f]
+		names = [f_i * "_liberal_resolved" * ext for f_i in f]
 	else
 		names = [f_i * "_resolved" * ext for f_i in f]
 	end

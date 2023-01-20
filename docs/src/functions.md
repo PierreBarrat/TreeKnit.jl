@@ -19,7 +19,7 @@ TreeKnit.treeknit
 ## Computing Maximal Compatible Clades (MCCs) for pairs
 ### Main functions 
 ```@docs
-computeMCCs
+run_treeknit!
 ```
 
 ### For pairs of trees only

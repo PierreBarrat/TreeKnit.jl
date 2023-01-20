@@ -67,13 +67,23 @@ In addition, when TreeKnit is called on exactly two trees the directory will con
 
 ### Options
 
+We suggest two methods for running TreeKnit, however it is possible to specify all parameter objects for each individual use-case.
+- `--better-trees`: This method is recommended for most users using >2 trees. It will attempt to resolve all trees compatibly before inferring MCCs, it will then run 1 round of 
+pair-wise treeknit inference on all tree pairs individually - not further resolving trees. This technique will produce the most accurate output trees and the most homogeneous MCCs -
+this means that if nodes are inferred to be in a shared MCC they are infact shared. This method is also the fastest.
+- `--better-MCCs`: This method is recommended for users using 2 trees, or users who are more interested in inferring accurate MCCs. It will also attempt to resolve all trees compatibly
+before inferring MCCs, it will then run 1 round of sequential treeknit inference on all tree pairs, further resolving trees using the MCCs inferred in the previous treeknit calls. 
+For K>2 trees it will then run one final round of pairwise TreeKnit on all tree pairs individually - not further resolving trees. This technique will produce the most accurate MCCs, 
+but the output trees will potentially have a higher rate of inaccurate splits. 
+
+
 Options that you can play with are:  
 - `--gamma` or `-g`: the parsimony parameter $\gamma$ (see [here](@ref gamma)).
 - `--naive`: naive inference. Using this flag is equivalent to setting $\gamma \rightarrow \infty$.  
 - `--seq-lengths`: length of sequences used to infer trees. These are used for likelihood test to break degeneracy between topologically equivalent MCCs.  
 - `--no-likelihood`: do not use branch length to sort the likelihood of different MCCs.
-- `--no-resolve`: do not attempt to resolve trees before inferring MCCs.
-- `--parallel`: run sequential MultiTreeKnit with parallelization (only used for 4 or more trees).
+- `--no-resolve`: do not attempt to resolve trees during and after MCC inference.
+- `--parallel`: run sequential MultiTreeKnit with parallelization (only used for 3 or more trees).
 - `--auspice-view`: will create files that can be used to view a tanglegram of the two trees with colored maximally compatible clades in [auspice](https://docs.nextstrain.org/projects/auspice/en/stable/advanced-functionality/second-trees.html). For more information see [Visualization of MCCs in a tanglegram](@ref view_auspice).
 
 
@@ -92,7 +102,7 @@ In particular, the parsimony parameter is explained [here](@ref gamma) and resol
     For more than two trees, the process is different. A plan for the future is to "uniformize" the way TreeKnit is called for 2 or more trees. So what's below may be deprecated then. 
 
 If `TreeKnit` has to be used on several datasets and speed is important, then you should call it from a julia session directly. 
-Let's see how one does this for a simple two tree example using the `example` directory, which contains two Newick files `tree_h3n2_ha.nwk` and `tree_h3n2_na.nwk`. 
+Let's see how one does this for a simple two tree example using the `example` directory, which contains two Newick files `tree_h3n2_ha.nwk` and `tree_h3n2_na.nwk`. We shall use the `--better-MCCs` method, which is the default for 2 trees.
 First, read the trees: 
 ```@example usage_from_julia
 using TreeTools
@@ -103,17 +113,20 @@ t_na = read_tree(dirname(pathof(TreeKnit)) * "/../examples/tree_h3n2_na.nwk", la
 !!! info "Tree Labels" 
     When computing the MCCs for tree pairs `TreeKnit` uses a tree's `label` as a unique identifier. These labels are also written to the output `.json` file. When `TreeKnit`is used via the command line the filename and/or folder name is used as a label for the input trees if these are unique, otherwise an error is thrown. When using `TreeKnit` from a julia session, trees will be assigned a random unique string as an identifying label. One can change this by calling `label!(tree, some_label)`, see the [TreeTools documentation](https://pierrebarrat.github.io/TreeTools.jl/dev/) 
 
-We now proceed in the following steps:
-1. Compute the MCCs of the two trees. By default, if `TreeKnit` receives two trees as input, these will be resolved with each other prior to inference unless `--no-resolve` is activated. See the [options](@ref options) or [MCCs](@ref MCCs) for more details, additionally see [MultiTreeKnit](@ref multitreeknit) to learn how this is handled when more than two trees are given as input.
-2. Resolve the trees using these MCCs. 
-3. Optionally the first input tree can be ladderized, and the polytomies of two trees can be sorted w.r.t to the MCCs, allowing for clearer visualization (e.g. if the tree pair should be later visualized in a dendrogram).
-4. Compute the ARG from the resolved trees and the MCCs. 
+We run treeknit in the repl using the command: `run_treeknit!` (it takes an optional argument object `OptArgs`, with which we can specify inference parameters) the command does the following:
+1. By default, `TreeKnit` resolves all trees with each other prior to inference unless `--no-pre-resolve` is activated (equivalent to setting `pre_resolve=false` in the `OptArgs`). 
+2. Compute the MCCs of the two trees, by default MCCs are inferred up to resolution, this can be deactivated with the `--no-resolve` flag. See [MCCs](@ref MCCs) for more details.
+3. Resolve the two trees using the inferred MCCs. This can be deactivated with the `--no-resolve` flag (equivalent to setting `resolve=false` in the `OptArgs`). 
+4. Ladderize the first input tree, and sort the polytomies of two trees w.r.t to the MCCs, allowing for 
+clearer [Visualization](@ref visualization) (e.g. dendrograms).
+
+!!! info "pre-resolve and resolve"
+    Note that`resolve=true` will also resolve trees with each other prior to inference, and thus `pre_resolve` is not needed for 2 trees if `resolve=true`, but we distinguish between the two options for consistency with $>2$ trees).
+
+For two trees we can additionally compute the ARG from the resolved trees and the MCCs, note ARG reconstruction will potentially further resolve trees, adding ambiguous splits in a manner that is more parsimonious, using [liberal resolution](@ref resolving).
 
 ```@repl usage_from_julia
-MCCs = computeMCCs(t_ha, t_na) # compute MCCs
-rS = resolve!(t_ha, t_na, MCCs); # resolve. Output `rS` contains the resolved splits
-TreeTools.ladderize!(t_ha) #ladderize the first tree
-TreeKnit.sort_polytomies!(tree1, tree2, MCC) #sort the polytomies 
+MCCs = run_treeknit!(t_ha, t_na; OptArgs(;pre_resolve=true, resolve=false, strict=true)) # compute MCCs, resolve trees
 arg, rlm, lm1, lm2 = SRG.arg_from_trees(t_ha, t_na, MCCs); # compute the ARG and mappings from tree to ARG internal nodes. 
 ```
 
@@ -121,7 +134,7 @@ To write these results to files, one could do
 ```
 write("arg.nwk", arg) # write the ARG
 write_mccs("MCCs.json", MCCs) # write the MCCs
-write_newick("tree_ha_resolved.nwk", t_ha) # write resolved HA tree
+write_newick("tree_ha_ARG_resolved.nwk", t_ha) # write resolved HA tree
 ```
 
 Note that the `treeknit` function in `src/cli.jl` follows exactly these steps for two trees, for multiple trees see the [MultiTreeKnit section](@ref multitreeknit). Have a look at it for a more detailed example of how to use this package from inside julia. 

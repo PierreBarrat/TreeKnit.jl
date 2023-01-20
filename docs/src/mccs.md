@@ -18,9 +18,9 @@ t1 = parse_newick_string("((A,B),(C,(D,X)));")
 t2 = parse_newick_string("((A,(B,X)),(C,D));")
 ```
 
-The `computeMCCs` function takes two trees as input. 
+The `run_treeknit!` function takes two trees as input. 
 ```@example basic
-mccs = computeMCCs(t1, t2)
+mccs = run_treeknit!(t1, t2)
 ```
 Individual MCCs are simply arrays containing labels of leaves of the trees.  
 
@@ -34,7 +34,7 @@ As a result, the ARG must embed both segment-trees, and every branch in the ARG 
 *TreeKnit* infers the ARG by finding the branches that are common to both trees. 
 Given two trees with potentially different topologies, it tries to "glue" them together in a reasonable way, where the interpretation of reasonable can vary between *parsimonious* and *conservative* (see the [parsimony parameter](@ref gamma) $\gamma$). 
 
-The MCCs returned by `computeMCCs` represent regions of the ARG (and of the segment trees) where branches are common to both trees. 
+The MCCs returned by `run_treeknit!` represent regions of the ARG (and of the segment trees) where branches are common to both trees. 
 In other words, these are the regions where the two segment trees must be "glued together". 
 Given those regions and the knowledge of the trees, it is possible to unambiguously reconstruct the genealogy. 
 
@@ -48,10 +48,10 @@ Given those regions and the knowledge of the trees, it is possible to unambiguou
 
 ## [Naive estimation](@id naive_mccs)
 It is also possible to compute a "naive" estimation of MCCs using the `naive` keyword. 
-  When `naive` is set to `true`, `computeMCCs` returns maximum clades that are exactly compatible between pairs of trees: 
+  When `naive` is set to `true`, `run_treeknit!` returns maximum clades that are exactly compatible between pairs of trees: 
 ```@example naive
 using TreeKnit # hide
 t1 = parse_newick_string("(((A1,A2),(B1,B2)),(C1,C2));")
 t2 = parse_newick_string("(((A1,A2),(C1,C2)),(B1,B2));")
-computeMCCs(t1, t2; naive=true)
+run_treeknit!(t1, t2; naive=true)
 ```
