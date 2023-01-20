@@ -30,7 +30,7 @@ function check_parallelized_TK()
 
             i_trees = [copy(t) for t in unresolved_trees]
             try
-                fc_i_MCCs = run_treeknit!(i_trees, TreeKnit.OptArgs(parallel=true))
+                fc_i_MCCs = run_treeknit!(i_trees, TreeKnit.OptArgs(8;parallel=true))
             catch e
                 print("n: "*string(no_trees))
                 for t in true_trees

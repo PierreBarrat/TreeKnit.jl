@@ -117,16 +117,8 @@ but the output trees will potentially have a higher rate of inaccurate splits.
 	naive==true && println("Performing naive inference")
 
 	# Setting up parameters
-
-	oa = OptArgs(;
-	γ = gamma,
-	likelihood_sort = !no_likelihood,
-	nMCMC = n_mcmc_it,
-	seq_lengths = sl,
-	verbose = true,
-	parallel = parallel,
-	)
-	oa = set_up_OptArgs!(oa, length(trees), rounds, better_trees, better_MCCs, no_pre_resolve, no_resolve, liberal_resolve, resolve_all_rounds)
+	oa = set_up_OptArgs!(length(trees), gamma, !no_likelihood, n_mcmc_it, sl, parallel, rounds, 
+				better_trees, better_MCCs, no_pre_resolve, no_resolve, liberal_resolve, resolve_all_rounds)
 
 	json_string = JSON3.write(oa)
 	
@@ -201,50 +193,31 @@ function write_rlm(filename, rlm)
 	end
 end
 
-function set_up_OptArgs!(oa::OptArgs, K::Int, rounds::Int, better_trees::Bool, better_MCCs::Bool, no_pre_resolve::Bool, no_resolve::Bool, liberal_resolve::Bool, resolve_all_rounds::Bool)
+function set_up_OptArgs!(K::Int, γ::Real, likelihood_sort::Bool, nMCMC::Int, seq_lengths::Vector{Int}, parallel::Bool,
+	rounds::Int, better_trees::Bool, better_MCCs::Bool, no_pre_resolve::Bool, no_resolve::Bool, liberal_resolve::Bool, resolve_all_rounds::Bool)
 
 	if (better_trees == true) && (better_MCCs == true)
 		error("Cannot use both `--better-trees` and `--better-MCCs`")
 	end
 
-	if (better_trees == true) || (better_MCCs == false && K>2)
-		@info "Using `--better-trees` method"
-		oa.pre_resolve = true
-		oa.strict = true
-		oa.final_no_resolve = true
-		oa.rounds = 1
-		oa.resolve = false	
-	elseif (better_MCCs == true) || (better_trees == false && K==2)
-		@info "Using `--better-MCCs` method"
-		oa.pre_resolve = true
-		oa.strict = true
-		if K>2
-			oa.rounds = 2
-			oa.final_no_resolve = true
-		else
-			oa.rounds = 1
-			oa.final_no_resolve = false
-		end
-		oa.resolve = true
-	end
+	method = :None
+	(better_trees == true) && (method = :BetterTrees)
+	(better_MCCs == true) && (method = :BetterMCCs)
 
-	(no_pre_resolve==true) && (oa.pre_resolve=false) #default false or input value
-	(liberal_resolve==true) && (oa.strict=false) #default false or input value
-	(resolve_all_rounds==true) && (oa.final_no_resolve=false) #default false or input value
-	(rounds!=1) && (oa.rounds=rounds) #default 1 or input value
-	(no_resolve==true) && (oa.resolve=false) #default false or input value
+	oa = OptArgs(K; method, γ, likelihood_sort, nMCMC, seq_lengths, parallel)
 
-	##clean up
-	if (oa.final_no_resolve==true) && (oa.rounds==1) && (oa.resolve==true)
-		oa.resolve=false
-		oa.final_no_resolve=false
-	end
+	##check if any additional arguments have been passed
+	(no_pre_resolve == true) && (oa.pre_resolve = false)
+	(no_resolve == true) && (oa.resolve = false)
+	(liberal_resolve == true) && (oa.strict = false)
+	(resolve_all_rounds == true) && (oa.final_no_resolve = false)
+	(rounds != 1) && (oa.rounds=rounds)
 
 	if K>2 && oa.resolve==true && oa.final_no_resolve==false
 		println("WARNING: For $K) we do not recommend resolving during MCC inference in the final round.")
 	end
 
-	if (oa.final_no_resolve==true)
+	if (oa.final_no_resolve==true) && K==2
 		println("WARNING: Default set to not resolve in final round. This can be disabled using `--resolve-all-rounds`")
 	end
 

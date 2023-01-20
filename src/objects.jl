@@ -13,9 +13,15 @@ Storing parameters for `SplitGraph.runopt` function.
 - `likelihood_sort::Bool = true`: sort equivalent configurations using likelihood test
   based on branch length.
 - `resolve::Bool = true`: try to resolve trees while finding MCCs.
+- `strict::Bool = true`: only resolve unambiguous splits
 - `seq_lengths`: lengths of sequences that trees were built from.
   Used in likelihood calculations.
   This is initialized from other input arguments, and defaults to sequences of length one.
+### Pipeline options - necessary for K>2 trees
+- `pre_resolve::Bool = true`: pre-resolve all trees using each other prior to MCC inference
+- `rounds::Int=1`: #rounds of MCC inference and tree resolution on all tree pairs
+- `final_no_resolve::Bool = false`: do not resolve in the final round of pair-wise MCC inference
+- `parallel::Bool = false`: parallelize MCC inference as much as possible. 
 ### Simulated annealing
 - `nMCMC::Int = 25`: The number *total* number of MCMC steps (swaps) for a tree of `n` leaves
 	is `nMCMC*n`. The number of MCMC steps at one temperature is `nMCMC * n / nT`.
@@ -32,8 +38,9 @@ Storing parameters for `SplitGraph.runopt` function.
 	itmax::Int64 = 15
 	likelihood_sort::Bool = true
 	resolve::Bool = true
-	strict::Bool = true ##when resolving the final tree only add non-ambiguous splits
+	strict::Bool = true 
 	seq_lengths::Vector{Int} = [1, 1]
+	# Pipeline options - needed for K>2 trees
 	pre_resolve::Bool = true
 	rounds::Int=1
 	final_no_resolve::Bool = false
@@ -49,6 +56,43 @@ Storing parameters for `SplitGraph.runopt` function.
 	# Verbosity
 	verbose::Bool = false
 	vv::Bool = false
+end
+
+
+"""
+	function OptArgs(K::Int; method=:None, kwargs...)
+
+OptArgs constructor will default to :BetterTrees method if K>2, :BetterMCCs if K==2.
+"""
+function OptArgs(K::Int; method=:None, kwargs...)
+	kwargs_dict = Dict(kwargs)
+	oa = OptArgs() #default values for K==2
+	haskey(kwargs_dict, :seq_lengths) ? oa.seq_lengths = kwargs_dict[:seq_lengths] : oa.seq_lengths = repeat([1], K)
+	haskey(kwargs_dict, :pre_resolve) ? oa.pre_resolve = kwargs_dict[:pre_resolve] : oa.pre_resolve = true
+	haskey(kwargs_dict, :strict) ? oa.strict = kwargs_dict[:strict] : oa.strict = true
+	if (method == :BetterTrees) || ((method == :None) && K>2)
+		@info "Using `--better-trees` method"
+		haskey(kwargs_dict, :resolve) ? oa.resolve = kwargs_dict[:resolve] : oa.resolve = false
+		haskey(kwargs_dict, :final_no_resolve) ? oa.final_no_resolve = kwargs_dict[:final_no_resolve] : oa.final_no_resolve = true
+		haskey(kwargs_dict, :rounds) ? oa.rounds = kwargs_dict[:rounds] : oa.rounds = 1	
+	elseif (method == :BetterMCCs) || ((method == :None) && K==2)
+		@info "Using `--better-MCCs` method"
+		haskey(kwargs_dict, :resolve) ? oa.resolve = kwargs_dict[:resolve] : oa.resolve = true
+		if K>2
+			haskey(kwargs_dict, :final_no_resolve) ? oa.final_no_resolve = kwargs_dict[:final_no_resolve] : oa.final_no_resolve = true
+			haskey(kwargs_dict, :rounds) ? oa.rounds = kwargs_dict[:rounds] : oa.rounds = 2
+		else
+			haskey(kwargs_dict, :final_no_resolve) ? oa.final_no_resolve = kwargs_dict[:final_no_resolve] : oa.final_no_resolve = false
+			haskey(kwargs_dict, :rounds) ? oa.rounds = kwargs_dict[:rounds] : oa.rounds = 1
+		end
+	end
+	##clean up
+	if (oa.final_no_resolve==true) && (oa.rounds==1) && (oa.resolve==true)
+		oa.resolve=false
+		oa.final_no_resolve=false
+	end
+
+	return oa
 end
 
 function get_cooling_schedule(Tmin, Tmax, nT; type=:geometric)

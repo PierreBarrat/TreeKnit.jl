@@ -67,7 +67,7 @@ In addition, when TreeKnit is called on exactly two trees the directory will con
 
 ### Options
 
-We suggest two methods for running TreeKnit, however it is possible to specify all parameter objects for each individual use-case.
+We present two methods for running TreeKnit, however it is possible to specify all parameters combinations for each individual use-case.
 - `--better-trees`: This method is recommended for most users using >2 trees. It will attempt to resolve all trees compatibly before inferring MCCs, it will then run 1 round of 
 pair-wise treeknit inference on all tree pairs individually - not further resolving trees. This technique will produce the most accurate output trees and the most homogeneous MCCs -
 this means that if nodes are inferred to be in a shared MCC they are infact shared. This method is also the fastest.
@@ -118,15 +118,15 @@ We run treeknit in the repl using the command: `run_treeknit!` (it takes an opti
 2. Compute the MCCs of the two trees, by default MCCs are inferred up to resolution, this can be deactivated with the `--no-resolve` flag. See [MCCs](@ref MCCs) for more details.
 3. Resolve the two trees using the inferred MCCs. This can be deactivated with the `--no-resolve` flag (equivalent to setting `resolve=false` in the `OptArgs`). 
 4. Ladderize the first input tree, and sort the polytomies of two trees w.r.t to the MCCs, allowing for 
-clearer [Visualization](@ref visualization) (e.g. dendrograms).
+clearer [Visualization](@ref visualization) (e.g. tanglegrams).
 
 !!! info "pre-resolve and resolve"
     Note that`resolve=true` will also resolve trees with each other prior to inference, and thus `pre_resolve` is not needed for 2 trees if `resolve=true`, but we distinguish between the two options for consistency with $>2$ trees).
 
-For two trees we can additionally compute the ARG from the resolved trees and the MCCs, note ARG reconstruction will potentially further resolve trees, adding ambiguous splits in a manner that is more parsimonious, using [liberal resolution](@ref resolving).
+For two trees we can additionally compute the ARG from the resolved trees and the MCCs, note ARG reconstruction will potentially further resolve trees, adding ambiguous splits in a manner that is more parsimonious, using [liberal resolution](@ref resolve_strict_vs_liberal).
 
 ```@repl usage_from_julia
-MCCs = run_treeknit!(t_ha, t_na; OptArgs(;pre_resolve=true, resolve=false, strict=true)) # compute MCCs, resolve trees
+MCCs = run_treeknit!(t_ha, t_na; OptArgs(;pre_resolve=true, resolve=true, strict=true)) # compute MCCs, resolve trees
 arg, rlm, lm1, lm2 = SRG.arg_from_trees(t_ha, t_na, MCCs); # compute the ARG and mappings from tree to ARG internal nodes. 
 ```
 

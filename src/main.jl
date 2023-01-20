@@ -94,7 +94,7 @@ function run_parallel_treeknit!(trees::Vector{Tree{T}}, oa::OptArgs; func_=TreeK
 end
 
 """
-	run_treeknit!(trees::Vector{Tree{T}}, oa::OptArgs=OptArgs(); naive=false) where T
+	run_treeknit!(trees::Vector{Tree{T}}, oa::OptArgs; naive=false) where T
 
 Main TreeKnit run function. 
 
@@ -130,11 +130,11 @@ function run_treeknit!(trees::Vector{Tree{T}}, oa::OptArgs; naive=false) where T
 end
 
 function run_treeknit!(trees::Vector{Tree{T}}; kwargs...) where T 
-    return run_treeknit!(trees, OptArgs(;kwargs...))
+    return run_treeknit!(trees, OptArgs(length(trees);kwargs...))
 end
 
 function run_treeknit!(t1::Tree{T}, t2::Tree{T}; kwargs...) where T 
-    return run_treeknit!([t1,t2], OptArgs(;kwargs...))
+    return run_treeknit!([t1,t2], OptArgs(2;kwargs...))
 end
 
 function run_treeknit!(t1::Tree{T}, t2::Tree{T}, oa::OptArgs) where T 
@@ -173,7 +173,7 @@ Run optimization at constant γ. See `?Optargs` for arguments.
 In the first form, keyword arguments are given to `OptArgs`.
 """
 function runopt(t1::Tree, t2::Tree; kwargs...)
-	runopt(OptArgs(;kwargs...), t1, t2)
+	runopt(OptArgs(2;kwargs...), t1, t2)
 end
 
 function runopt(oa::OptArgs, t1::Tree, t2::Tree; output = :mccs)

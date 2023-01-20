@@ -18,25 +18,25 @@ solutions = [   [["A"], ["B", "C"]],
 
 @testset "get_infered_MCC_pairs!" begin
     input_trees = [copy(t1), copy(t2), copy(t3)]
-    MCC_dict = run_treeknit!(input_trees, OptArgs(rounds=2, final_no_resolve=true))
+    MCC_dict = run_treeknit!(input_trees, OptArgs(3; method= :BetterMCCs))
     @test get(MCC_dict,("a", "c")) == [["A", "B", "C"]]
     @test in(get(MCC_dict, ("a", "b")), solutions)
 	@test SplitList(t1) == SplitList(input_trees[3])
 
     input_trees = [copy(t1), copy(t2), copy(t3)]
-    MCC_dict = run_treeknit!(input_trees, OptArgs(rounds=1, final_no_resolve=true))
+    MCC_dict = run_treeknit!(input_trees, OptArgs(3; rounds=1, final_no_resolve=true))
     @test in(get(MCC_dict, ("a", "b")), solutions)
     @test in(get(MCC_dict, ("a", "c")), solutions)
 	@test SplitList(t1) != SplitList(input_trees[3])
 
     input_trees = [copy(t2), copy(t1), copy(t3)]
-    MCC_dict = run_treeknit!(input_trees, OptArgs(rounds=1, final_no_resolve=false))
+    MCC_dict = run_treeknit!(input_trees, OptArgs(3; rounds=1, resolve=true, final_no_resolve=false))
     @test get(MCC_dict, ("b", "c")) == [["A", "B", "C"]]
     @test in(get(MCC_dict, ("a", "b")), solutions)
 	@test SplitList(t2) == SplitList(input_trees[3])
 
     input_trees = [copy(t3), copy(t1), copy(t2)]
-    MCC_dict = run_treeknit!(input_trees, OptArgs(rounds=1, final_no_resolve=false))
+    MCC_dict = run_treeknit!(input_trees, OptArgs(3; rounds=1, resolve=true, final_no_resolve=false))
     @test get(MCC_dict,("a", "c")) == [["A", "B", "C"]]
     @test in(get(MCC_dict,("a", "b")), solutions)
 	@test SplitList(t1) == SplitList(input_trees[1])
