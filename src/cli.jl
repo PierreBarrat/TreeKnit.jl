@@ -6,9 +6,9 @@ We suggest two methods for running TreeKnit:
 pair-wise treeknit inference on all tree pairs individually - not further resolving trees. This technique will produce the most accurate output trees and the most homogeneous MCCs -
 this means that if nodes are inferred to be in a shared MCC they are infact shared. This method is also the fastest.
 - `--better-MCCs`: This method is recommended for users using 2 trees, or users who are more interested in inferring accurate MCCs. It will also attempt to resolve all trees compatibly
-before inferring MCCs, it will then run 1 round of sequential treeknit inference on all tree pairs, further resolving trees using the MCCs inferred in the previous treeknit calls. It will
-then run one final round of pairwise TreeKnit on all tree pairs individually - not further resolving trees. This technique will produce the most accurate MCCs, but the output trees will
-potentially have a higher rate of inaccurate splits. 
+before inferring MCCs, it will then run 1 round of sequential treeknit inference on all tree pairs, further resolving trees using the MCCs inferred in the previous treeknit calls. 
+For K>2 trees it will then run one final round of pairwise TreeKnit on all tree pairs individually - not further resolving trees. This technique will produce the most accurate MCCs, 
+but the output trees will potentially have a higher rate of inaccurate splits. 
 
 # Arguments
 
@@ -101,7 +101,7 @@ potentially have a higher rate of inaccurate splits.
 		sl
 	catch err
 		@error "Unrecognized format for `--seq-lengths`.
-Should be of the form `--seq-lengths \"1500 2000\"`"
+				Should be of the form `--seq-lengths \"1500 2000\"`"
 		error(err)
 	end
 
@@ -114,56 +114,75 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 		@info "Running in parallel"
 	end
 
-	if better_trees
-		rounds = 1
-		naive = false
-		no_pre_resolve = false
-		no_resolve = true
-		liberal_resolve = false
-		resolve_all_rounds = false
-		final_no_resolve = true
-	elseif better_MCCs
-		rounds = 2
-		naive = false
-		no_pre_resolve = false
-		no_resolve = false
-		liberal_resolve = false 
-		resolve_all_rounds = false
-		final_no_resolve = true
-	end
-
-	pre_resolve = !no_pre_resolve
-
-	println("Performing $rounds rounds of TreeKnit")
-	if resolve_all_rounds || (length(trees)==2 && !no_resolve)
-		resolve_all_rounds = true
-		no_resolve = false
-		println("Resolving tree topology prior to inference")
-	end
-	if no_resolve
-		println("Not resolving tree topology prior to inference")
-		final_no_resolve = true 
-	end
-	if (length(trees)>2 && !resolve_all_rounds && !no_resolve)
-		final_no_resolve = true
-		println("Resolving tree topology prior to inference in all rounds but final round")
-	else
-		final_no_resolve = false
-	end
-
 	# Setting up OptArgs
+
+	_naive = naive #default false or input value
+	_no_pre_resolve = no_pre_resolve #default false or input value
+	_liberal_resolve = liberal_resolve #default false or input value
+	_resolve_all_rounds = resolve_all_rounds #default false or input value
+	_rounds = rounds #default 1 or input value
+	_no_resolve = no_resolve #default false or input value
+
+	if length(trees)>2 && no_resolve==false && resolve_all_rounds==true
+		println("WARNING: For $(length(trees)) we do not recommend resolving during MCC inference in the final round.")
+	end
+
+	if better_trees == true
+		_naive = false
+		_no_pre_resolve = false
+		_liberal_resolve = false
+		_resolve_all_rounds = false
+		_rounds = 1
+		_no_resolve = true
+	elseif better_MCCs == true
+		_naive = false
+		_no_pre_resolve = false
+		_liberal_resolve = false
+		if length(trees)>2
+			_rounds = 2
+		else
+			_rounds = 1
+			_resolve_all_rounds = true
+		end
+		_no_resolve = false
+	end
+
+	_pre_resolve = !_no_pre_resolve
+	_final_no_resolve = !_resolve_all_rounds
+
+	if (_final_no_resolve==true)
+		println("WARNING: Default set to not resolve in final round. This can be disabled using `--resolve-all-rounds`")
+	end
+
+	if (_final_no_resolve==true) && (_rounds==1) && (_no_resolve==false)
+		_no_resolve=true
+		_final_no_resolve=false
+	end
+
+	println("Performing $_rounds rounds of TreeKnit")
+	_naive==true && println("Performing naive inference")
+	_pre_resolve==true && println("Preresolving all trees before MCC inference")
+	if _no_resolve==false
+		println("Resolving trees during MCC inference")
+		_liberal_resolve==true && println("Resolve ambiguous splits with the most parsimonious option")
+		_liberal_resolve==false && println("Only resolving unambiguous splits")
+		_final_no_resolve==true && println("Not resolving trees in the final round of MCC inference")
+	else
+		println("Not resolving trees during MCC inference")
+	end
+
 	oa = OptArgs(;
 		γ = gamma,
 		likelihood_sort = !no_likelihood,
-		resolve = !no_resolve,
-		strict=!liberal_resolve,
-		final_no_resolve = final_no_resolve,
-		rounds = rounds, 
+		resolve = !_no_resolve,
+		strict=!_liberal_resolve,
+		final_no_resolve = _final_no_resolve,
+		rounds = _rounds, 
 		nMCMC = n_mcmc_it,
 		seq_lengths = sl,
 		verbose = true,
 		parallel = parallel,
-		pre_resolve = pre_resolve,
+		pre_resolve = _pre_resolve,
 	)
 
 	json_string = JSON3.write(oa)
@@ -200,7 +219,7 @@ Should be of the form `--seq-lengths \"1500 2000\"`"
 	if length(trees) ==2
 		mkpath(outdir*"/ARG")
 		rS = resolve!(trees[1], trees[2], get(MCCs, trees[1].label, trees[2].label))
-		out_nwk = make_output_tree_names(fn, ext; liberal=true)
+		out_nwk = make_output_tree_names(fn, ext; ARG=true)
 		for i in 1:MCCs.no_trees
 			write_newick(outdir * "/ARG/" * out_nwk[i], trees[i])
 		end
@@ -239,11 +258,11 @@ function write_rlm(filename, rlm)
 	end
 end
 
-function make_output_tree_names(nwk_names, ext; liberal=false)
+function make_output_tree_names(nwk_names, ext; ARG=false)
 
 	f = [splitext(n)[1] for n in nwk_names]
-	if liberal
-		names = [f_i * "_liberal_resolved" * ext for f_i in f]
+	if ARG
+		names = [f_i * "_ARG_resolved" * ext for f_i in f]
 	else
 		names = [f_i * "_resolved" * ext for f_i in f]
 	end
