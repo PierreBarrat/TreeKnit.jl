@@ -18,7 +18,7 @@ As a result, `t1` and `t2` differ for a reason unrelated with reassortment.
 To overcome this issue, one has to **resolve** trees as much as possible, typically using the information of one to remove polytomies in the other. 
   This can only be done if no reassortments are present. 
 
-## Resolving pairs of trees
+## Resolving trees
 
 In the example above, it is natural to think that the difference between the two trees is due to a lack of resolution and not to reassortment. 
   This is because the split `(B,C)` in the first tree is **compatible** with the second tree: it is possible to add this split to `t2`. 
@@ -43,11 +43,35 @@ isempty(new_splits[1])
 new_splits[2]
 ```
 
-If the `resolve` option is passed to `run_treeknit!` (through `OptArgs`), `resolve!` will be called on each pair of trees before each iteration of the MCC inference procedure, MCC inference will allow for resolution and after each pair-wise iteration of `TreeKnit` the trees shall be resolved using the inferred MCCs.
+The `resolve` function can also be called on more than three trees. When called on more than 2 trees it will only introduce splits from one tree into another tree if that split is compatible with all other trees. Take the same 2 trees from before (`t1` and `t2`) and assume we add a third tree `t3`
 
+```@setup 3
+using TreeKnit
+t1 = parse_newick_string("(A,(B,C));")
+t2 = parse_newick_string("(A,B,C);")
+t3 = parse_newick_string("(A,B,C);")
+```
+```@example 3
+new_splits = resolve!(t1, t2, t3);
+t2
+t3
+```
+As the `(B,C)` is compatible with both the 2nd and the 3rd tree it will be introduced in both trees. Now assume we add a 4th tree where the `(B,C)` split is no longer compatible. Now neither tree `t2` or `t3` will be further resolved.
 
+```@setup 4
+using TreeKnit
+t1 = parse_newick_string("(A,(B,C));")
+t2 = parse_newick_string("(A,B,C);")
+t3 = parse_newick_string("(A,B,C);")
+t4 = parse_newick_string("((A,B),C);")
+```
+```@example 4
+new_splits = resolve!(t1, t2, t3, t4);
+t2
+t3
+```
 
-## Resolving during MCC inference
+## Resolving during MCC inference for tree pairs
 The above resolving method works fine for simple "obvious" cases, where a split in one tree directly resolves a polytomy in another. 
 However, consider the following case: 
 ```@setup 3
@@ -88,7 +112,7 @@ This is done automatically during MCC inference if the `resolve` option of `OptA
 MCCs = run_treeknit!(t1, t2, OptArgs(;resolve=true))
 ```
 
-## Resolving with inferred MCCs
+## Resolving with inferred MCCs for tree pairs
 
 Once the MCCs are inferred, it is possible to use them to resolve trees: in the regions of shared branches of the ARG, the two trees `t1` and `t2` must have the same splits. 
   The `resolve!` function also has a method for this. 
@@ -139,7 +163,7 @@ All the above possibilities to resolve `t2` are compatible with the found MCCs a
 
 The `strict` and `liberal` options for resolution make different choices in this situation. 
 - Strict resolve will consider this situation as ambiguous, and not attempt any resolution. Hence the final `t2` will have a Newick string `"(A,B,C,D);"`. 
-  More generally, with the `strict` option, TreeKnit ill only resolve a polytomy if the relation of all branches within the polytomy can be unambiguously determined using the other tree, potentially not fully resolving shared regions of the trees. 
+  More generally, with the `strict` option, TreeKnit will only resolve a polytomy if the relation of all branches within the polytomy can be unambiguously determined using the other tree, potentially not fully resolving shared regions of the trees. 
 
 ```@repl strict_lib
 MCCs = [["D"], ["A", "B", "C"]]
@@ -161,4 +185,4 @@ t2
 Here are a few extra notes on strict vs liberal options: 
 - liberal resolve will in general result in significantly more wrong splits placed in the trees
 - to create an ARG, it is necessary that MCCs are resolved exactly the same in both trees: the trees must be *knitted* together in those regions. 
-  For this reason, it is also necessary to use liberal resolve in this case. 
+  For this reason, it is also necessary to use liberal resolve for ARG reconstruction. 

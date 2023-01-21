@@ -68,13 +68,13 @@ In addition, when TreeKnit is called on exactly two trees the directory will con
 ### Options
 
 We present two methods for running TreeKnit, however it is possible to specify all parameters combinations for each individual use-case.
-- `--better-trees`: This method is recommended for most users using >2 trees. It will attempt to resolve all trees compatibly before inferring MCCs, it will then run 1 round of 
-pair-wise treeknit inference on all tree pairs individually - not further resolving trees. This technique will produce the most accurate output trees and the most homogeneous MCCs -
-this means that if nodes are inferred to be in a shared MCC they are infact shared. This method is also the fastest.
+
+#### [TreeKnit run methods](@id TK_method_options)
+- `--better-trees`: This method is recommended for most users using >2 trees and is also the fastest. It will attempt to resolve all trees compatibly before inferring MCCs, it will then run 1 round of 
+pair-wise treeknit inference on all tree pairs individually - not further resolving trees. This technique has been optimized for sensitivity in MCC inference and polytomy resolution, minimizing the false positive rate for shared branches and new splits, but increasing the false negative rate, i.e. typically inferring too many reassortment events. 
 - `--better-MCCs`: This method is recommended for users using 2 trees, or users who are more interested in inferring accurate MCCs. It will also attempt to resolve all trees compatibly
 before inferring MCCs, it will then run 1 round of sequential treeknit inference on all tree pairs, further resolving trees using the MCCs inferred in the previous treeknit calls. 
-For K>2 trees it will then run one final round of pairwise TreeKnit on all tree pairs individually - not further resolving trees. This technique will produce the most accurate MCCs, 
-but the output trees will potentially have a higher rate of inaccurate splits. 
+For K>2 trees it will then run one final round of pairwise TreeKnit on all tree pairs individually - not further resolving trees (this is required for $K>2$ trees to ensure the accuracy of the output MCCs). This technique is optimized for MCC accuracy, however the output trees will potentially have a higher rate of inaccurate splits, this rate will increase with the number of trees. 
 
 
 Options that you can play with are:  
