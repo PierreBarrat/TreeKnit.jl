@@ -63,3 +63,34 @@ When taking branch lengths into account, this degeneracy vanishes:
 oa = OptArgs(likelihood_sort = true)
 unique([run_treeknit!(t1, t2, oa) for rep in 1:50])
 ```
+
+## Verbosity
+
+The TreeKnit cli has four level of verbosity that can be set with the `--verbosity-level <value>` option: 
+- `-1` means no visible output
+- `0` means relatively little output: input file names, number of MCCs found, etc ... Less than 10 lines. (Default)
+- `1` gives a bit more details about what's going on: the MCC inference process for each pair of trees is detailed
+- `2` gives a lot of information and is only useful for debugging and when using small trees 
+
+The `--verbose` or `-v` flag set the verbosity to `1` instead of `0`. 
+
+When using from a julia session, it can be useful to also set the verbosity. 
+Let's take the simple case where one wants to use `run_treeknit!(tree1, tree2, OptArgs())` with some pre-loaded trees and default arguments. 
+If run like this, no info will be shown. 
+To trigger verbosity, create a custom logger in the following way: 
+
+```@example verbosity
+using TreeKnit, TreeTools
+t1 = parse_newick_string("((A:2,B:2):2,C:4);")
+t2 = parse_newick_string("(A:2,(B:1,C:1):1);")
+using Logging
+verbosity = 1
+logger = ConsoleLogger(LogLevel(-verbosity)) # corresponds to `--verbosity-level 1` from the CLI
+output = with_logger(logger) do 
+  run_treeknit!(t1, t2, OptArgs())
+end
+```
+
+The above works because during inference, TreeKnit emits log messages in the form `@logmsg LogLevel(0/-1/-2) msg`. 
+The default Julia logger will only show messages with a positive level, and this can be set as described above. 
+See the [Logging](https://docs.julialang.org/en/v1/stdlib/Logging) and the [LoggingExtras](https://github.com/JuliaLogging/LoggingExtras.jl) package for more information. 

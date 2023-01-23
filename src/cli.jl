@@ -45,7 +45,7 @@ but the output trees will potentially have a higher rate of inaccurate splits.
 	seq_lengths::AbstractString = join([string(i) for i in repeat([1], 2+ length(nwk_files))], " "),
 	n_mcmc_it::Int = OptArgs().nMCMC,
 	rounds::Int = 1,
-	verbosity_level = 0,
+	verbosity_level::Int = 0,
 	# flags
 	better_trees::Bool = false,
 	better_MCCs::Bool = false,
@@ -215,24 +215,24 @@ function set_up_optargs(
 	liberal_resolve::Bool,
 	resolve_all_rounds::Bool
 )
-	@logmsg LogLevel(-1) ""
-	@logmsg LogLevel(-1) "Setting up parameters of the TreeKnit run"
+	@logmsg LogLevel(0) ""
+	@logmsg LogLevel(0) "Setting up parameters of the TreeKnit run"
 	if (better_trees == true) && (better_MCCs == true)
 		error("Cannot use both `--better-trees` and `--better-MCCs`")
 	end
 
 	method = if better_trees
-		@logmsg LogLevel(-1) "Using the `--better-trees` method"
+		@logmsg LogLevel(0) "Using the `--better-trees` method"
 		:better_trees
 	elseif better_MCCs
-		@logmsg LogLevel(-1) "Using the `--better-MCCs` method"
+		@logmsg LogLevel(0) "Using the `--better-MCCs` method"
 		:better_MCCs
 	else
 		if K > 2
-			@logmsg LogLevel(-1) "Using the `--better-trees` method by default for >2 trees"
+			@logmsg LogLevel(0) "Using the `--better-trees` method by default for >2 trees"
 			:better_trees
 		else
-			@logmsg LogLevel(-1) "Using the `--better-MCCs` method by default for 2 trees"
+			@logmsg LogLevel(0) "Using the `--better-MCCs` method by default for 2 trees"
 			:better_MCCs
 		end
 	end
@@ -254,15 +254,15 @@ function set_up_optargs(
 		@warn "Default set to not resolve in final round. This can be disabled using `--resolve-all-rounds`"
 	end
 
-	@logmsg LogLevel(-1) ".. Will perform $(oa.rounds) rounds of TreeKnit"
-	oa.pre_resolve==true && @logmsg LogLevel(-1) ".. Will preresolve all trees before MCC inference"
+	@logmsg LogLevel(0) ".. Will perform $(oa.rounds) rounds of TreeKnit"
+	oa.pre_resolve==true && @logmsg LogLevel(0) ".. Will preresolve all trees before MCC inference"
 	if oa.resolve==true
-		@logmsg LogLevel(-1) ".. Will resolve trees during MCC inference (change with `--no-resolve`)"
-		oa.strict==false && @logmsg LogLevel(-1) ".. Will resolve ambiguous splits with the most parsimonious option (flag --liberal-resolve)"
-		oa.strict==true && @logmsg LogLevel(-1) ".. Will Only resolve unambiguous splits (change with `--liberal-resolve`)"
-		oa.final_no_resolve==true && @logmsg LogLevel(-1) ".. Will not resolve trees in the final round of MCC inference (change with `--resolve-all-rounds`)"
+		@logmsg LogLevel(0) ".. Will resolve trees during MCC inference (change with `--no-resolve`)"
+		oa.strict==false && @logmsg LogLevel(0) ".. Will resolve ambiguous splits with the most parsimonious option (flag --liberal-resolve)"
+		oa.strict==true && @logmsg LogLevel(0) ".. Will Only resolve unambiguous splits (change with `--liberal-resolve`)"
+		oa.final_no_resolve==true && @logmsg LogLevel(0) ".. Will not resolve trees in the final round of MCC inference (change with `--resolve-all-rounds`)"
 	else
-		@logmsg LogLevel(-1) ".. Will not resolve trees during MCC inference (`--no-resolve` flag)"
+		@logmsg LogLevel(0) ".. Will not resolve trees during MCC inference (`--no-resolve` flag)"
 	end
 
 	return oa
