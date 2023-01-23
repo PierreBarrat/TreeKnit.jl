@@ -223,17 +223,17 @@ function set_up_optargs(
 
 	method = if better_trees
 		@infov 1 "Using the `--better-trees` method"
-		:BetterTrees
+		:better_trees
 	elseif better_MCCs
 		@infov 1 "Using the `--better-MCCs` method"
-		:BetterMCCs
+		:better_MCCs
 	else
 		if K > 2
 			@infov 1 "Using the `--better-trees` method by default for >2 trees"
-			:BetterTrees
+			:better_trees
 		else
 			@infov 1 "Using the `--better-MCCs` method by default for 2 trees"
-			:BetterMCCs
+			:better_MCCs
 		end
 	end
 	oa = OptArgs(K; method, γ, likelihood_sort, nMCMC, seq_lengths, parallel)

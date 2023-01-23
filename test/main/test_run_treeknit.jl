@@ -18,7 +18,7 @@ solutions = [   [["A"], ["B", "C"]],
 
 @testset "get_infered_MCC_pairs!" begin
     input_trees = [copy(t1), copy(t2), copy(t3)]
-    MCC_dict = run_treeknit!(input_trees, OptArgs(3; method= :BetterMCCs))
+    MCC_dict = run_treeknit!(input_trees, OptArgs(3; method= :better_MCCs))
     @test get(MCC_dict,("a", "c")) == [["A", "B", "C"]]
     @test in(get(MCC_dict, ("a", "b")), solutions)
 	@test SplitList(t1) == SplitList(input_trees[3])
