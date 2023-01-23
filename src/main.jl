@@ -26,7 +26,7 @@ function run_standard_treeknit!(trees::AbstractVector{Tree{T}}, oa::OptArgs; fun
     l_t = length(trees)
     pair_MCCs = MCC_set(l_t, [t.label for t in trees])
     for r in 1:oa.rounds
-        @infov 1 "ROUND: $r\n\n"
+        @logmsg LogLevel(-1) "ROUND: $r\n\n"
         for i in 1:(l_t-1), j in (i+1):l_t
 
             # do we resolve for this round?
@@ -36,18 +36,18 @@ function run_standard_treeknit!(trees::AbstractVector{Tree{T}}, oa::OptArgs; fun
             end
 
             # compute MCCs for current tree pair and add it to set
-			@infov 1 "Infering MCCs for trees: $(trees[j].label) and $(trees[i].label)\n\n"
+			@logmsg LogLevel(-1) "Infering MCCs for trees: $(trees[j].label) and $(trees[i].label)\n\n"
             mccs = func_(oa, trees[i], trees[j]; output = :mccs)
             add!(pair_MCCs, mccs, (i, j))
 
             if oa.resolve 
                 rS = TreeKnit.resolve!(trees[i], trees[j], get(pair_MCCs, (j, i)); oa.strict)
             end
-            @infov 1 "found MCCs for trees: "*trees[j].label*" and "*trees[i].label
+            @logmsg LogLevel(-1) "found MCCs for trees: "*trees[j].label*" and "*trees[i].label
             if r==oa.rounds 
 				i == 1 && TreeTools.ladderize!(trees[i]) # only the first tree is ladderized
                 TreeKnit.sort_polytomies!(trees[i], trees[j], get(pair_MCCs, trees[i].label, trees[j].label); oa.strict)
-                @infov 1 "ladderized and sorted trees: "*trees[j].label*" and "*trees[i].label
+                @logmsg LogLevel(-1) "ladderized and sorted trees: "*trees[j].label*" and "*trees[i].label
             end
         end
     end
@@ -186,16 +186,16 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree; output = :mccs)
 
 	# Initial state
 	iMCCs = naive_mccs(ot1, ot2)
-	@infov 1 "Initial state: $(length(iMCCs)) naive MCCs"
+	@logmsg LogLevel(-1) "Initial state: $(length(iMCCs)) naive MCCs"
 	MCCs = [] # All final MCCs found up to now
 	it = 1
 	while true
 		flag = :init
-		@infov 1 "--- Iteration $it (max. $(oa.itmax)) - $(length(leaves(ot1))) leaves remaining ---\n"
+		@logmsg LogLevel(-1) "--- Iteration $it (max. $(oa.itmax)) - $(length(leaves(ot1))) leaves remaining ---\n"
 
 		# Topology based inference
-		@infov 1 "Running optimization to find MCCs..."
-		@infov 1 "Cooling schedule: $(oa.cooling_schedule) / Temperature values: $(length(oa.Trange)) / Total of MCMC steps: $(length(ot1.lleaves) * oa.nMCMC)"
+		@logmsg LogLevel(-1) "Running optimization to find MCCs..."
+		@logmsg LogLevel(-1) "Cooling schedule: $(oa.cooling_schedule) / Temperature values: $(length(oa.Trange)) / Total of MCMC steps: $(length(ot1.lleaves) * oa.nMCMC)"
 		@assert share_labels(ot1, ot2) "Trees do not share leaves"
 		M = Int(ceil(length(ot1.lleaves) * oa.nMCMC / length(oa.Trange)))
 		mccs, Efinal, Ffinal, lk = SplitGraph.opttrees(
@@ -209,11 +209,11 @@ function runopt(oa::OptArgs, t1::Tree, t2::Tree; output = :mccs)
 			oa.sa_rep,
 		)
 		!isempty(mccs) && append!(MCCs, mccs)
-		@infov 1 "Found $(length(mccs)) new mccs."
+		@logmsg LogLevel(-1) "Found $(length(mccs)) new mccs."
 
 
 		# Stopping condition
-		@infov 1 "Proceeding based on newly found MCCs..."
+		@logmsg LogLevel(-1) "Proceeding based on newly found MCCs..."
 		flag, rMCCs = stop_conditions!(MCCs, mccs, oa, it, ot1, ot2; hardstop=true)
 
 		#=
@@ -243,16 +243,16 @@ function stop_conditions!(
 )
 	# If no solution was found
 	if length(new_mccs) == 0
-		@infov 1 "No solution found... "
+		@logmsg LogLevel(-1) "No solution found... "
 		remaining_mccs = naive_mccs(trees)
 		## If hardstop or maxit,  stop
 		if hardstop || it > oa.itmax
 			append!(previous_mccs, remaining_mccs)
-			@infov 1 "Stopping\n"
+			@logmsg LogLevel(-1) "Stopping\n"
 			return :stop, []
 		else
 		## Otherwise, continue
-			@infov 1 "Continuing\n"
+			@logmsg LogLevel(-1) "Continuing\n"
 			return :next, remaining_mccs # (can't call this after because of `pruneconf!` below)
 		end
 	end
@@ -260,12 +260,12 @@ function stop_conditions!(
 	# If some new MCCs were found
 	## If they cover all leaves of the tree: a final decomposition has been found.
 	if sum(length(m) for m in new_mccs) == length(first(trees).lleaves)
-		@infov 1 "Found mccs cover all leaves: final decomposition found. Stopping.\n"
+		@logmsg LogLevel(-1) "Found mccs cover all leaves: final decomposition found. Stopping.\n"
 		return :stop, []
 	end
 	## If they do not cover all leaves of the trees, remove them from the trees
-	@infov 1 "Found mccs do not cover all leaves. Pruning them from trees."
-	@infov 2 "Pruned MCCs and trees: " new_mccs
+	@logmsg LogLevel(-1) "Found mccs do not cover all leaves. Pruning them from trees."
+	@logmsg LogLevel(-2) "Pruned MCCs and trees: " new_mccs
 
 	pruneconf!(new_mccs, trees...)
 	oa.resolve && resolve!(trees...)
@@ -274,16 +274,16 @@ function stop_conditions!(
 	if length(remaining_mccs) == 1
 		append!(new_mccs, remaining_mccs)
 		append!(previous_mccs, remaining_mccs)
-		@infov 1 "Resulting trees are compatible: final decomposition found. Stopping.\n"
+		@logmsg LogLevel(-1) "Resulting trees are compatible: final decomposition found. Stopping.\n"
 		return :stop, []
 	### If we reached the maximum number of iterations, stop
 	elseif it > oa.itmax
 		append!(previous_mccs, remaining_mccs)
-		@infov 1 "Maximum number of iterations reached. Stopping.\n"
+		@logmsg LogLevel(-1) "Maximum number of iterations reached. Stopping.\n"
 		return :stop, []
 	### Otherwise, continue
 	else
-		@infov 1 "Resulting trees have incompatibilities ($(length(remaining_mccs)) naive mccs left). Continuing.\n\n"
+		@logmsg LogLevel(-1) "Resulting trees have incompatibilities ($(length(remaining_mccs)) naive mccs left). Continuing.\n\n"
 		return :next, remaining_mccs
 	end
 end

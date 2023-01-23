@@ -137,9 +137,9 @@ function conf_likelihood_times(conf::Array{Bool,1}, g::Graph, μ, trees)
 						# in dL, μ[k1]*τ1 should ultimately be replaced by n1 which is the observed number of mutations (same goes for 2)
 						# What is currently there only makes sense for artificial data, where t is known exactly. 
 						L += dL
-						@infov 2 "No inconsistency for leaf $i ($(g.labels[i]))"
-						@infov 2 "Inferring that times $(τ1) on tree $k1 and $(τ2) on tree $k2 are the same."
-						@infov 2 "Corresponding likelihood is $dL."
+						@logmsg LogLevel(-2) "No inconsistency for leaf $i ($(g.labels[i]))"
+						@logmsg LogLevel(-2) "Inferring that times $(τ1) on tree $k1 and $(τ2) on tree $k2 are the same."
+						@logmsg LogLevel(-2) "Corresponding likelihood is $dL."
 					end
 				end
 			end

@@ -79,7 +79,7 @@ but the output trees will potentially have a higher rate of inaccurate splits.
 	@info "γ: $gamma"
 
 	# Reading trees
-	@infov 1 "Reading trees..."
+	@logmsg LogLevel(-1) "Reading trees..."
 	fn, ext = get_tree_names(nwk_files)
 	trees = [read_tree(nwk, label=f) for (nwk, f) in zip(nwk_files, fn)]
 	for t_i in trees[2:end] 
@@ -132,7 +132,7 @@ but the output trees will potentially have a higher rate of inaccurate splits.
 		JSON3.pretty(f, json_string)
 	end
 
-	@infov 1 "Parameters: $oa\n\n"
+	@logmsg LogLevel(-1) "Parameters: $oa\n\n"
 	# Infer MCCs
 
 	@info "Inferring MCCs...\n"
@@ -162,9 +162,9 @@ but the output trees will potentially have a higher rate of inaccurate splits.
 		for i in 1:MCCs.no_trees
 			write_newick(outdir * "/ARG/" * out_nwk[i], trees[i])
 		end
-		@infov 1 "Building ARG from trees and MCCs..."
+		@logmsg LogLevel(-1) "Building ARG from trees and MCCs..."
 		arg, rlm, lm1, lm2 = SRG.arg_from_trees(trees[1], trees[2], get(MCCs, trees[1].label, trees[2].label))
-		@infov 1 "Found $(length(arg.hybrids)) reassortments in the ARG.\n"
+		@logmsg LogLevel(-1) "Found $(length(arg.hybrids)) reassortments in the ARG.\n"
 		write(outdir * "/ARG/" * "arg.nwk", arg)
 		write_rlm(outdir * "/ARG/" * "nodes.dat", rlm)
 	end
@@ -215,24 +215,24 @@ function set_up_optargs(
 	liberal_resolve::Bool,
 	resolve_all_rounds::Bool
 )
-	@infov 1 ""
-	@infov 1 "Setting up parameters of the TreeKnit run"
+	@logmsg LogLevel(-1) ""
+	@logmsg LogLevel(-1) "Setting up parameters of the TreeKnit run"
 	if (better_trees == true) && (better_MCCs == true)
 		error("Cannot use both `--better-trees` and `--better-MCCs`")
 	end
 
 	method = if better_trees
-		@infov 1 "Using the `--better-trees` method"
+		@logmsg LogLevel(-1) "Using the `--better-trees` method"
 		:better_trees
 	elseif better_MCCs
-		@infov 1 "Using the `--better-MCCs` method"
+		@logmsg LogLevel(-1) "Using the `--better-MCCs` method"
 		:better_MCCs
 	else
 		if K > 2
-			@infov 1 "Using the `--better-trees` method by default for >2 trees"
+			@logmsg LogLevel(-1) "Using the `--better-trees` method by default for >2 trees"
 			:better_trees
 		else
-			@infov 1 "Using the `--better-MCCs` method by default for 2 trees"
+			@logmsg LogLevel(-1) "Using the `--better-MCCs` method by default for 2 trees"
 			:better_MCCs
 		end
 	end
@@ -254,15 +254,15 @@ function set_up_optargs(
 		@warn "Default set to not resolve in final round. This can be disabled using `--resolve-all-rounds`"
 	end
 
-	@infov 1 ".. Will perform $(oa.rounds) rounds of TreeKnit"
-	oa.pre_resolve==true && @infov 1 ".. Will preresolve all trees before MCC inference"
+	@logmsg LogLevel(-1) ".. Will perform $(oa.rounds) rounds of TreeKnit"
+	oa.pre_resolve==true && @logmsg LogLevel(-1) ".. Will preresolve all trees before MCC inference"
 	if oa.resolve==true
-		@infov 1 ".. Will resolve trees during MCC inference (change with `--no-resolve`)"
-		oa.strict==false && @infov 1 ".. Will resolve ambiguous splits with the most parsimonious option (flag --liberal-resolve)"
-		oa.strict==true && @infov 1 ".. Will Only resolve unambiguous splits (change with `--liberal-resolve`)"
-		oa.final_no_resolve==true && @infov 1 ".. Will not resolve trees in the final round of MCC inference (change with `--resolve-all-rounds`)"
+		@logmsg LogLevel(-1) ".. Will resolve trees during MCC inference (change with `--no-resolve`)"
+		oa.strict==false && @logmsg LogLevel(-1) ".. Will resolve ambiguous splits with the most parsimonious option (flag --liberal-resolve)"
+		oa.strict==true && @logmsg LogLevel(-1) ".. Will Only resolve unambiguous splits (change with `--liberal-resolve`)"
+		oa.final_no_resolve==true && @logmsg LogLevel(-1) ".. Will not resolve trees in the final round of MCC inference (change with `--resolve-all-rounds`)"
 	else
-		@infov 1 ".. Will not resolve trees during MCC inference (`--no-resolve` flag)"
+		@logmsg LogLevel(-1) ".. Will not resolve trees during MCC inference (`--no-resolve` flag)"
 	end
 
 	return oa
@@ -301,7 +301,7 @@ end
 timestamp_logger(logger) = TransformerLogger(logger) do log
   merge(log, (; message = "[$(Dates.format(now(), date_format))] - $(log.message)"))
 end
-verbosity(log) = hasproperty(log.group, :verbosity) ? log.group.verbosity : 0
+# verbosity(log) = hasproperty(log.group, :verbosity) ? log.group.verbosity : 0
 
 function get_loggers(verbosity_level, io)
 	loggers = []
@@ -322,17 +322,29 @@ function get_loggers(verbosity_level, io)
 		FormatLogger(io) do io, args
 			println(io, pth(args.file), ":", args.line, " [", args.level, "] ", args.message)
 		end |>
-		msg -> EarlyFilteredLogger(x -> verbosity(x) <= max(verbosity_level, 1), msg) |>
-		x -> MinLevelLogger(x, Logging.Info) |>
+		x -> MinLevelLogger(x, LogLevel(-1)) |>
 		timestamp_logger
 	end
 	push!(loggers, file_logger)
 
 	## Console log
-	console_logger = EarlyFilteredLogger(
-		x -> verbosity(x) <= verbosity_level,
-		ConsoleLogger()
-	) |> timestamp_logger
+	#=
+	TransformerLogger takes log and feeds it to ConsoleLogger
+	ConsoleLogger only shows logs with level >= -verbosity_level
+	if log.level < -verbosity_level, it is unchanged --> it will not be shown
+	if log.level >= -verbosity_level, it is bumped up to Info --> will be shown as level Info
+	=#
+	console_logger =  begin
+		ConsoleLogger(LogLevel(-verbosity_level)) |>
+		x -> TransformerLogger(x) do log
+		   if log.level >= LogLevel(-verbosity_level)
+		       return merge(log, (;level = Logging.Info))
+		   else
+		       return log
+		   end
+		end |>
+		timestamp_logger
+    end
 	push!(loggers, console_logger)
 
 	return loggers

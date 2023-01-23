@@ -53,16 +53,16 @@ function opttrees!(
 	oconfs, F, nfound = sa_opt(g; Trange, γ, M, rep=sa_rep, resolve)
 	# Computing likelihoods
 	if length(oconfs) != 1
-		@infov 1 "Sorting $(length(oconfs)) topologically equivalent configurations."
-		@infov 2 "Configurations\n $oconfs"
-		@infov 2 g.labels
+		@logmsg LogLevel(-1) "Sorting $(length(oconfs)) topologically equivalent configurations."
+		@logmsg LogLevel(-2) "Configurations\n $oconfs"
+		@logmsg LogLevel(-2) g.labels
 		oconf, L = sortconf(oconfs, treelist, g, seq_lengths, mcc_names, likelihood_sort)
 	else
 		oconf = oconfs[1]
 		L = Union{Missing,Float64}[]
 	end
-	@infov 2 "Final configuration for this iteration: $oconf."
-	@infov 2 "MCCs removed: $([mcc_names[x] for x in g.labels[.!oconf]])"
+	@logmsg LogLevel(-2) "Final configuration for this iteration: $oconf."
+	@logmsg LogLevel(-2) "MCCs removed: $([mcc_names[x] for x in g.labels[.!oconf]])"
 	return (
 		[mcc_names[x] for x in g.labels[.!oconf]],
 		compute_energy(oconf,g),
@@ -77,7 +77,7 @@ function sortconf(oconfs, trees, g, seq_lengths, mcc_names, likelihood_sort, E_s
 		E = [compute_energy(conf,g) for conf in oconfs]
 		Emin = minimum(E)
 		oconfs_ = oconfs[findall(x->x==Emin, E)]
-		@infov 2 "Removing ", length(oconfs) - length(oconfs_), " configurations using energy."
+		@logmsg LogLevel(-2) "Removing ", length(oconfs) - length(oconfs_), " configurations using energy."
 	else # Removing configurations where nothing is removed
 		oconfs_ = oconfs[findall(c->sum(c)<length(c), oconfs)]
 	end
@@ -86,16 +86,16 @@ function sortconf(oconfs, trees, g, seq_lengths, mcc_names, likelihood_sort, E_s
 	if length(oconfs_) == 1
 		return oconfs_[1], Union{Missing,Float64}[]
 	elseif !likelihood_sort
-		@infov 2 "No likelihood sort: picking a random configuration among remaining ones"
+		@logmsg LogLevel(-2) "No likelihood sort: picking a random configuration among remaining ones"
 		return rand(oconfs_), Union{Missing,Float64}[]
 	else
-		@infov 2 "Comparing $(length(oconfs_)) configurations using likelihood"
+		@logmsg LogLevel(-2) "Comparing $(length(oconfs_)) configurations using likelihood"
 		L = Union{Missing,Float64}[]
 		for conf in oconfs_
 			push!(L, conf_likelihood(conf, g, seq_lengths, trees, mode=:time))
 		end
-		@infov 2 configurations=[[mcc_names[x] for x in g.labels[.!conf]] for conf in oconfs_]
-		@infov 2 "Likelihoods: $L"
+		@logmsg LogLevel(-2) configurations=[[mcc_names[x] for x in g.labels[.!conf]] for conf in oconfs_]
+		@logmsg LogLevel(-2) "Likelihoods: $L"
 		Lmax = maximum(L)
 		ismissing(Lmax) && @warn "Maximum likelihood is `missing`"
 		oconfs_ = oconfs_[findall(isequal(Lmax), L)]
