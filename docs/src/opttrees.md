@@ -7,8 +7,8 @@ The core of the heuristic *TreeKnit* is based on happens in the `opttrees` funct
 using TreeKnit# hide
 nwk1 = "(((A1:1,A2:2):2,(B1:2,(B2:1,B3:1):1):2):2,(C1:1,C2:2):4);";
 nwk2 = "((A1:1,A2:2):2,((B1:2,(B2:1,B3:1):1):1,(C1:1,C2:2):1):1);";
-t1 = parse_newick_string(nwk1)
-t2 = parse_newick_string(nwk2)
+t1 = parse_newick_string(nwk1; label="t1")
+t2 = parse_newick_string(nwk2; label="t2")
 nothing # hide
 ```
 Trees are not displayed here for space reasons, but you're encouraged to draw them if you want to follow along! 

@@ -125,7 +125,7 @@ clearer [Visualization](@ref visualization) (e.g. tanglegrams).
 For two trees we can additionally compute the ARG from the resolved trees and the MCCs, note ARG reconstruction will potentially further resolve trees, adding ambiguous splits in a manner that is more parsimonious, using [liberal resolution](@ref resolve_strict_vs_liberal).
 
 ```@repl usage_from_julia
-MCCs = run_treeknit!(t_ha, t_na; OptArgs(;pre_resolve=true, resolve=true, strict=true)) # compute MCCs, resolve trees
+MCCs = run_treeknit!(t_ha, t_na, OptArgs(;pre_resolve=true, resolve=true, strict=true)) # compute MCCs, resolve trees
 arg, rlm, lm1, lm2 = SRG.arg_from_trees(t_ha, t_na, MCCs); # compute the ARG and mappings from tree to ARG internal nodes. 
 ```
 

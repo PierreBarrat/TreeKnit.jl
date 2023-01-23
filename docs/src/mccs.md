@@ -14,8 +14,8 @@ Functions that directly handle trees are found in the separate *TreeTools* packa
 Let's see how to infer Maximally Compatible Clades (MCC) for a very simple case: two trees with five leaves. 
 ```@example basic; continued = true 
 using TreeKnit
-t1 = parse_newick_string("((A,B),(C,(D,X)));")
-t2 = parse_newick_string("((A,(B,X)),(C,D));")
+t1 = parse_newick_string("((A,B),(C,(D,X)));"; label="t1")
+t2 = parse_newick_string("((A,(B,X)),(C,D));"; label="t2")
 ```
 
 The `run_treeknit!` function takes two trees as input. 
@@ -51,7 +51,7 @@ It is also possible to compute a "naive" estimation of MCCs using the `naive` ke
   When `naive` is set to `true`, `run_treeknit!` returns maximum clades that are exactly compatible between pairs of trees: 
 ```@example naive
 using TreeKnit # hide
-t1 = parse_newick_string("(((A1,A2),(B1,B2)),(C1,C2));")
-t2 = parse_newick_string("(((A1,A2),(C1,C2)),(B1,B2));")
+t1 = parse_newick_string("(((A1,A2),(B1,B2)),(C1,C2));"; label="t1")
+t2 = parse_newick_string("(((A1,A2),(C1,C2)),(B1,B2));"; label="t2")
 run_treeknit!(t1, t2; naive=true)
 ```

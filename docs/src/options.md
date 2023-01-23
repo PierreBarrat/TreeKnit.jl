@@ -21,8 +21,8 @@ Here, we assign the score $\gamma$ to each pruned clade, and count as $1$ each i
 The example below illustrates the difference between different $\gamma$ values: 
 ```@example gamma1
 using TreeKnit # hide
-t1 = parse_newick_string("((((A,B),C),D),E);")
-t2 = parse_newick_string("((((D,B),E),A),C);") # Same topology, but shuffled leave
+t1 = parse_newick_string("((((A,B),C),D),E);"; label="t1")
+t2 = parse_newick_string("((((D,B),E),A),C);"; label="t2") # Same topology, but shuffled leave
 nothing # hide
 ```
 Here, pruning the two leaves `(A,C)` or `(D,E)` results in compatible trees (resp. `((B,D),E)` and `((A,B),C)`). 
@@ -55,13 +55,13 @@ using TreeKnit # hide
 t1 = parse_newick_string("((A:2,B:2):2,C:4);")
 t2 = parse_newick_string("(A:2,(B:1,C:1):1);")
 oa = OptArgs(likelihood_sort = false)
-unique([run_treeknit!(t1, t2, oa) for rep in 1:50]) # Repeating computation many times 
+unique([run_treeknit!(t1, t2, oa).mccs[Set([t1.label, t2.label])] for rep in 1:50]) # Repeating computation many times 
 ```
 
 When taking branch lengths into account, this degeneracy vanishes: 
 ```@example degeneracy
 oa = OptArgs(likelihood_sort = true)
-unique([run_treeknit!(t1, t2, oa) for rep in 1:50])
+unique([run_treeknit!(t1, t2, oa).mccs[Set([t1.label, t2.label])] for rep in 1:50])
 ```
 
 ## Verbosity
@@ -81,8 +81,8 @@ To trigger verbosity, create a custom logger in the following way:
 
 ```@example verbosity
 using TreeKnit, TreeTools
-t1 = parse_newick_string("((A:2,B:2):2,C:4);")
-t2 = parse_newick_string("(A:2,(B:1,C:1):1);")
+t1 = parse_newick_string("((A:2,B:2):2,C:4);"; label="t1")
+t2 = parse_newick_string("(A:2,(B:1,C:1):1);"; label="t2")
 using Logging
 verbosity = 1
 logger = ConsoleLogger(LogLevel(-verbosity)) # corresponds to `--verbosity-level 1` from the CLI

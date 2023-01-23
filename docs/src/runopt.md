@@ -14,8 +14,8 @@ Below is a relatively simple example of trees for which `opttrees` does not find
 ```@example runopt
 nwk1 = "(Z,(G,(((A,X),(B,C)),((D,Y),(E,F)))));"
 nwk2 = "(G,((A,(B,(C,X))),((D,(E,(F,Y))),Z)));"
-t1 = parse_newick_string(nwk1)
-t2 = parse_newick_string(nwk2)
+t1 = parse_newick_string(nwk1; label="t1")
+t2 = parse_newick_string(nwk2; label="t2")
 nothing # hide
 ```
 

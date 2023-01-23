@@ -20,9 +20,9 @@ The figure shows an ARG, of three tree segments, marked by their respective colo
 
 1. All trees are compatibly pre-resolved with each other (this can be deactivated with the `--no-pre-resolve` flag). In this case no additional splits can be added. For example, we try to add the $(B, C)$ and the $(A, B, C)$ into `tree_2` but as the two splits are not compatible with `tree_3` they will not be introduced.
 2. Run `1` round of standard `TreeKnit` without resolution on all tree pairs. As trees are not further resolved this can be fully parallelized. Note that $MCC_{\{1,2\}}$ and $MCC_{\{1,3\}}$ will not be properly inferred without resolution. Potential inferred $MCC_{\{1,2\}}$ are:
-$$ MCC'_{\{1,2\}} = \{\{A\}, \{D\}, \{B, C, D, E\}\} $$
-$$ MCC'_{\{1,2\}} = \{\{B\}, \{D\}, \{A, C, D, E\}\} $$
-$$ MCC'_{\{1,2\}} = \{\{C\}, \{D\}, \{A, B, D, E\}\} $$
+$$MCC'_{\{1,2\}} = \{\{A\}, \{D\}, \{B, C, D, E\}\}$$
+$$MCC'_{\{1,2\}} = \{\{B\}, \{D\}, \{A, C, D, E\}\}$$
+$$MCC'_{\{1,2\}} = \{\{C\}, \{D\}, \{A, B, D, E\}\}$$
 3. Ladderize the first tree and sort all polytomies according to to this tree to allow for visualization as a tanglegram. 
 
 In this example the trees will not be further resolved, leading to no inaccurate splits being introduced.
@@ -42,7 +42,7 @@ $$MCC'_{\{2,3\}} = \{\{C\}, \{D\}, \{A, B, D, E\}\}$$
 4. Ladderize the first tree and sort all polytomies according to to this tree to allow for visualization as a tanglegram.
 
 
-## Consistent resolution (@id consistent_resolution)
+## [Consistent resolution](@id consistent_resolution)
 
 ![plot](./Pictures/resolution_example.png)
 
@@ -64,7 +64,7 @@ At the end of the sequential inference on all tree pairs, each tree will be reso
 
 Furthermore, it can occur that the MCCs inferred for the tree pairs that were calculated at the start of the round are no longer MCCs (see the example above). We prevent this from happening, and make sure that all MCCs that are inferred are actual MCCs by running a final round where we re-infer all tree pair MCCs without resolving trees. However, the MCCs might still not fulfill all necessary consistency conditions to produce an ARG.
 
-## Consistent MCCs (@id consistent_MCCs)
+## [Consistent MCCs](@id consistent_MCCs)
 
 ![plot](./Pictures/resolution_example.png)
 
