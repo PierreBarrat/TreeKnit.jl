@@ -201,8 +201,8 @@ function set_up_OptArgs!(K::Int, γ::Real, likelihood_sort::Bool, nMCMC::Int, se
 	end
 
 	method = :None
-	(better_trees == true) && (method = :BetterTrees)
-	(better_MCCs == true) && (method = :BetterMCCs)
+	(better_trees == true) && (method = :better_trees)
+	(better_MCCs == true) && (method = :better_MCCs)
 
 	oa = OptArgs(K; method, γ, likelihood_sort, nMCMC, seq_lengths, parallel)
 

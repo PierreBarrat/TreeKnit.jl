@@ -62,7 +62,7 @@ end
 """
 	function OptArgs(K::Int; method=:None, kwargs...)
 
-OptArgs constructor will default to :BetterTrees method if K>2, :BetterMCCs if K==2.
+OptArgs constructor will default to :better_trees method if K>2, :better_MCCs if K==2.
 """
 function OptArgs(K::Int; method=:None, kwargs...)
 	kwargs_dict = Dict(kwargs)
@@ -70,12 +70,12 @@ function OptArgs(K::Int; method=:None, kwargs...)
 	haskey(kwargs_dict, :seq_lengths) ? oa.seq_lengths = kwargs_dict[:seq_lengths] : oa.seq_lengths = repeat([1], K)
 	haskey(kwargs_dict, :pre_resolve) ? oa.pre_resolve = kwargs_dict[:pre_resolve] : oa.pre_resolve = true
 	haskey(kwargs_dict, :strict) ? oa.strict = kwargs_dict[:strict] : oa.strict = true
-	if (method == :BetterTrees) || ((method == :None) && K>2)
+	if (method == :better_trees) || ((method == :None) && K>2)
 		@info "Using `--better-trees` method"
 		haskey(kwargs_dict, :resolve) ? oa.resolve = kwargs_dict[:resolve] : oa.resolve = false
 		haskey(kwargs_dict, :final_no_resolve) ? oa.final_no_resolve = kwargs_dict[:final_no_resolve] : oa.final_no_resolve = true
 		haskey(kwargs_dict, :rounds) ? oa.rounds = kwargs_dict[:rounds] : oa.rounds = 1	
-	elseif (method == :BetterMCCs) || ((method == :None) && K==2)
+	elseif (method == :better_MCCs) || ((method == :None) && K==2)
 		@info "Using `--better-MCCs` method"
 		haskey(kwargs_dict, :resolve) ? oa.resolve = kwargs_dict[:resolve] : oa.resolve = true
 		if K>2

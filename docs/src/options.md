@@ -6,7 +6,7 @@
 
 Note that when the `OptArgs()` object is initialized it's default parameters are the same as those for running `TreeKnit` for 2 trees. When instead the constructor `OptArgs(K::Int)` is called, the default parameters for running `TreeKnit` with `K` trees are returned. 
 
-The default parameters for `K=2` trees are the parameters for the `:BetterMCCs` method, whereas the default parameters for `K>2` trees are the parameters for the `:BetterTrees` method. See [TreeKnit Methods](@ref TK_method_options).
+The default parameters for `K=2` trees are the parameters for the `:better_MCCs` method, whereas the default parameters for `K>2` trees are the parameters for the `:better_trees` method. See [TreeKnit Methods](@ref TK_method_options).
 
 ## [Parsimony parameter](@id gamma)
 The heuristic method used by *TreeKnit* tries to prune consistent clades from a pair of trees in order to increase a compatibility score between other clades. 
