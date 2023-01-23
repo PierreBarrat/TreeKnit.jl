@@ -1,15 +1,17 @@
 module TreeKnit
 
 # External modules
+using Combinatorics
 using Comonicon
+using Dagger
+using Dates
+using JSON3
 using Logging
 using LoggingExtras
 using Parameters
 using Random
 using Setfield
-using JSON3
-using Combinatorics
-using Dagger
+
 # Personal modules
 using TreeTools
 
@@ -41,6 +43,7 @@ include("SimpleReassortmentGraph/SimpleReassortmentGraph.jl")
 import TreeKnit.SimpleReassortmentGraph: SRG
 export SRG
 
+const date_format = "HH:MM" # for logging
 include("cli.jl")
 
 # TreeTools re-exports for docs

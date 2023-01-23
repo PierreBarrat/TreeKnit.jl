@@ -20,7 +20,8 @@ but the output trees will potentially have a higher rate of inaccurate splits.
 - `-g, --gamma <arg>`: value of γ; Example `-g=2`
 - `--seq-lengths <arg>`: length of the sequences. Example: `--seq-length "1500 2000"`
 - `--n-mcmc-it <arg>`: number of MCMC iterations per leaf; default 25
-- `--rounds`: Number of times to run inference on input trees. If `rounds > 1` MCCs will be re-inferred using resolved trees from the last iteration. (default: `1`)
+- `--rounds <arg>`: Number of times to run inference on input trees. If `rounds > 1` MCCs will be re-inferred using resolved trees from the last iteration. (default: `1`)
+- `--verbosity-level <arg>`: set value of verbosity. Default 0. `-v` flag sets it to 1. Set to 2 for maximum verbosity (only useful for small trees). Set to -1 for no output at all
 
 # Flags
 
@@ -33,7 +34,7 @@ but the output trees will potentially have a higher rate of inaccurate splits.
 - `--no-pre-resolve`: Do not compatibly resolve all trees with each other before inferring MCCs (default is to pre-resolve)
 - `--no-likelihood`: Do not use branch length likelihood test to sort between different MCCs
 - `--parallel`: Run sequential TreeKnit with parallelization (only used for 3 or more trees)
-- `-v, --verbose`: verbosity
+- `-v, --verbose`: set verbosity to 1
 - `--auspice-view`: return ouput files for auspice
 """
 @main function treeknit(
@@ -44,6 +45,7 @@ but the output trees will potentially have a higher rate of inaccurate splits.
 	seq_lengths::AbstractString = join([string(i) for i in repeat([1], 2+ length(nwk_files))], " "),
 	n_mcmc_it::Int = OptArgs().nMCMC,
 	rounds::Int = 1,
+	verbosity_level::Int = 0,
 	# flags
 	better_trees::Bool = false,
 	better_MCCs::Bool = false,
@@ -58,34 +60,26 @@ but the output trees will potentially have a higher rate of inaccurate splits.
 	auspice_view::Bool = false
 )
 
-	nwk_files = [nwk_file1, nwk_file2, nwk_files...]
-	println("Treeknit: ")
-	println("Input trees:")
-	println(join(["$nwk \t" for nwk in nwk_files]))
-	println("Results directory: $outdir")
-	println("γ: $gamma")
 	# Setting up directories
 	mkpath(outdir)
 
 	# Setting loggers
-	loggers = []
-	## File log.txt
-	io = open(outdir*"/log.txt", "w+")
-	file_logger = FormatLogger(io) do io, args
-		println(io, args.file, ":", args.line, " [", args.level, "] ", args.message)
-	end;
-	push!(loggers, file_logger)
-	## If verbose, stderr
-	if verbose
-		push!(loggers, ConsoleLogger())
-	else
-		push!(loggers, MinLevelLogger(ConsoleLogger(), Logging.Warn))
+	if verbose && verbosity_level == 0
+		verbosity_level = 1
 	end
+	io_logfile = open(outdir*"/log.txt", "w+")
+	loggers = get_loggers(verbosity_level, io_logfile)
+	old_logger = global_logger(TeeLogger(loggers...))
 
-	global_logger(TeeLogger(loggers...))
+	# Start
+	nwk_files = [nwk_file1, nwk_file2, nwk_files...]
+	@info "Treeknit: "
+	@info "Input trees: " * join(["$nwk  " for nwk in nwk_files])
+	@info "Results directory: $outdir"
+	@info "γ: $gamma"
 
 	# Reading trees
-	@info "Input Newick files:"*join(["$nwk \t" for nwk in nwk_files])*". Reading trees..."
+	@logmsg LogLevel(-1) "Reading trees..."
 	fn, ext = get_tree_names(nwk_files)
 	trees = [read_tree(nwk, label=f) for (nwk, f) in zip(nwk_files, fn)]
 	for t_i in trees[2:end] 
@@ -95,7 +89,7 @@ but the output trees will potentially have a higher rate of inaccurate splits.
 	end
 
 	# Reading sequence lengths
-	sl = try
+	seq_lengths = try
 		local sl = map(i->parse(Int, i), split(seq_lengths, " "))
 		@assert length(sl) == length(trees)
 		sl
@@ -105,28 +99,40 @@ but the output trees will potentially have a higher rate of inaccurate splits.
 		error(err)
 	end
 
-	##only parallelize if there are 3 or more trees
+	# Parallelize only if there are 3 or more trees
 	if length(trees)<3 && parallel
-		@warn "Cannot run in parallel for less than 3 trees (got $(length(trees)))"
+		@warn "Cannot run in parallel for 2 trees"
 		parallel = false
 	end
 	if parallel
 		@info "Running in parallel"
 	end
 
-	naive==true && println("Performing naive inference")
+	naive==true && @info "Doing naive inference"
 
 	# Setting up parameters
-	oa = set_up_OptArgs!(length(trees), gamma, !no_likelihood, n_mcmc_it, sl, parallel, rounds, 
-				better_trees, better_MCCs, no_pre_resolve, no_resolve, liberal_resolve, resolve_all_rounds)
+	oa = set_up_optargs(
+		length(trees),
+		gamma,
+		!no_likelihood,
+		n_mcmc_it,
+		seq_lengths,
+		parallel,
+		rounds,
+		better_trees,
+		better_MCCs,
+		no_pre_resolve,
+		no_resolve,
+		liberal_resolve,
+		resolve_all_rounds
+	)
 
 	json_string = JSON3.write(oa)
-	
 	open(outdir * "/" *"parameters.json", "w") do f
 		JSON3.pretty(f, json_string)
 	end
 
-	@info "Parameters: $oa"
+	@logmsg LogLevel(-1) "Parameters: $oa\n\n"
 	# Infer MCCs
 
 	@info "Inferring MCCs...\n"
@@ -136,7 +142,6 @@ but the output trees will potentially have a higher rate of inaccurate splits.
 
 	l = [length(m) for (key,m) in MCCs.mccs]
 	@info "Found $l MCCs (runtime $(out[2]))\n"
-	verbose && println()
 	
 	# Write output
 	@info "Writing results in $(outdir)"
@@ -149,7 +154,6 @@ but the output trees will potentially have a higher rate of inaccurate splits.
 	if auspice_view
 		write_auspice_json(outdir * "/", infered_trees, MCCs)
 	end
-	verbose && println()
 
 	if length(trees) ==2
 		mkpath(outdir*"/ARG")
@@ -158,16 +162,19 @@ but the output trees will potentially have a higher rate of inaccurate splits.
 		for i in 1:MCCs.no_trees
 			write_newick(outdir * "/ARG/" * out_nwk[i], trees[i])
 		end
-		@info "Building ARG from trees and MCCs..."
+		@logmsg LogLevel(-1) "Building ARG from trees and MCCs..."
 		arg, rlm, lm1, lm2 = SRG.arg_from_trees(trees[1], trees[2], get(MCCs, trees[1].label, trees[2].label))
-		@info "Found $(length(arg.hybrids)) reassortments in the ARG.\n"
+		@logmsg LogLevel(-1) "Found $(length(arg.hybrids)) reassortments in the ARG.\n"
 		write(outdir * "/ARG/" * "arg.nwk", arg)
 		write_rlm(outdir * "/ARG/" * "nodes.dat", rlm)
 	end
 
-	close(io)
+	close(io_logfile)
 
-	println()
+	# give back logger
+	global_logger(old_logger)
+
+	return nothing
 end
 
 
@@ -193,20 +200,45 @@ function write_rlm(filename, rlm)
 	end
 end
 
-function set_up_OptArgs!(K::Int, γ::Real, likelihood_sort::Bool, nMCMC::Int, seq_lengths::Vector{Int}, parallel::Bool,
-	rounds::Int, better_trees::Bool, better_MCCs::Bool, no_pre_resolve::Bool, no_resolve::Bool, liberal_resolve::Bool, resolve_all_rounds::Bool)
-
+function set_up_optargs(
+	K::Int,
+	γ::Real,
+	likelihood_sort::Bool,
+	nMCMC::Int,
+	seq_lengths::AbstractVector{Int},
+	parallel::Bool,
+	rounds::Int,
+	better_trees::Bool,
+	better_MCCs::Bool,
+	no_pre_resolve::Bool,
+	no_resolve::Bool,
+	liberal_resolve::Bool,
+	resolve_all_rounds::Bool
+)
+	@logmsg LogLevel(0) ""
+	@logmsg LogLevel(0) "Setting up parameters of the TreeKnit run"
 	if (better_trees == true) && (better_MCCs == true)
 		error("Cannot use both `--better-trees` and `--better-MCCs`")
 	end
 
-	method = :None
-	(better_trees == true) && (method = :better_trees)
-	(better_MCCs == true) && (method = :better_MCCs)
-
+	method = if better_trees
+		@logmsg LogLevel(0) "Using the `--better-trees` method"
+		:better_trees
+	elseif better_MCCs
+		@logmsg LogLevel(0) "Using the `--better-MCCs` method"
+		:better_MCCs
+	else
+		if K > 2
+			@logmsg LogLevel(0) "Using the `--better-trees` method by default for >2 trees"
+			:better_trees
+		else
+			@logmsg LogLevel(0) "Using the `--better-MCCs` method by default for 2 trees"
+			:better_MCCs
+		end
+	end
 	oa = OptArgs(K; method, γ, likelihood_sort, nMCMC, seq_lengths, parallel)
 
-	##check if any additional arguments have been passed
+	## check if any additional arguments have been passed
 	(no_pre_resolve == true) && (oa.pre_resolve = false)
 	(no_resolve == true) && (oa.resolve = false)
 	(liberal_resolve == true) && (oa.strict = false)
@@ -214,26 +246,29 @@ function set_up_OptArgs!(K::Int, γ::Real, likelihood_sort::Bool, nMCMC::Int, se
 	(rounds != 1) && (oa.rounds=rounds)
 
 	if K>2 && oa.resolve==true && oa.final_no_resolve==false
-		println("WARNING: For $K) we do not recommend resolving during MCC inference in the final round.")
+		@warn "For K>2 we do not recommend resolving in the final round of MCC inference.
+		You see this warning because you used the `--resolve-all-rounds` flag."
 	end
 
 	if (oa.final_no_resolve==true) && K==2
-		println("WARNING: Default set to not resolve in final round. This can be disabled using `--resolve-all-rounds`")
+		@warn "Default set to not resolve in final round. This can be disabled using `--resolve-all-rounds`"
 	end
 
-	println("Performing $(oa.rounds) rounds of TreeKnit")
-	oa.pre_resolve==true && println("Preresolving all trees before MCC inference")
+	@logmsg LogLevel(0) ".. Will perform $(oa.rounds) rounds of TreeKnit"
+	oa.pre_resolve==true && @logmsg LogLevel(0) ".. Will preresolve all trees before MCC inference"
 	if oa.resolve==true
-		println("Resolving trees during MCC inference")
-		oa.strict==false && println("Resolve ambiguous splits with the most parsimonious option")
-		oa.strict==true && println("Only resolving unambiguous splits")
-		oa.final_no_resolve==true && println("Not resolving trees in the final round of MCC inference")
+		@logmsg LogLevel(0) ".. Will resolve trees during MCC inference (change with `--no-resolve`)"
+		oa.strict==false && @logmsg LogLevel(0) ".. Will resolve ambiguous splits with the most parsimonious option (flag --liberal-resolve)"
+		oa.strict==true && @logmsg LogLevel(0) ".. Will Only resolve unambiguous splits (change with `--liberal-resolve`)"
+		oa.final_no_resolve==true && @logmsg LogLevel(0) ".. Will not resolve trees in the final round of MCC inference (change with `--resolve-all-rounds`)"
 	else
-		println("Not resolving trees during MCC inference")
+		@logmsg LogLevel(0) ".. Will not resolve trees during MCC inference (`--no-resolve` flag)"
 	end
 
 	return oa
 end
+
+
 
 function make_output_tree_names(nwk_names, ext; ARG=false)
 
@@ -259,4 +294,58 @@ function get_tree_names(nwk_files)
 	end
 	@assert allunique(fn) "Input trees must be identifiable by file name"
 	return (fn, ext)
+end
+
+## Logging helpers
+
+timestamp_logger(logger) = TransformerLogger(logger) do log
+  merge(log, (; message = "[$(Dates.format(now(), date_format))] - $(log.message)"))
+end
+# verbosity(log) = hasproperty(log.group, :verbosity) ? log.group.verbosity : 0
+
+function get_loggers(verbosity_level, io)
+	loggers = []
+
+	# File logger
+	## show only relevant part of the path
+	pth(f) = begin
+		regex = r"TreeKnit.*$"
+		m = match(regex, f)
+		if isnothing(m)
+			f
+		else
+			m.match
+		end
+	end
+
+	file_logger = begin
+		FormatLogger(io) do io, args
+			println(io, pth(args.file), ":", args.line, " [", args.level, "] ", args.message)
+		end |>
+		x -> MinLevelLogger(x, LogLevel(-1)) |>
+		timestamp_logger
+	end
+	push!(loggers, file_logger)
+
+	## Console log
+	#=
+	TransformerLogger takes log and feeds it to ConsoleLogger
+	ConsoleLogger only shows logs with level >= -verbosity_level
+	if log.level < -verbosity_level, it is unchanged --> it will not be shown
+	if log.level >= -verbosity_level, it is bumped up to Info --> will be shown as level Info
+	=#
+	console_logger =  begin
+		ConsoleLogger(LogLevel(-verbosity_level)) |>
+		x -> TransformerLogger(x) do log
+		   if log.level >= LogLevel(-verbosity_level)
+		       return merge(log, (;level = Logging.Info))
+		   else
+		       return log
+		   end
+		end |>
+		timestamp_logger
+    end
+	push!(loggers, console_logger)
+
+	return loggers
 end

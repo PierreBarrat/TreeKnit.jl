@@ -83,6 +83,7 @@ Options that you can play with are:
 - `--no-resolve`: do not attempt to resolve trees during and after MCC inference.
 - `--parallel`: run sequential MultiTreeKnit with parallelization (only used for 3 or more trees).
 - `--auspice-view`: will create files that can be used to view a tanglegram of the two trees with colored maximally compatible clades in [auspice](https://docs.nextstrain.org/projects/auspice/en/stable/advanced-functionality/second-trees.html). For more information see [Visualization of MCCs in a tanglegram](@ref view_auspice).
+- `--verbosity-level`: see the [verbosity](@ref Verbosity) section for information. 
 
 
 Additional options can be used for "advanced users":

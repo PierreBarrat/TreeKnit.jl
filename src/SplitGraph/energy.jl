@@ -272,7 +272,7 @@ function _sa_opt(g::Graph, γ, Trange, M)
 		length(Trange);
 		dt=1.,
 		desc="Simulated annealing: ",
-		enabled=v(),
+		enabled=true,
 		barglyphs=BarGlyphs("[=> ]"),
 		showspeed=true,
 	)
