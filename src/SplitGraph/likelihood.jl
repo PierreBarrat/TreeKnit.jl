@@ -30,8 +30,8 @@ branch_likelihood(t1::Missing, t2::Missing, L1, L2) = 0.
 branch_likelihood(t1, t2, L1, L2) = 0.
 
 
-function conf_likelihood(conf::Array{Bool,1}, g::Graph, μ, trees; v=false, mode=:mutations)
-	conf_likelihood_(TreeTools.divtime, conf, g, μ, trees, v=v)
+function conf_likelihood(conf::Array{Bool,1}, g::Graph, μ, trees; mode=:mutations)
+	conf_likelihood_(TreeTools.divtime, conf, g, μ, trees)
 end
 
 """
@@ -41,9 +41,7 @@ For each leaf `n` remaining in `conf`, find the first non-trivial ancestors in g
 For each pair of ancestors `a1` and `a2`, compare the likelihood  that the real branch
 length from `n` to `a1` and `a2` is the same, with the likelihood that it is different.
 """
-function conf_likelihood_(
-	divfunction, conf::Array{Bool,1}, g::Graph, seq_lengths, trees; v=false
-)
+function conf_likelihood_(divfunction, conf::Array{Bool,1}, g::Graph, seq_lengths, trees)
 	L = 0.
 	Z = 0.
 	if length(g.leaves) + length(g.internals) == 1
@@ -77,12 +75,9 @@ function conf_likelihood_(
 						(get_resolve() && are_equal_with_resolution(g, a1, a2, conf))
 						tau1 = divfunction(tn1, ta1)
 						tau2 = divfunction(tn2, ta2)
-						# v && println("No inconsistency for leaf $i ($(g.labels[i]))")
-						# v && println("Inferring that times $(tau1) on tree $k1 and $(tau2) on tree $k2 are the same.")
 						dL = branch_likelihood(tau1, tau2, seq_lengths[k1], seq_lengths[k2])
 						L += dL
 						Z += 1.
-						# v && println("Corresponding likelihood is $dL.")
 					end
 				end
 			end
@@ -105,12 +100,11 @@ function conf_likelihood_(
 			end
 		end
 	end
-	# v && println("--> Final likelihood $(L/max(Z,1))")
 	return L/max(Z,1)
 end
 """
 """
-function conf_likelihood_times(conf::Array{Bool,1}, g::Graph, μ, trees; v=false)
+function conf_likelihood_times(conf::Array{Bool,1}, g::Graph, μ, trees)
 	L = 0.
 	for (i,s) in enumerate(conf)
 		if s
@@ -143,9 +137,9 @@ function conf_likelihood_times(conf::Array{Bool,1}, g::Graph, μ, trees; v=false
 						# in dL, μ[k1]*τ1 should ultimately be replaced by n1 which is the observed number of mutations (same goes for 2)
 						# What is currently there only makes sense for artificial data, where t is known exactly. 
 						L += dL
-						v && @info "No inconsistency for leaf $i ($(g.labels[i]))"
-						v && @info "Inferring that times $(τ1) on tree $k1 and $(τ2) on tree $k2 are the same."
-						v && @info "Corresponding likelihood is $dL."
+						@infov 2 "No inconsistency for leaf $i ($(g.labels[i]))"
+						@infov 2 "Inferring that times $(τ1) on tree $k1 and $(τ2) on tree $k2 are the same."
+						@infov 2 "Corresponding likelihood is $dL."
 					end
 				end
 			end

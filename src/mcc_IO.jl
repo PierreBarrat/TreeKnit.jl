@@ -28,9 +28,6 @@ The format is JSON:
 """
 function write_mccs(filename, MCCs::AbstractArray, mode="w")
 	file_type = split(filename, ".")[end]
-	if file_type !="dat"
-		print("File type not supported")
-	end
 	open(filename, mode) do w
 		for (i,m) in enumerate(MCCs)
 			for x in m[1:end-1]
@@ -57,7 +54,7 @@ end
 function write_mccs(filename, MCCs::MCC_set, mode="w")
 	file_type = split(filename, ".")[end]
 	if file_type !="json"
-		print("File type not supported")
+		@warn "Got filename $filename, but MCCs are written as a json format."
 	end
 
 	json_string = write_mccs(MCCs)

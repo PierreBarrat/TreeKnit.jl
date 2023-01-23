@@ -29,9 +29,6 @@ Storing parameters for `SplitGraph.runopt` function.
 - `Tmin::Float64 = 0.05`: minimal temperature of SA.
 - `Tmax::Float64 = 0.8`: maximal temperature of SA.
 - `nT::Int = 3000`: number of steps in the cooling schedule
-### Verbosity
-- `verbose::Bool=false`: first level of verbosity
-- `vv::Bool = false`: second level of verbosity
 """
 @with_kw mutable struct OptArgs
 	γ::Real = 2
@@ -53,9 +50,6 @@ Storing parameters for `SplitGraph.runopt` function.
 	nT::Int = 100
 	cooling_schedule = :geometric
 	Trange = get_cooling_schedule(Tmin, Tmax, nT, type=cooling_schedule)
-	# Verbosity
-	verbose::Bool = false
-	vv::Bool = false
 end
 
 
@@ -71,12 +65,10 @@ function OptArgs(K::Int; method=:None, kwargs...)
 	haskey(kwargs_dict, :pre_resolve) ? oa.pre_resolve = kwargs_dict[:pre_resolve] : oa.pre_resolve = true
 	haskey(kwargs_dict, :strict) ? oa.strict = kwargs_dict[:strict] : oa.strict = true
 	if (method == :BetterTrees) || ((method == :None) && K>2)
-		@info "Using `--better-trees` method"
 		haskey(kwargs_dict, :resolve) ? oa.resolve = kwargs_dict[:resolve] : oa.resolve = false
 		haskey(kwargs_dict, :final_no_resolve) ? oa.final_no_resolve = kwargs_dict[:final_no_resolve] : oa.final_no_resolve = true
 		haskey(kwargs_dict, :rounds) ? oa.rounds = kwargs_dict[:rounds] : oa.rounds = 1	
 	elseif (method == :BetterMCCs) || ((method == :None) && K==2)
-		@info "Using `--better-MCCs` method"
 		haskey(kwargs_dict, :resolve) ? oa.resolve = kwargs_dict[:resolve] : oa.resolve = true
 		if K>2
 			haskey(kwargs_dict, :final_no_resolve) ? oa.final_no_resolve = kwargs_dict[:final_no_resolve] : oa.final_no_resolve = true
@@ -85,6 +77,8 @@ function OptArgs(K::Int; method=:None, kwargs...)
 			haskey(kwargs_dict, :final_no_resolve) ? oa.final_no_resolve = kwargs_dict[:final_no_resolve] : oa.final_no_resolve = false
 			haskey(kwargs_dict, :rounds) ? oa.rounds = kwargs_dict[:rounds] : oa.rounds = 1
 		end
+	else
+		error("`method` should be one of `:BetterTrees`, `:BetterMCCs` or `:None`")
 	end
 	##clean up
 	if (oa.final_no_resolve==true) && (oa.rounds==1) && (oa.resolve==true)
