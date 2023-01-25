@@ -144,8 +144,19 @@ end
 Resolve `t1` using splits of `t2` and inversely. Every split of `t2` a tree that is
 compatible with `t1` is introduced in `t1` with branch length `tau` (and inversely). 
 Return new splits in each tree.
+
 If more than two trees are given, only introduce a split from `ti` in tree `tj` if 
 the split is compatible with all trees.
+
+	resolve!(t1::Tree{T}, t2::Tree{T}, MCCs; tau = 0., strict=true)
+
+Resolve `t1` using `t2` and `t2` using `t1`, both using the list of MCCs.
+Return the list of resolved splits in each tree.
+
+- MCCs: Vector{Vector{String}}. List of MCCs. Each MCC is a vector of leaf names.
+- tau: New branches have a length `tau`. 
+- strict: if strict or liberal resolution should be used. 
+   If strict, only introduce unambiguous splits.
 """
 function resolve!(t1::Tree, t2::Tree, tn::Vararg{Tree}; tau=0.)
 	S = [SplitList(t) for t in (t1,t2, tn...)]
@@ -163,15 +174,7 @@ end
 ############################## Resolve trees using inferred compatible clades #################################
 ###############################################################################################################
 
-"""
-	resolve!(t1::Tree{T}, t2::Tree{T}, MCCs; tau = 0.)
-
-Resolve `t1` using `t2` and inversely using the list of MCCs.
-New branches have a length `tau`.
-Return the list of resolved splits in each tree.
-"""
-
-function resolve!(t1::Tree{T}, t2::Tree{T}, MCCs; tau = 0., strict=false) where T 
+function resolve!(t1::Tree{T}, t2::Tree{T}, MCCs; tau = 0., strict=true) where T 
 	resolvable_splits = TreeKnit.new_splits(MCCs, t1, t2; strict)
 	resolve!(t1, resolvable_splits[1]; conflict=:fail, tau)
 	resolve!(t2, resolvable_splits[2]; conflict=:fail, tau)

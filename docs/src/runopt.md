@@ -82,9 +82,8 @@ To finish the inference of MCCs, we would now have to re-run the optimization pr
 
 This process stops when one of the following end conditions is fulfilled: 
 
-1. If no new MCCs are found in a given iteration of `opttrees`. 
-   This occurs when the optimal configuration resulting from the simulated annealing has all leaves present. 
-2. If no new MCCs were found, prune them from the trees. 
-   If the resulting trees do not have any incompatibility.
-3. If the maximum number of iterations has been reached. 
+1. If no new MCCs are found in a given iteration of `opttrees` stop.
+2. If new MCCs were found, prune them from the trees. 
+   If the resulting trees do not have any incompatibilities stop.
+3. If the maximum number of iterations has been reached stop.
    This number can be set through `OptArgs`, the default is 15. 

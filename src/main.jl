@@ -23,12 +23,16 @@ tested. During the final round, the trees are not resolved anymore. This can be 
 by setting `oa.final_no_resolve=false`, but it is not recommended for more than two trees.
 """
 function run_standard_treeknit!(trees::AbstractVector{Tree{T}}, oa::OptArgs; func_=TreeKnit.runopt) where T
+	tree_seq_lengths = oa.seq_lengths
+	@assert length(tree_seq_lengths) == length(trees) || length(tree_seq_lengths) == 2
     l_t = length(trees)
     pair_MCCs = MCC_set(l_t, [t.label for t in trees])
     for r in 1:oa.rounds
         @logmsg LogLevel(-1) "ROUND: $r\n\n"
         for i in 1:(l_t-1), j in (i+1):l_t
-
+			if length(tree_seq_lengths) >2
+				oa.seq_lengths = [tree_seq_lengths[i], tree_seq_lengths[j]]
+			end
             # do we resolve for this round?
             if oa.final_no_resolve && r==oa.rounds
                 oa.resolve = false
@@ -79,10 +83,15 @@ end
 Parallelized version of `run_standard_treeknit!(trees, oa, func_)`.
 """
 function run_parallel_treeknit!(trees::Vector{Tree{T}}, oa::OptArgs; func_=TreeKnit.runopt) where T 
-    l_t = length(trees)
+    tree_seq_lengths = oa.seq_lengths 
+	@assert length(tree_seq_lengths) == length(trees) || length(tree_seq_lengths) == 2
+	l_t = length(trees)
     parallel_MCCs = Dict()
     for r in 1:oa.rounds
         for i in 1:(l_t-1), j in (i+1):l_t
+			if length(tree_seq_lengths) >2
+				oa.seq_lengths = [tree_seq_lengths[i], tree_seq_lengths[j]]
+			end
             parallel_MCCs[Set([i,j])] = Dagger.@spawn run_step!(oa, trees[i], trees[j], func_, r, i)
         end
     end
@@ -103,11 +112,11 @@ Computes MCCs of all tree pairs in tree list `trees` using `TreeKnit.run_opt`.
 ## Parameters:
 - `pre_resolve=true`: input trees are resolved with each other prior to MCC computation.
 - `resolve=true`: input trees are resolved in each pair-wise MCC computation, resolved trees are used as 
-input trees for the next pair, the order is specified in Combinatorics.combinations(1:length(trees), 2). 
+   input trees for the next pair, the order is specified in Combinatorics.combinations(1:length(trees), 2). 
 - `naive`: return naive MCCs of all tree pairs.
 - `strict`: Apply conservative resolution. If an MCC implies a coalescence event occured, but the order of reassortment and
-coalescence is ambiguous, more than one split could be added to the tree. In such an event `strict` resolve does not add a
-split, however `liberal = (strict==false)` resolution would choose one such order of events and add that respective split. 
+   coalescence is ambiguous, more than one split could be added to the tree. In such an event `strict` resolve does not add a
+   split, however `liberal = (strict==false)` resolution would choose one such order of events and add that respective split. 
 - `parallel`: Parallelize MCC computation of tree pairs as much as possible.
 """
 function run_treeknit!(trees::Vector{Tree{T}}, oa::OptArgs; naive=false) where T 

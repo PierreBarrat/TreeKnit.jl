@@ -3,12 +3,12 @@
 
 We suggest two methods for running TreeKnit:
 - `--better-trees`: This method is recommended for most users using >2 trees. It will attempt to resolve all trees compatibly before inferring MCCs, it will then run 1 round of 
-pair-wise treeknit inference on all tree pairs individually - not further resolving trees. This technique will produce the most accurate output trees and the most homogeneous MCCs -
-this means that if nodes are inferred to be in a shared MCC they are infact shared. This method is also the fastest.
+  pair-wise treeknit inference on all tree pairs individually - not further resolving trees. This technique will produce the most accurate output trees and the most homogeneous MCCs -
+  this means that if nodes are inferred to be in a shared MCC they are infact shared. This method is also the fastest.
 - `--better-MCCs`: This method is recommended for users using 2 trees, or users who are more interested in inferring accurate MCCs. It will also attempt to resolve all trees compatibly
-before inferring MCCs, it will then run 1 round of sequential treeknit inference on all tree pairs, further resolving trees using the MCCs inferred in the previous treeknit calls. 
-For K>2 trees it will then run one final round of pairwise TreeKnit on all tree pairs individually - not further resolving trees. This technique will produce the most accurate MCCs, 
-but the output trees will potentially have a higher rate of inaccurate splits. 
+  before inferring MCCs, it will then run 1 round of sequential treeknit inference on all tree pairs, further resolving trees using the MCCs inferred in the previous treeknit calls. 
+  For K>2 trees it will then run one final round of pairwise TreeKnit on all tree pairs individually - not further resolving trees. This technique will produce the most accurate MCCs, 
+  but the output trees will potentially have a higher rate of inaccurate splits. 
 
 # Arguments
 
@@ -157,7 +157,7 @@ but the output trees will potentially have a higher rate of inaccurate splits.
 
 	if length(trees) ==2
 		mkpath(outdir*"/ARG")
-		rS = resolve!(trees[1], trees[2], get(MCCs, trees[1].label, trees[2].label))
+		rS = resolve!(trees[1], trees[2], get(MCCs, trees[1].label, trees[2].label); strict=false)
 		out_nwk = make_output_tree_names(fn, ext; ARG=true)
 		for i in 1:MCCs.no_trees
 			write_newick(outdir * "/ARG/" * out_nwk[i], trees[i])

@@ -179,7 +179,7 @@ MCCs = TreeKnit.sort([["A","B","C"],["D","E","X"]], lt=TreeKnit.clt)
 
 	t1_copy = copy(t1)
 	t2_copy = copy(t2)
-	rS = resolve!(t1_copy, t2_copy, MCCs; tau = 0.)
+	rS = resolve!(t1_copy, t2_copy, MCCs; tau = 0., strict=false)
 	@test write_newick(t1_copy) == "((((A,B)RESOLVED_1:0.0,C)RESOLVED_2:0.0,(D,E)RESOLVED_3:0.0)NODE_2,X)NODE_1:0;"
 	
 	t1_copy = copy(t1)

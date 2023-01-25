@@ -12,7 +12,7 @@ function arg_from_trees(it1, it2, MCCs)
 	t1 = copy(it1)
 	t2 = copy(it2)
 	# Resolve trees
-	resolve!(t1, t2, MCCs)
+	resolve!(t1, t2, MCCs; strict=false)
 	# Find shared nodes in both trees
 	X1, X2 = shared_nodes(t1, t2, MCCs)
 	# Introduce shared singletons of one into the other

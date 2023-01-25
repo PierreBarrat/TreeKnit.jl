@@ -170,7 +170,7 @@ The `strict` and `liberal` options for resolution make different choices in this
 ```@repl strict_lib
 MCCs = [["D"], ["A", "B", "C"]]
 new_splits_strict = resolve!(t1, t2, MCCs; strict=true);
-isempty(new_splits_strict)
+isempty(new_splits_strict[2])
 t2
 ```
 

@@ -16,10 +16,18 @@ In the following section we shall explain the differences between the two method
 
 The figure shows an ARG, of three tree segments, marked by their respective colors. The real MCCs of the trees are visible on the lower right. Mutations on the tree segments are marked with diamonds, the 2. segment has less mutations and is thus not fully resolved. 
 
+You can follow along in the repl with the commands:
+```@example multitreeknit_3trees
+using TreeKnit, TreeTools
+t1 = parse_newick_string("((A,(B,C)),(D,E));"; label="t1");
+t2 = parse_newick_string("((A,B,C,D),E);"; label="t2");
+t3 = parse_newick_string("((A,B),((C,D),E));"; label="t3");
+```
+
 ### The `--better-trees` method
 
 1. All trees are compatibly pre-resolved with each other (this can be deactivated with the `--no-pre-resolve` flag). In this case no additional splits can be added. For example, we try to add the $(B, C)$ and the $(A, B, C)$ into `tree_2` but as the two splits are not compatible with `tree_3` they will not be introduced.
-2. Run `1` round of standard `TreeKnit` without resolution on all tree pairs. As trees are not further resolved this can be fully parallelized. Note that $MCC_{\{1,2\}}$ and $MCC_{\{1,3\}}$ will not be properly inferred without resolution. Potential inferred $MCC_{\{1,2\}}$ are:
+2. Run `1` round of standard `TreeKnit` without resolution on all tree pairs. As trees are not further resolved this can be fully parallelized. Note that $MCC_{\{1,2\}}$ and $MCC_{\{2,3\}}$ will not be properly inferred without resolution. Potential inferred $MCC_{\{1,2\}}$ are:
 $$MCC'_{\{1,2\}} = \{\{A\}, \{D\}, \{B, C, D, E\}\}$$
 $$MCC'_{\{1,2\}} = \{\{B\}, \{D\}, \{A, C, D, E\}\}$$
 $$MCC'_{\{1,2\}} = \{\{C\}, \{D\}, \{A, B, D, E\}\}$$
@@ -27,21 +35,41 @@ $$MCC'_{\{1,2\}} = \{\{C\}, \{D\}, \{A, B, D, E\}\}$$
 
 In this example the trees will not be further resolved, leading to no inaccurate splits being introduced.
 
+This is called in the repl via the command:
+```@example multitreeknit_3trees
+MCCs = run_treeknit!([t1, t2, t3], OptArgs(3;method=:better_trees));
+```
+
 
 ### The `--better-MCCs` method
 
 1. All trees are compatibly pre-resolved with each other (this can be deactivated with the `--no-pre-resolve` flag). As before no additional splits can be added.
 2. Run `1` round of standard `TreeKnit` with strict resolution on all tree pairs. As trees are further resolved this must be done in a specific ordering and can only be partially parallelized (see [consistent resolution](@ref consistent_resolution)). As we choose the input order of trees as the order to compute MCCs and resolve trees in we first compute $MCC_{\{1,2\}}$, then $MCC_{\{1,3\}}$ and lastly $MCC_{\{2, 3\}}$. 
 - If the SA converges we will infer the correct MCC for $MCC_{\{1,2\}}$. Note the $(B, C)$ and the $(A, B, C)$ split will not be added as we are using strict resolution and the order of the reassortment and the recombination event cannot be determined from trees. I.e. as $D$ is in a different location in `tree_1` its location in `tree_2` cannot be inferred from `tree_1`, and the splits $(B, C, D)$ and $(A, B, C, D)$ as well as the splits $(B, C)$, $(B, C, D)$ and $(A, B, C, D)$ are also possible. This is what we refer to as an ambiguous split. 
+```@repl multitreeknit_3trees
+t1 = parse_newick_string("((A,(B,C)),(D,E));"; label="t1");
+t2 = parse_newick_string("((A,B,C,D),E);"; label="t2");
+t3 = parse_newick_string("((A,B),((C,D),E));"; label="t3");
+rS = resolve!(t1, t2, [["D"],["A", "B", "C", "E"]])
+isempty(rS[2])
+```
 - If the SA converges we shall infer the correct $MCC_{\{1,3\}}$
-- We then compute $MCC_{\{2,3\}}$, if the SA converges we will infer $MCC_{\{1,3\}} = \{\{E\}, \{A, B, C, D\}\} $
+- We then compute $MCC_{\{2,3\}}$, if the SA converges we will infer $MCC_{\{2,3\}} = \{\{E\}, \{A, B, C, D\}\}$
 there is only one way to resolve `tree_2` to have such an MCC with `tree_3` and we will introduce the splits $(A, B)$ and $(C, D)$ in `tree_2`. 
+```@repl multitreeknit_3trees
+rS = resolve!(t2, t3, [["E"], ["A", "B", "C", "D"]])
+isempty(rS[1])
+```
 3. Run a second round of pair-wise `TreeKnit` without resolution, this is required to make sure that all output MCCs are actually MCCs. Note for example that $MCC_{\{1,3\}}$ is no longer an MCC now that `tree_2` has been further resolved. Not only are the MCCs less accurate in this example, we have added incorrect splits to `tree_2`. (Note that if `tree_2` still had the $(A, B, C)$ split this approach would have potentially correctly resolved trees and inferred the correct MCCs, however on average the first approach outperforms this approach). A potential MCC output for this example would be:
 $$MCC'_{\{1,2\}} = \{\{C\}, \{D\}, \{A, B, E\}\}$$
-$$MCC'_{\{1,3\}} = \{\{E\}, \{A, B, C, D, E\}\}$$
-$$MCC'_{\{2,3\}} = \{\{C\}, \{D\}, \{A, B, D, E\}\}$$ 
+$$MCC'_{\{1,3\}} = \{\{C\}, \{A, B, D, E\}\}$$ 
+$$MCC'_{\{2,3\}} = \{\{E\}, \{A, B, C, D, E\}\}$$
 4. Ladderize the first tree and sort all polytomies according to to this tree to allow for visualization as a tanglegram.
 
+This is called in the repl via the command:
+```@example multitreeknit_3trees
+MCCs = run_treeknit!([t1, t2, t3], OptArgs(3;method=:better_MCCs));
+```
 
 ## [Consistent resolution](@id consistent_resolution)
 
@@ -53,7 +81,7 @@ We explore the small example, seen above. First let us look at what would happen
 
 In our default version of `TreeKnit`, the so called `:better_trees` method, we would first try to pre-resolve all trees using each other. In this case, as the $(A, B)$ and the $(B, C)$ split are not compatible, we do not know which to introduce into `tree c` and thus we would not introduce any new splits. We would then compute all MCC-pairs without resolution, which would mean inferring reassortment events between all trees. 
 
-The other approach would be to choose to resolve `tree c` with `tree a` OR with `tree b`, inferring less reassortment events, which is more likely to be true. However, we have no information which tree we should used to resolve `tree c`.If we use the `:better_MCCs` method of `TreeKnit`, `TreeKnit` will perform `2` rounds of inference, resolving trees using tree order in the first round of inference. The order that pairs are resolved in is shown in the picture below 
+The other approach would be to choose to resolve `tree c` with `tree a` OR with `tree b`, inferring less reassortment events, which is more likely to be true. However, we have no information which tree we should use to resolve `tree c`.If we use the `:better_MCCs` method of `TreeKnit`, `TreeKnit` will perform `2` rounds of inference, resolving trees using tree order in the first round of inference. The order that pairs are resolved in is shown in the picture below 
 
 ![plot](./Pictures/resolution_order.png)
 
@@ -70,7 +98,7 @@ Furthermore, it can occur that the MCCs inferred for the tree pairs that were ca
 ![plot](./Pictures/resolution_example.png)
 
 When `TreeKnit` is run individually on all tree pairs the final MCCs might be inconsistent with each other. 
-As can be seen in the example when `TreeKnit` is run on these tree pairs individually not only are the trees resolved in an incompatible manner the transitivity of the MCCs is also broken. Let us explore the same example from before, seen above. If no reassortment has occurred between leaves `A` and `B` in `tree a` and `tree c` and no reassortment has occurred between these leaves in `tree b` and `tree c`, reassortment cannot have occurred between `A` and `B` in `tree a` and `tree b`. However, there has clearly been a reassortment event between trees `tree a` and `tree b`. 
+This was seen in the example above when `TreeKnit` is run on these tree pairs individually not only are the trees resolved in an incompatible manner the transitivity of the MCCs is also broken. Let us further explore this example. If no reassortment has occurred between leaves `A` and `B` in `tree a` and `tree c` and no reassortment has occurred between these leaves in `tree b` and `tree c`, reassortment cannot have occurred between `A` and `B` in `tree a` and `tree b`. However, there has clearly been a reassortment event between trees `tree a` and `tree b`. 
 
 However, fixing resolution issues as described above does not necessarily fix transitivity. `TreeKnit` uses simulated annealing and removes branches at random. This means that even if `tree c` is now resolved according to `tree a` and we infer that a reassortment event has happened between trees `tree a` and `tree b` as well as between trees `tree c` and `tree b` the MCCs that `TreeKnit` infers might be inconsistent with each other. For example look at the following MCCs:
 ```
