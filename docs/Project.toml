@@ -1,6 +1,5 @@
 [deps]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
-TreeKnit = "03f602be-98a1-4bb2-9504-fbd3406624a7"
 
 [compat]
 julia = "1.7"
