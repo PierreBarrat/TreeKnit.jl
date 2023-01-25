@@ -23,8 +23,8 @@ Storing parameters for `SplitGraph.runopt` function.
 - `final_no_resolve::Bool = false`: do not resolve in the final round of pair-wise MCC inference
 - `parallel::Bool = false`: parallelize MCC inference as much as possible. 
 ### Simulated annealing
-- `nMCMC::Int = 25`: The number *total* number of MCMC steps (swaps) for a tree of `n` leaves
-	is `nMCMC*n`. The number of MCMC steps at one temperature is `nMCMC * n / nT`.
+- `nMCMC::Int = 25`: The *total* number of MCMC steps (swaps) for a tree of `n` leaves is `nMCMC*n`. 
+  The number of MCMC steps at one temperature is `nMCMC * n / nT`.
 - `cooling_schedule = :geometric`: type of cooling schedule `(:geometric, :linear, :acos)`
 - `Tmin::Float64 = 0.05`: minimal temperature of SA.
 - `Tmax::Float64 = 0.8`: maximal temperature of SA.

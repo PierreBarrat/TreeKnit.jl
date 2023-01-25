@@ -27,6 +27,7 @@ $$MCC'_{\{1,2\}} = \{\{C\}, \{D\}, \{A, B, D, E\}\}$$
 
 In this example the trees will not be further resolved, leading to no inaccurate splits being introduced.
 
+
 ### The `--better-MCCs` method
 
 1. All trees are compatibly pre-resolved with each other (this can be deactivated with the `--no-pre-resolve` flag). As before no additional splits can be added.

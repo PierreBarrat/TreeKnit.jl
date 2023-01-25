@@ -42,13 +42,13 @@ mcc_names
 
 ## The `SplitGraph` object
 
-Once the trees reduced to their naive MCCs, we construct a `SplitGraph` object from them. 
+Once the two trees are reduced to their naive MCCs, we construct a `SplitGraph` object from them. 
 
 !!! info "*SplitGraph* submodule"
     The `SplitGraph` type and some of the functions used below are in the *SplitGraph* submodule of *TreeKnit*. Access them by calling `using TreeKnit.SplitGraph` and preceding the calls by `SplitGraph.`
 
 The `SplitGraph` is a directed graph that is based on both trees, and has two kind of nodes: 
-- leaf nodes correspond to leaves of the trees, and are identifier by integers. 
+- leaf nodes correspond to leaves of the trees, and are identified by integers. 
   They have as many ancestors as there are trees in the `SplitGraph`. 
 - internal nodes, called `SplitNode`s, correspond to internal nodes in one of the two trees. A `color::Int` attribute identifies the tree to which they belong (*e.g.* 1 for the first tree, 2 for the second, etc...).
   They have only one ancestor, of the same color. 
@@ -56,7 +56,7 @@ The `SplitGraph` is a directed graph that is based on both trees, and has two ki
   As such, they uniquely correspond to a split in one of the two trees. 
   This information is stored as an array of integer in their `conf` field. 
 
-Let us know build the `SplitGraph` object: 
+Let us now build the `SplitGraph` object: 
 ```@example opttrees
 using TreeKnit.SplitGraph
 g = SplitGraph.trees2graph(treelist); 
@@ -67,7 +67,7 @@ g.labels_to_int
     It is recommemded that you add `;` to the end of lines when working with `SplitGraph`, `SplitNode` or `LeafNode` in the REPL. 
     If you forget, you will quickly see why :-) 
 
-We now see that the three leaves from our coarse-grained trees have been attributed an integer index in the `SplitGraph`. 
+We now see that the three leaves from our coarse-grained trees have been given an integer index in the `SplitGraph`. 
   Let us take a look at the internal nodes above the leaf `MCC_3`: 
 ```@repl opttrees
 a1 = g.leaves[g.labels_to_int["MCC_3"]].anc[1]; # Ancestor for the first tree
@@ -77,13 +77,12 @@ a1.conf # list of leaves below `a1`. Among those is the index for "MCC_3".
 [g.labels[i] for i in a1.conf] # Same as above, with labels
 [g.labels[i] for i in a2.conf] # and the same for a2 
 ```
-We now immediatly see that the internal nodes above `MCC_3` in the two trees define different splits: `(MCC_1, MCC_3)` in the first tree is different from `(MCC_2, MCC_3)` in the second tree. 
-  This is the idea underlying the inference of MCCs. 
+We now immediately see that the internal nodes above `MCC_3` in the two trees define different splits: `(MCC_1, MCC_3)` in the first tree is different from `(MCC_2, MCC_3)` in the second tree. This is the idea underlying the inference of MCCs. 
 
 ## Counting incompatibilities
 
 In the example above, the ancestors of leaf `MCC_3` in the two trees define different splits: this is called an incompatibility. 
-  Examination of the trees reveals that there are also similar incompatibilitie for the two other leaves `MCC_1` and `MCC_2`. 
+  Examination of the trees reveals that there are also similar incompatibilities for the two other leaves `MCC_1` and `MCC_2`. 
   This can be computed using the `count_mismatches` function: 
 
 ```@example opttrees
@@ -119,7 +118,7 @@ SplitGraph.compute_energy(conf, g)
     ```
     In other words, it computes the energy for the configuration where all leaves are present. 
 
-By removing a leaf, *i.e.* by "enforcing" a reassortment right above it, we've reduced the number of incompatibilities for the remaining ones to 0. 
+By removing a leaf, *i.e.* by "enforcing" a reassortment right above it, we've reduced the number of incompatibilities for the remaining leaves to 0. 
   Since removing a leaf corresponds to "enforcing" a reassortment, we have to assign a cost to it, that we call $\gamma$. 
   This defines a score for each configuration, defined as the difference between the energy of the configuration and $\gamma$ times the number of leaves that were removed.
 Depending on the value of $\gamma$, the difference in overall score associated to removing a leaf or keeping it will change from negative to positive. 
@@ -133,7 +132,7 @@ SplitGraph.compute_F(conf, g, 3) - SplitGraph.compute_F(conf0, g, 3)
 SplitGraph.compute_F(conf, g, 4) - SplitGraph.compute_F(conf0, g, 4)
 ```
 
-For this simple example, $\gamma = 3$ is the "critical" value above which the fact of removing `MCC_3` or any other leaf is not considered a good move. 
+For this simple example, $\gamma = 3$ is the "critical" value above which removing `MCC_3` or any other leaf is not considered a good move. 
   The inference of MCCs for $\gamma \leq 3$ and $\gamma > 3$ will thus give different results. 
   In the first case, two MCCs will be found, corresponding to one reassortment event (above `MCC_3` for instance)
 . 
@@ -146,9 +145,9 @@ run_treeknit!(t1, t2, OptArgs(γ=2.9))
 
 ## Simulated annealing
 
-The `opttrees` function attempts to find the configuration, *i.e.* a set of leaves to remove, that minimizes the compatibility score presented above. 
+The `opttrees` function attempts to find the configuration, *i.e.* a set of leaves to remove, that minimizes the incompatibility score presented above. 
   Since this is a discrete optimization problem with no clear mathematical formalization, we choose to use the [simulated annealing](https://en.wikipedia.org/wiki/Simulated_annealing) technique. 
-Let us find optimum configurations for our simple trees: 
+Let us find an optimal configuration for our simple trees: 
 
 ```@example opttrees
 Trange = reverse(1e-3:1e-2:1) # Cooling schedule
@@ -161,8 +160,8 @@ We find three optimal configurations, each corresponding to removing one leaf.
   Without branch length information, it is impossible to choose between one of these three optimas: the problem is degenerate. 
   A likelihood based way to break this degeneracy using branch length is described [here](@ref likelihood).
 
-For now, let's imagine that we have chosen the first optimum configuration as our best solution. 
-  Let's now map it back on the initial trees: 
+For now, let's imagine that we have chosen the first configuration as our best solution. 
+  Let's now map it back onto the initial trees: 
 
 ```@repl opttrees
 removed_leaves = g.labels[.!opt_confs[1]] # Expressed with coarse grained leaves
@@ -171,7 +170,7 @@ removed_clades = [mcc_names[x] for x in removed_leaves]
 ```
 
 What this means is that we have just inferred all elements in `removed_clades` (just one in our case) to be MCCs. 
-  Of course, in this simple example, it is immediate to see that the other MCC simply consists of all the remaining leaves in the original trees. 
+  Of course, in this simple example, it is straight forward to see that the other MCC simply consists of all the remaining leaves in the original trees. 
   This can also be deduced from the fact that the energy of all the optimal configurations is 0. 
 However, in the general case, some incompatibilities will remain even after simulated annealing. 
   For this reason, the `opttrees` function only outputs MCCs that have been identified by having removed them from the tree, *i.e.* by having enforced a reassortment above their root node. 

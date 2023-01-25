@@ -4,7 +4,7 @@
 
 ## Handling trees
 
-Functions that directly handle trees are found in the separate *TreeTools* package, see its [documentation](https://pierrebarrat.github.io/TreeTools.jl/dev/)
+Functions that directly handle trees are found in the separate *TreeTools* package, see its [documentation](https://pierrebarrat.github.io/TreeTools.jl/dev/).
   Here are two useful ones: 
   - `read_tree(file)`: read tree from newick file, return `Tree` object. 
   - `parse_newick_string(string)`: parse newick `string` into a `Tree` object. For convenience, this one is re-exported by TreeKnit. 
@@ -22,13 +22,16 @@ The `run_treeknit!` function takes two trees as input.
 ```@example basic
 mccs = run_treeknit!(t1, t2)
 ```
-Individual MCCs are simply arrays containing labels of leaves of the trees.  
+The output is an `MCC_set` object, which contains three fields:
+- `no_trees`: number of trees
+- `order_trees`: Vector of tree labels, determines later order of calculations on tree pairs
+- `mccs`: Dictionary of calculated mccs, the key is a set of labels of trees in each tree pair, the Individual MCCs are simply arrays containing labels of leaves of the trees. For example the array `["X"]` corresponds to the MCC which contains the leaf `"X"`.
 
 ## Interpretation of results
 
 The genealogy of two RNA segments subject to reassortment is described by an Ancestral Reassortment Graph (ARG). 
 An ARG is a directed graph that represents the lineage of a given pair of segments by coalescence of nodes, as in a genealogical tree, but also shows reassortment events and the exchange of segments by nodes that have two ancestors. 
-Since reassortments only occur between segments, the genealogy of given segment is described by a tree. 
+Since reassortments only occur between segments, the genealogy of a given segment is described by a tree. 
 As a result, the ARG must embed both segment-trees, and every branch in the ARG has to belong to either one of the trees, or to both. 
 
 *TreeKnit* infers the ARG by finding the branches that are common to both trees. 

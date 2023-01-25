@@ -37,15 +37,15 @@ run_treeknit!(t1, t2, OptArgs(γ=3))
 ## Resolving trees with polytomies
 
 See [Resolving](@ref resolving) for more information about tree resolution. Note we have multiple options for resolving trees:
-- `pre_resolve:` if this option is passed to `run_treeknit!` (through `OptArgs`), `resolve!` will be called on all trees prior to MCC inference. 
-- `resolve:` under this option `resolve!` is called on each **pair** of trees before each iteration of the MCC inference procedure. For example if treeknit is run on trees `t1`, `t2` and `t3` and the `resolve` is set to `true`, `resolve!` will be called on each combination of tree pairs (see [MultiTreeKnit](@ref multitreeknit) for more details).  Furthermore, this option allows for tree resolution during MCC inference on tree pairs and will resolve trees after each pair-wise iteration of `TreeKnit` using the inferred MCCs.
+- `pre_resolve:` if this option is passed to `run_treeknit!` (through `OptArgs`), `resolve!` will be called on all trees **together** prior to MCC inference. 
+- `resolve:` under this option `resolve!` is called on each **pair** of trees before each iteration of the MCC inference procedure. For example if treeknit is run on trees `t1`, `t2` and `t3` and `resolve` is set to `true`, `resolve!` will be called on each combination of tree pairs (see [MultiTreeKnit](@ref multitreeknit) for more details).  Furthermore, this option allows for tree resolution during MCC inference on tree pairs and will resolve trees after each pair-wise iteration of `TreeKnit` using the inferred MCCs.
 
-!!! info "pre-resolve and resolve" for tree pairs
+!!! info "pre-resolve and resolve for tree pairs"
     Note that`resolve=true` will also resolve trees with each other prior to inference, and thus `pre_resolve` is not needed for 2 trees if `resolve=true`, but we distinguish between the two options for consistency with $>2$ trees).
 
 When resolving trees using MCCs we distinguish between two options (see [strict vs liberal resolution](@ref resolve_strict_vs_liberal) for a detailed description of the two methods):
 - `strict=true:` only add unambiguous splits from one tree into another.
-- `strict=false` or `liberal:` resolve will resolve trees as much as possible, fully resolving shared regions of the two trees, but arbitrarily choosing the location of ambiguous splits, leading to potentially wrong splits in the output trees. 
+- `strict=false` also known as `liberal` resolve: will resolve trees as much as possible, fully resolving shared regions of the two trees, but arbitrarily choosing the location of ambiguous splits, leading to potentially wrong splits in the output trees. 
 
 ## [Degeneracy: sorting with likelihood](@id likelihood)
 When several MCC decompositions are possible, degeneracy is removed by using the `likelihood_sort` option (activated by default). 
@@ -68,8 +68,8 @@ unique([run_treeknit!(t1, t2, oa).mccs[Set([t1.label, t2.label])] for rep in 1:5
 
 The TreeKnit cli has four level of verbosity that can be set with the `--verbosity-level <value>` option: 
 - `-1` means no visible output
-- `0` means relatively little output: input file names, number of MCCs found, etc ... Less than 10 lines. (Default)
-- `1` gives a bit more details about what's going on: the MCC inference process for each pair of trees is detailed
+- `0` means relatively little output: e.g. input file names, number of MCCs found,... The default options result in less than 10 lines.
+- `1` gives slightly more details: e.g. the MCC inference process for each pair of trees is detailed
 - `2` gives a lot of information and is only useful for debugging and when using small trees 
 
 The `--verbose` or `-v` flag set the verbosity to `1` instead of `0`. 
@@ -79,12 +79,11 @@ Let's take the simple case where one wants to use `run_treeknit!(tree1, tree2, O
 If run like this, no info will be shown. 
 To trigger verbosity, create a custom logger in the following way: 
 
-```@example verbosity
-using TreeKnit, TreeTools
-t1 = parse_newick_string("((A:2,B:2):2,C:4);"; label="t1")
-t2 = parse_newick_string("(A:2,(B:1,C:1):1);"; label="t2")
-using Logging
-verbosity = 1
+```@repl verbosity
+using TreeKnit, TreeTools, Logging
+t1 = parse_newick_string("((A:2,B:2):2,C:4);"; label="t1");
+t2 = parse_newick_string("(A:2,(B:1,C:1):1);"; label="t2");
+verbosity = 1;
 logger = ConsoleLogger(LogLevel(-verbosity)) # corresponds to `--verbosity-level 1` from the CLI
 output = with_logger(logger) do 
   run_treeknit!(t1, t2, OptArgs())

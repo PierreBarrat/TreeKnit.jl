@@ -21,13 +21,13 @@ nothing # hide
 
 These trees are constructed in the following way (you're encouraged to draw them!): 
 - Clade `((A,X),(B,C))` in the first tree "corresponds" to clade `(A,(B,(C,X)))` in the second tree, with `X` as the reassorted leaf. 
-  Same goes for clades `((D,Y),(E,F))` and `(D,(E,(F,Y)))`. 
+  Same goes for clades `((D,Y),(E,F))` and `(D,(E,(F,Y)))` and the reassorted leaf `Y`. 
 - We respectively name these not yet compatible clades `ABC` and `DEF`. At a deeper level, the trees are now of the form `(Z,(G,(ABC,DEF)))` for the first and `(G,(ABC,(DEF,Z)))` for the second, with `Z` as the obvious reassorted leaf. 
 
 The important property here is that for a high enough value of $\gamma$, it is only possible for `opttrees` to see that `Z` is reassorted if clades `ABC` and `DEF` are "coarse-grained" to leaves. 
   In return, this coarse-graining is only possible after `X` and `Y` have been identified as reassorted leaves, which will happen after a first iteration of `opttrees`.  
   The task of iterating `opttrees` is performed by the `runopt` function. 
-  Here, we walk through typical steps it takes.
+  Here, we walk through the typical steps it takes.
 
 
 Let's do a first pass with `opttrees`, with $\gamma=3$.  
@@ -51,13 +51,13 @@ opt_confs = SplitGraph.sa_opt(g; Trange = reverse(1e-3:1e-2:1), M = 10, γ = 3)[
 mccs_found = [mcc_names[x] for x in g.labels[.!opt_confs[1]]]
 ```
 
-!!! info $\gamma = 2$
-    If you run this example using $\gamma \leq 2$, `Z` will immediatly be found as a reassorted strain. 
-    It is indeed not easy to find example that combine trees with a small number of leaves (9 here), obvious reassortments, and that are not solved in one go by `opttrees` with a low value of $\gamma$. 
+!!! info "On setting $\gamma$"
+    Here $\gamma = 2$, if you run this example using $\gamma \leq 2$, `Z` will immediatly be found as a reassorted strain. 
+    It is indeed not easy to find an example of a case with trees with a small number of leaves (9 here), obvious reassortments, and that are not solved in one go by `opttrees` with a low value of $\gamma$. 
     However, when dealing with trees with hundreds of leaves, finding all MCCs in one go is the exception rather than the rule. 
 
 
-As expected, `X` `Y` are found as reassortants. 
+As expected, `X` `Y` are found as reassortments. 
   However, the two trees will still have incompatibilities when removing those two leaves. 
   To make this explicit, we remove the leaves `X` and `Y` and compute naive mccs again. 
 
@@ -78,16 +78,13 @@ treelist[1]
 treelist[2]
 ``` 
 
-To finish the inference of MCCs, we would now have to re-run the optimization process. 
-  It is now clear that the `opttrees` has to be iterated. 
-  This is performed automatically by the `runopt` function. 
-  This process stops when one of the following end conditions is found: 
+To finish the inference of MCCs, we would now have to re-run the optimization process, i.e. `opttrees` has to be iterated. This is performed automatically by the `runopt` function. 
+
+This process stops when one of the following end conditions is fulfilled: 
 
 1. If no new MCCs are found in a given iteration of `opttrees`. 
    This occurs when the optimal configuration resulting from the simulated annealing has all leaves present. 
-2. If not and new MCCs were found, prune them from the trees. 
+2. If no new MCCs were found, prune them from the trees. 
    If the resulting trees do not have any incompatibility.
-3. If not, if the maximum number of iterations has been reached. 
-   This can be set through `OptArgs`, with a default of 15. 
-
- 
+3. If the maximum number of iterations has been reached. 
+   This number can be set through `OptArgs`, the default is 15. 

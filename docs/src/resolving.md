@@ -22,9 +22,9 @@ To overcome this issue, one has to **resolve** trees as much as possible, typica
 
 In the example above, it is natural to think that the difference between the two trees is due to a lack of resolution and not to reassortment. 
   This is because the split `(B,C)` in the first tree is **compatible** with the second tree: it is possible to add this split to `t2`. 
-  What this means is that the difference in topology can be explained by something else than reassortment. 
+  What this means is that the difference in topology can be explained by something other than reassortment. 
 
-In this case, we can simply resolve `t2` by adding each split in `t1` with which it is compatible. 
+In this case, we can simply resolve `t2` by adding each split in `t1` to `t2` with which `t2` is compatible. 
   If `t1` has polytomies, the same could be done to resolve `t1` using `t2`. 
   This operation is performed by the `resolve!` function: 
 ```@setup 2
@@ -43,20 +43,20 @@ isempty(new_splits[1])
 new_splits[2]
 ```
 
-The `resolve` function can also be called on more than three trees. When called on more than 2 trees it will only introduce splits from one tree into another tree if that split is compatible with all other trees. Take the same 2 trees from before (`t1` and `t2`) and assume we add a third tree `t3`
+The `resolve!` function can also be called on more than three trees. When called on more than 2 trees it will only introduce splits from one tree into another tree if that split is compatible with **all** other trees. Take the same 2 trees from before (`t1` and `t2`) and assume we add a third tree `t3`
 
 ```@setup 3
 using TreeKnit
 t1 = parse_newick_string("(A,(B,C));")
 t2 = parse_newick_string("(A,B,C);")
-t3 = parse_newick_string("(A,B,C);")
 ```
 ```@example 3
+t3 = parse_newick_string("(A,B,C);")
 new_splits = resolve!(t1, t2, t3);
 t2
 t3
 ```
-As the `(B,C)` is compatible with both the 2nd and the 3rd tree it will be introduced in both trees. Now assume we add a 4th tree where the `(B,C)` split is no longer compatible. Now neither tree `t2` or `t3` will be further resolved.
+As the `(B,C)` split is compatible with both the 2nd and the 3rd tree it will be introduced in both trees. Now assume we add a 4th tree where the `(B,C)` split is no longer compatible. Now neither tree `t2` or `t3` will be further resolved.
 
 ```@setup 4
 using TreeKnit
@@ -78,8 +78,8 @@ However, consider the following case:
 using TreeKnit
 ```
 ```@example 3; continued = true
-t1 = parse_newick_string("((A,B),(C,(D,(E,X))));")
-t2 = parse_newick_string("((A,(B,X)),(C,D,E));")
+t1 = parse_newick_string("((A,B),(C,(D,(E,X))));"; label="t1")
+t2 = parse_newick_string("((A,(B,X)),(C,D,E));"; label="t2")
 ```
 There are now two sources of topological differences between `t1` and `t2`: 
 - The reassorted strain `X`. 
@@ -118,7 +118,9 @@ Once the MCCs are inferred, it is possible to use them to resolve trees: in the 
   The `resolve!` function also has a method for this. 
   Using the example above, we have
 ```@repl 3
-resolved_splits = resolve!(t1, t2, MCCs)
+t1 = parse_newick_string("((A,B),(C,(D,(E,X))));"; label="t1");
+t2 = parse_newick_string("((A,(B,X)),(C,D,E));"; label="t2");
+resolved_splits = resolve!(t1, t2, MCCs.mccs[Set(["t1", "t2"])]; strict=true)
 t2
 ```
 

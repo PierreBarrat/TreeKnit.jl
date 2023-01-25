@@ -25,7 +25,7 @@ Documenter.makedocs(;
 			"Resolving" => "resolving.md",
 		],
 		"Library" => [
-			"OptArgs" => "types.md",
+			"Objects" => "types.md",
 			"Functions" => "functions.md",
 		],
 	]

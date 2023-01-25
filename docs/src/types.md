@@ -8,3 +8,10 @@ CurrentModule = TreeKnit
 ```@docs
 OptArgs
 ```
+
+# The `MCC_set` object
+
+We define an `MCC_set` object to store the inferred MCCs of multiple trees.
+```@docs
+MCC_set
+```

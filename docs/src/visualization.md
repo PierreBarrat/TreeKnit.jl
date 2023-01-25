@@ -10,7 +10,7 @@ Tanglegrams are an excellent way to view reassortment events between trees. In a
 
 In julia these files can be produced using the command: `TreeKnit.write_auspice_json(filepath::String, tree1::Tree{T}, tree2::Tree{T}, MCCs::Vector{Vector{String}})`. 
 
-This command will return JSON files with the naming convention: `"auspice_{tree.label}.json"` for each tree. Each tree can viewed separately by dragging and dropping the corresponding file into [https://auspice.us/](https://auspice.us/). Two trees can be viewed as tanglegrams by selecting them together and drag and dropping them into the browser. The trees can then be colored with the desired MCCs, these can be chosen by selecting them from the `color by` menu at the left hand side of the browser. MCCs are labeled as `mcc_x_y`, where `x` and `y` are the labels of `tree1` and `tree2` in alphabetical order.
+This command will return JSON files with the naming convention: `"auspice_{tree.label}.json"` for each tree. Each tree can viewed separately by dragging and dropping the corresponding file into [https://auspice.us/](https://auspice.us/). Two trees can be viewed as together as a tanglegram by selecting them together and dragging and dropping them into the auspice browser. The trees can then be colored with the desired MCCs, these can be chosen by selecting them from the `color by` menu at the left hand side of the browser. MCCs are labeled as `mcc_x_y`, where `x` and `y` are the labels of `tree1` and `tree2` in alphabetical order.
 
 The resulting tanglegram for the NY data set should look as follows:
 
