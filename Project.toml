@@ -1,7 +1,7 @@
 name = "TreeKnit"
 uuid = "03f602be-98a1-4bb2-9504-fbd3406624a7"
 authors = ["PierreBarrat <p.barrat@live.fr>"]
-version = "0.4.1"
+version = "0.5.0"
 
 [deps]
 Combinatorics = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"
