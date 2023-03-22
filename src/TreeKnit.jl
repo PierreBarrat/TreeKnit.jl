@@ -37,7 +37,7 @@ include("SplitGraph/SplitGraph.jl")
 using TreeKnit.SplitGraph
 
 include("main.jl")
-export run_treeknit!, inferARG
+export run_treeknit!, run_treeknit, inferARG
 
 include("SimpleReassortmentGraph/SimpleReassortmentGraph.jl")
 import TreeKnit.SimpleReassortmentGraph: SRG

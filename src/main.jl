@@ -1,5 +1,8 @@
 """
-	run_standard_treeknit!(trees::AbstractVector{Tree{T}}, oa::OptArgs, func_::Function)
+	run_standard_treeknit!(
+		trees::AbstractVector{<:Tree}, oa::OptArgs;
+		infer_mccs_function = TreeKnit.runopt
+	)
 
 Subfunction to sequentially compute MCCs for each pair of trees in `trees`. Iterate over
 all pairs in the same order a total of `oa.rounds` times.
@@ -13,7 +16,7 @@ Let `l_t = length(trees)`. Then for each round and for `1 <= i < j <= l_t`:
 
 - resolve `trees[i]` and `trees[j]` using `MCC_ij`, unless this is the last round.
 
-### Rounds
+## Rounds
 
 Going over all pairs of trees once is called a *round*. MultiTreeKnit performs several
 rounds for reasons of consistency between inferred MCCs and tree topology.
@@ -22,7 +25,10 @@ The minimal number of rounds should be 2, but the effect of more than 2 rounds h
 tested. During the final round, the trees are not resolved anymore. This can be changed
 by setting `oa.final_no_resolve=false`, but it is not recommended for more than two trees.
 """
-function run_standard_treeknit!(trees::AbstractVector{Tree{T}}, oa::OptArgs; func_=TreeKnit.runopt) where T
+function run_standard_treeknit!(
+	trees::AbstractVector{<:Tree}, oa::OptArgs;
+	infer_mccs_function = TreeKnit.runopt
+)
 	tree_seq_lengths = oa.seq_lengths
 	@assert length(tree_seq_lengths) == length(trees) || length(tree_seq_lengths) == 2
     l_t = length(trees)
@@ -40,18 +46,27 @@ function run_standard_treeknit!(trees::AbstractVector{Tree{T}}, oa::OptArgs; fun
             end
 
             # compute MCCs for current tree pair and add it to set
-			@logmsg LogLevel(-1) "Infering MCCs for trees: $(trees[j].label) and $(trees[i].label)\n\n"
-            mccs = func_(oa, trees[i], trees[j]; output = :mccs)
+			@logmsg LogLevel(-1) """
+			Infering MCCs for trees: $(trees[j].label) and $(trees[i].label)\n\n
+			"""
+            mccs = infer_mccs_function(oa, trees[i], trees[j]; output = :mccs)
             add!(pair_MCCs, mccs, (i, j))
 
             if oa.resolve 
                 rS = TreeKnit.resolve!(trees[i], trees[j], get(pair_MCCs, (j, i)); oa.strict)
             end
-            @logmsg LogLevel(-1) "found MCCs for trees: "*trees[j].label*" and "*trees[i].label
+            @logmsg LogLevel(-1) """
+            found MCCs for trees: $(trees[j].label) and $(trees[i].label)
+            """
             if r==oa.rounds 
 				i == 1 && TreeTools.ladderize!(trees[i]) # only the first tree is ladderized
-                TreeKnit.sort_polytomies!(trees[i], trees[j], get(pair_MCCs, trees[i].label, trees[j].label); oa.strict)
-                @logmsg LogLevel(-1) "ladderized and sorted trees: "*trees[j].label*" and "*trees[i].label
+                TreeKnit.sort_polytomies!(
+                	trees[i], trees[j], get(pair_MCCs, trees[i].label, trees[j].label);
+                	oa.strict
+                )
+                @logmsg LogLevel(-1) """
+                ladderized and sorted trees: $(trees[j].label) and $(trees[i].label)
+                """
             end
         end
     end
@@ -103,11 +118,13 @@ function run_parallel_treeknit!(trees::Vector{Tree{T}}, oa::OptArgs; func_=TreeK
 end
 
 """
-	run_treeknit!(trees::Vector{Tree{T}}, oa::OptArgs; naive=false) where T
+	run_treeknit!(trees, oa::OptArgs; naive=false) where T
+	run_treeknit!(trees; kwargs...)
 
 Main TreeKnit run function. 
 
-Computes MCCs of all tree pairs in tree list `trees` using `TreeKnit.run_opt`. 
+Computes MCCs of all tree pairs in tree list `trees`. In the second form, the keyword
+arguments are passed to `OptArgs`.
 
 ## Parameters:
 - `pre_resolve=true`: input trees are resolved with each other prior to MCC computation.
@@ -119,36 +136,31 @@ Computes MCCs of all tree pairs in tree list `trees` using `TreeKnit.run_opt`.
    split, however `liberal = (strict==false)` resolution would choose one such order of events and add that respective split. 
 - `parallel`: Parallelize MCC computation of tree pairs as much as possible.
 """
-function run_treeknit!(trees::Vector{Tree{T}}, oa::OptArgs; naive=false) where T 
+function run_treeknit!(trees::AbstractVector{<:Tree}, oa::OptArgs; naive=false)
 
     oa.pre_resolve && resolve!(trees...)
 
-    if naive
-		func_ = TreeKnit.naive_mccs
+    f = if naive
+		TreeKnit.naive_mccs
 	else
-		func_ = TreeKnit.runopt
+		TreeKnit.runopt
 	end
 
-    if oa.parallel == true
-        pair_MCCs = run_parallel_treeknit!(trees, oa; func_)
+    return if oa.parallel == true
+        run_parallel_treeknit!(trees, oa; infer_mccs_function=f)
     else
-        pair_MCCs = run_standard_treeknit!(trees, oa; func_)
+        run_standard_treeknit!(trees, oa; infer_mccs_function=f)
     end
-
-    return pair_MCCs
 end
 
-function run_treeknit!(trees::Vector{Tree{T}}; kwargs...) where T 
-    return run_treeknit!(trees, OptArgs(length(trees);kwargs...))
-end
+run_treeknit!(trees; kwargs...) = run_treeknit!(trees, OptArgs(length(trees); kwargs...))
 
-function run_treeknit!(t1::Tree{T}, t2::Tree{T}; kwargs...) where T 
-    return run_treeknit!([t1,t2], OptArgs(2;kwargs...))
-end
+run_treeknit!(t1::Tree, t2::Tree; kwargs...) = run_treeknit!([t1,t2], OptArgs(;kwargs...))
+run_treeknit!(t1::Tree, t2::Tree, oa::OptArgs) = run_treeknit!([t1,t2], oa)
 
-function run_treeknit!(t1::Tree{T}, t2::Tree{T}, oa::OptArgs) where T 
-    return run_treeknit!([t1,t2], oa)
-end
+run_treeknit(trees, oa::OptArgs) = run_treeknit!(map(copy, trees), oa)
+run_treeknit(t1::Tree, t2::Tree, oa::OptArgs) = run_treeknit!(copy(t1), copy(t2), oa)
+
 
 ###############################################################################################################
 ####################################### ARG inference - for 1 tree pair #######################################
