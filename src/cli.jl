@@ -133,8 +133,8 @@ We suggest two methods for running TreeKnit:
 	end
 
 	@logmsg LogLevel(-1) "Parameters: $oa\n\n"
-	# Infer MCCs
 
+	# Infer MCCs
 	@info "Inferring MCCs...\n"
 	infered_trees = [copy(t) for t in trees]
 	out = @timed run_treeknit!(infered_trees, oa; naive)

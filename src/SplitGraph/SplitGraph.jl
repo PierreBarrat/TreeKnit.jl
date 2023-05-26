@@ -97,7 +97,7 @@ function sortconf(oconfs, trees, g, seq_lengths, mcc_names, likelihood_sort, E_s
 		@logmsg LogLevel(-2) configurations=[[mcc_names[x] for x in g.labels[.!conf]] for conf in oconfs_]
 		@logmsg LogLevel(-2) "Likelihoods: $L"
 		Lmax = maximum(L)
-		ismissing(Lmax) && @warn "Maximum likelihood is `missing`"
+		ismissing(Lmax) && @warn "Maximum likelihood is `missing`: this may be due to missing branch lengths"
 		oconfs_ = oconfs_[findall(isequal(Lmax), L)]
 		if length(oconfs_) != 1 # Final sort by energy if more than one most likely conf
 			E = [compute_energy(conf,g) for conf in oconfs_]
