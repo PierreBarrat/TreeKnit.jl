@@ -508,17 +508,29 @@ function fix_shared_singletons!(t1, t2, X1, X2, mcc::Vector{String})
 	node2tree!(t2, t2.root)
 end
 
+#=
+introduce singleton `a --> s --> n`.
+time above `s` wants to be `τ`:
+- if there is space above `n`, i.e. `n.tau > τ`, no problem
+- if there is no space, we put `s` at distance `0` from `a`: `nτ, sτ = (n.tau, 0.)`
+- if the initial branch length is missing, we just propagate missing.
+=#
 function introduce_singleton!(n::TreeNode{T}, a::TreeNode{T}, sref, τ, X, Xref) where T
 	# times above n and above singleton
-	_τ = ismissing(n.tau) ? missing : τ # Happens if one tree has times and the other not
-	nτ, sτ = n.tau >= _τ ? (_τ, n.tau - _τ) : (n.tau, 0.)
+	nτ, sτ = if ismissing(n.tau) || ismissing(τ)
+		(missing, missing)
+	elseif n.tau >= τ
+		(τ, n.tau - τ)
+	else
+		(n.tau, 0.)
+	end
+
 	s = TreeTools.TreeNode(
 		tau = sτ,
 		label = make_random_label("Singleton"),
 		data = T()
 	)
 	s = TreeTools.insert_node!(n, a, s, nτ)
-	# s = TreeTools.add_internal_singleton!(n, a, _τ, make_random_label("Singleton"))
 	X[s.label] = (:shared, sref.label, false, X[n.label][4])
 	Xref[sref.label] = (:shared, s.label, false, Xref[sref.label][4])
 
