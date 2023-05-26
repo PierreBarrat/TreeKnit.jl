@@ -123,18 +123,20 @@ end
 
 Main TreeKnit run function. 
 
-Computes MCCs of all tree pairs in tree list `trees`. In the second form, the keyword
-arguments are passed to `OptArgs`.
+Compute MCCs of all tree pairs in tree list `trees`. The order in which pairs are processed
+is the natural one given the order of trees: `(1,2), (1,3) ... (K-1, K)`.
+
+In the second form, the keyword arguments are passed to `OptArgs`.
 
 ## Parameters:
 - `pre_resolve=true`: input trees are resolved with each other prior to MCC computation.
 - `resolve=true`: input trees are resolved in each pair-wise MCC computation, resolved trees are used as 
-   input trees for the next pair, the order is specified in Combinatorics.combinations(1:length(trees), 2). 
+   input trees for the next pair.
 - `naive`: return naive MCCs of all tree pairs.
-- `strict`: Apply conservative resolution. If an MCC implies a coalescence event occured, but the order of reassortment and
+- `strict`: apply conservative resolution. If an MCC implies a coalescence event occured, but the order of reassortment and
    coalescence is ambiguous, more than one split could be added to the tree. In such an event `strict` resolve does not add a
    split, however `liberal = (strict==false)` resolution would choose one such order of events and add that respective split. 
-- `parallel`: Parallelize MCC computation of tree pairs as much as possible.
+- `parallel`: parallelize MCC computation of tree pairs as much as possible.
 """
 function run_treeknit!(trees::AbstractVector{<:Tree}, oa::OptArgs; naive=false)
 

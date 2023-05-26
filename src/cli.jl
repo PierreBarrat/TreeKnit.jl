@@ -1,23 +1,9 @@
 """
 	treeknit
 
-We suggest two methods for running TreeKnit:
+# Intro
 
-1. `--better-trees`: this method is recommended for users using more than 2 trees. It will:
-
-    * resolve all trees compatibly before inferring MCCs;
-    * run 1 round of treeknit on all tree pairs independently, *not resolving* in the process;
-
-This technique was found to produce better resolved trees. The MCCs are less accurate, but more homogeneous: if nodes are inferred to be in the same MCC, it is likely to be true. However, it will likely predict more reassortments (and MCCs) than needed.
-
-2. `--better-MCCs`: this method is recommended for users using 2 trees, or users who are more interested in inferring accurate MCCs. It will:
-
-    * resolve all trees compatibly before inferring MCCs;
-    * run 1 round of treeknit inference on all tree pairs sequentially, *further resolving* trees in the process (note that order in which tree pairs are processed *matters*);
-    * run a second round of treeknit on all tree pairs, without resolving.
-
-This technique was found to produce the most accurate MCCs, but the output trees will potentially have a higher amount of inaccurate splits.
-
+We suggest two sets of defaults for running TreeKnit. `--better-trees` will produce more accurately resolved trees (default for more than two trees). If you are interested in better inference of consistent clades, `--better-mccs` (default for 2 trees). Use the flag `--help-defaults` with dummy arguments for more details (*e.g.* `treeknit x y --help-defaults`).
 
 # Arguments
 
@@ -34,7 +20,8 @@ This technique was found to produce the most accurate MCCs, but the output trees
 
 # Flags
 
-- `--better-trees`: Use the `--better-trees` method (default for >2 trees)
+- `--help-defaults`: Print some information about the default settings `--better-trees` and `-better-mccs`. Can only be used with (possibily dummy) arguments, *e.g.* `treeknit x y --help-defaults`.
+- `--better-trees`: Use the `--better-trees` method (default for more than 2 trees)
 - `--better-MCCs`: Use the `--better-MCCs` method (default for 2 trees)
 - `--naive`: Naive inference (overrides `-g`).
 - `--no-resolve`: Do not attempt to resolve trees before inferring pairwise MCCs.
@@ -56,6 +43,7 @@ This technique was found to produce the most accurate MCCs, but the output trees
 	rounds::Int = 1,
 	verbosity_level::Int = 0,
 	# flags
+    help_defaults::Bool = false,
 	better_trees::Bool = false,
 	better_MCCs::Bool = false,
 	naive::Bool = false,
@@ -68,6 +56,10 @@ This technique was found to produce the most accurate MCCs, but the output trees
 	parallel::Bool = false,
 	auspice_view::Bool = false
 )
+    if help_defaults
+        default_details() |> println
+        return nothing
+    end
 
 	# Setting up directories
 	mkpath(outdir)
@@ -207,6 +199,36 @@ function write_rlm(filename, rlm)
 			end
 		end
 	end
+end
+
+function default_details()
+    md"""
+    1. `--better-trees`: this method is recommended for users using more than 2 trees. It will:
+
+        * resolve all trees compatibly before inferring MCCs;
+        * run 1 round of treeknit on all tree pairs independently, *not resolving* in the process;
+
+    This technique was found to produce better resolved trees. The MCCs are less accurate, but more homogeneous: if nodes are inferred to be in the same MCC, it is likely to be true. However, it will likely predict more reassortments (and MCCs) than needed.
+    It should be equivalent to
+    ```
+    treeknit t1 t2 --no-resolve
+    ```
+
+    2. `--better-MCCs`: this method is recommended for users using 2 trees, or users who are more interested in inferring accurate MCCs. It will:
+
+        * resolve all trees compatibly before inferring MCCs;
+        * run 1 round of treeknit inference on all tree pairs sequentially, *further resolving* trees in the process (note that order in which tree pairs are processed *matters*);
+        * run a second round of treeknit on all tree pairs, without resolving (only for more than two trees).
+
+    This technique was found to produce the most accurate MCCs, but the output trees will potentially have a higher amount of inaccurate splits.
+    It should be equivalent to
+    ```
+    # for K=2 trees
+    treeknit t1 t2 --resolve-all-rounds
+    # for K>2 trees
+    treeknit t1 t2 t3 --rounds=2
+    ```
+    """
 end
 
 function set_up_optargs(
