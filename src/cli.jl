@@ -2,13 +2,22 @@
 	treeknit
 
 We suggest two methods for running TreeKnit:
-- `--better-trees`: This method is recommended for most users using >2 trees. It will attempt to resolve all trees compatibly before inferring MCCs, it will then run 1 round of 
-  pair-wise treeknit inference on all tree pairs individually - not further resolving trees. This technique will produce the most accurate output trees and the most homogeneous MCCs -
-  this means that if nodes are inferred to be in a shared MCC they are infact shared. This method is also the fastest.
-- `--better-MCCs`: This method is recommended for users using 2 trees, or users who are more interested in inferring accurate MCCs. It will also attempt to resolve all trees compatibly
-  before inferring MCCs, it will then run 1 round of sequential treeknit inference on all tree pairs, further resolving trees using the MCCs inferred in the previous treeknit calls. 
-  For K>2 trees it will then run one final round of pairwise TreeKnit on all tree pairs individually - not further resolving trees. This technique will produce the most accurate MCCs, 
-  but the output trees will potentially have a higher rate of inaccurate splits. 
+
+1. `--better-trees`: this method is recommended for users using more than 2 trees. It will:
+
+    * resolve all trees compatibly before inferring MCCs;
+    * run 1 round of treeknit on all tree pairs independently, *not resolving* in the process;
+
+This technique was found to produce better resolved trees. The MCCs are less accurate, but more homogeneous: if nodes are inferred to be in the same MCC, it is likely to be true. However, it will likely predict more reassortments (and MCCs) than needed.
+
+2. `--better-MCCs`: this method is recommended for users using 2 trees, or users who are more interested in inferring accurate MCCs. It will:
+
+    * resolve all trees compatibly before inferring MCCs;
+    * run 1 round of treeknit inference on all tree pairs sequentially, *further resolving* trees in the process (note that order in which tree pairs are processed *matters*);
+    * run a second round of treeknit on all tree pairs, without resolving.
+
+This technique was found to produce the most accurate MCCs, but the output trees will potentially have a higher amount of inaccurate splits.
+
 
 # Arguments
 
