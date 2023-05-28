@@ -156,7 +156,7 @@ We suggest two sets of defaults for running TreeKnit. `--better-trees` will prod
 		write_auspice_json(outdir * "/", infered_trees, MCCs)
 	end
 
-	if length(trees) ==2
+	if length(trees) == 2
 		mkpath(outdir*"/ARG")
 		rS = resolve!(trees[1], trees[2], get(MCCs, trees[1].label, trees[2].label); strict=false)
 		out_nwk = make_output_tree_names(fn, ext; ARG=true)

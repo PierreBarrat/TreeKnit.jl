@@ -518,6 +518,7 @@ time above `s` wants to be `τ`:
 function introduce_singleton!(n::TreeNode{T}, a::TreeNode{T}, sref, τ, X, Xref) where T
 	# times above n and above singleton
 	nτ, sτ = if ismissing(n.tau) || ismissing(τ)
+        TreeTools.branch_length!(n, missing)
 		(missing, missing)
 	elseif n.tau >= τ
 		(τ, n.tau - τ)
