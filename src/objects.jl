@@ -56,7 +56,7 @@ end
 """
 	function OptArgs(K::Int; method=:none, kwargs...)
 
-OptArgs constructor will default to :better_trees method if K>2, :better_mccs if K==2.
+OptArgs constructor will default to :better_trees method if K>2, :better_MCCs if K==2.
 """
 function OptArgs(K::Int; method=:none, kwargs...)
 	kwargs_dict = Dict(kwargs)
@@ -69,7 +69,7 @@ function OptArgs(K::Int; method=:none, kwargs...)
         oa.resolve = get(kwargs_dict, :resolve, false)
         oa.final_no_resolve = get(kwargs_dict, :final_no_resolve, true)
 		oa.rounds = get(kwargs_dict, :rounds, 1)
-	elseif (method == :better_mccs) || ((method == :none) && K==2)
+	elseif (method == :better_MCCs) || ((method == :none) && K==2)
         oa.resolve = get(kwargs_dict, :resolve, true)
 		if K>2
             oa.final_no_resolve = get(kwargs_dict, :final_no_resolve, true)
@@ -79,7 +79,7 @@ function OptArgs(K::Int; method=:none, kwargs...)
             oa.rounds = get(kwargs_dict, :rounds, 1)
 		end
 	else
-		error("`method` should be one of `:better_trees`, `:better_mccs` or `:none` - got $method.")
+		error("`method` should be one of `:better_trees`, `:better_MCCs` or `:none` - got $method.")
 	end
 
 	##clean up
