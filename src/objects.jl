@@ -155,7 +155,6 @@ function MCC_set(no_trees, order_trees, MCC_list::Vector{Vector{Vector{String}}}
     end
 
     M = MCC_set(no_trees, order_trees)
-    # iters = Combinatorics.combinations(1:no_trees, 2)
     pair_iter = ordered_pairs(no_trees)
     for (i, comb) in enumerate(pair_iter)
         add!(M, MCC_list[i], comb...)

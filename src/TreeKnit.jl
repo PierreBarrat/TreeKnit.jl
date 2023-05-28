@@ -1,7 +1,6 @@
 module TreeKnit
 
 # External modules
-using Combinatorics
 using Comonicon
 using Dagger
 using Dates
@@ -11,7 +10,6 @@ using LoggingExtras
 using Markdown
 using Parameters
 using Random
-using Setfield
 
 # Personal modules
 using TreeTools
