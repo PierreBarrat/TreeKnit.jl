@@ -368,7 +368,9 @@ function get_loggers(verbosity_level, io)
 	console_logger =  begin
 		ConsoleLogger(LogLevel(-verbosity_level)) |>
 		x -> TransformerLogger(x) do log
-		   if log.level >= LogLevel(-verbosity_level)
+		   if log.level >= LogLevel(1000) # warning
+               return log
+           elseif log.level >= LogLevel(-verbosity_level)
 		       return merge(log, (;level = Logging.Info))
 		   else
 		       return log
