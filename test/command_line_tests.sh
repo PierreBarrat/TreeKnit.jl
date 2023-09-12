@@ -12,7 +12,7 @@ else
 fi 
 
 export PATH="$HOME/.julia/bin:$PATH"
-treeknit test/NYdata/tree_ha.nwk test/NYdata/tree_na.nwk --auspice-view
+treeknit test/NYdata/tree_ha.nwk test/NYdata/tree_na.nwk --auspice-view --gamma 2
 OUT=$?
 if [ "$OUT" != 0 ]; then
     rm -r treeknit_results
