@@ -3,7 +3,7 @@
 
 # Intro
 
-We suggest two sets of defaults for running TreeKnit. `--better-trees` will produce more accurately resolved trees (default for more than two trees). If you are interested in better inference of consistent clades, `--better-mccs` (default for 2 trees). Use the flag `--help-defaults` with dummy arguments for more details (*e.g.* `treeknit x y --help-defaults`).
+We suggest two sets of defaults for running TreeKnit. `--better-trees` will produce more accurately resolved trees (default for more than two trees). If you are interested in better inference of consistent clades, `--better-MCCs` (default for 2 trees). Use the flag `--help-defaults` with dummy arguments for more details (*e.g.* `treeknit x y --help-defaults`).
 
 # Arguments
 
