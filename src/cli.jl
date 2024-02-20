@@ -20,7 +20,7 @@ We suggest two sets of defaults for running TreeKnit. `--better-trees` will prod
 
 # Flags
 
-- `--help-defaults`: Print some information about the default settings `--better-trees` and `-better-mccs`. Can only be used with (possibily dummy) arguments, *e.g.* `treeknit x y --help-defaults`.
+- `--help-defaults`: Print some information about the default settings `--better-trees` and `-better-MCCs`. Can only be used with (possibily dummy) arguments, *e.g.* `treeknit x y --help-defaults`.
 - `--better-trees`: Use the `--better-trees` method (default for more than 2 trees)
 - `--better-MCCs`: Use the `--better-MCCs` method (default for 2 trees)
 - `--naive`: Naive inference (overrides `-g`).
