@@ -31,7 +31,7 @@ Storing parameters for `SplitGraph.runopt` function.
 - `nT::Int = 3000`: number of steps in the cooling schedule
 """
 @with_kw mutable struct OptArgs
-	γ::Real = 2
+	γ::Real = 2.
 	itmax::Int64 = 15
 	likelihood_sort::Bool = true
 	resolve::Bool = true
