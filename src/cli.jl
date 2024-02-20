@@ -233,7 +233,7 @@ end
 
 function set_up_optargs(
 	K::Int,
-	γ::Real,
+	γ::Float64,
 	likelihood_sort::Bool,
 	nMCMC::Int,
 	seq_lengths::AbstractVector{Int},
