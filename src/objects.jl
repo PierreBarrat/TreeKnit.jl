@@ -56,7 +56,7 @@ end
 """
 	function OptArgs(K::Int; method=:none, kwargs...)
 
-OptArgs constructor will default to :better_trees method if K>2, :better_MCCs if K==2.
+OptArgs constructor will default to `:better_trees` method if `K>2`, `:better_MCCs` if `K==2`.
 """
 function OptArgs(K::Int; method=:none, kwargs...)
 	kwargs_dict = Dict(kwargs)

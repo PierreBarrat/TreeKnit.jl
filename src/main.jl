@@ -142,12 +142,14 @@ function run_treeknit!(trees::AbstractVector{<:Tree}, oa::OptArgs; naive=false)
 
     oa.pre_resolve && resolve!(trees...)
 
+    # function used for inferring the MCCs
+    # for every pair of trees (i,j), will be called as
+    # `f(oa, trees[i], trees[j]; output = :mccs)`
     f = if naive
-		TreeKnit.naive_mccs
+		(oa, t1, t2; kwargs...) -> TreeKnit.naive_mccs(t1, t2)
 	else
 		TreeKnit.runopt
 	end
-
     return if oa.parallel == true
         run_parallel_treeknit!(trees, oa; infer_mccs_function=f)
     else
@@ -157,7 +159,9 @@ end
 
 run_treeknit!(trees; kwargs...) = run_treeknit!(trees, OptArgs(length(trees); kwargs...))
 
-run_treeknit!(t1::Tree, t2::Tree; kwargs...) = run_treeknit!([t1,t2], OptArgs(;kwargs...))
+function run_treeknit!(t1::Tree, t2::Tree; naive=false, kwargs...)
+    return run_treeknit!([t1,t2], OptArgs(;kwargs...); naive)
+end
 run_treeknit!(t1::Tree, t2::Tree, oa::OptArgs) = run_treeknit!([t1,t2], oa)
 
 run_treeknit(trees, oa::OptArgs) = run_treeknit!(map(copy, trees), oa)
