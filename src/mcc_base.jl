@@ -23,7 +23,7 @@ function naive_mccs(treelist)
     checklist = Dict(k=>false for k in keys(tref.lleaves))
 
     # Explore one leaf at a time
-    mc_clades = []
+    mc_clades = Vector{String}[]
     for (cl,v) in checklist
         if !v # If leave not already visited
             # Root of current maximal clade, in all trees
