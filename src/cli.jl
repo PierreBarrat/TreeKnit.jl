@@ -3,7 +3,7 @@
 
 # Intro
 
-We suggest two sets of defaults for running TreeKnit. `--better-trees` will produce more accurately resolved trees (default for more than two trees). If you are interested in better inference of consistent clades, `--better-mccs` (default for 2 trees). Use the flag `--help-defaults` with dummy arguments for more details (*e.g.* `treeknit x y --help-defaults`).
+We suggest two sets of defaults for running TreeKnit. `--better-trees` will produce more accurately resolved trees (default for more than two trees). If you are interested in better inference of consistent clades, `--better-MCCs` (default for 2 trees). Use the flag `--help-defaults` with dummy arguments for more details (*e.g.* `treeknit x y --help-defaults`).
 
 # Arguments
 
@@ -20,7 +20,7 @@ We suggest two sets of defaults for running TreeKnit. `--better-trees` will prod
 
 # Flags
 
-- `--help-defaults`: Print some information about the default settings `--better-trees` and `-better-mccs`. Can only be used with (possibily dummy) arguments, *e.g.* `treeknit x y --help-defaults`.
+- `--help-defaults`: Print some information about the default settings `--better-trees` and `-better-MCCs`. Can only be used with (possibily dummy) arguments, *e.g.* `treeknit x y --help-defaults`.
 - `--better-trees`: Use the `--better-trees` method (default for more than 2 trees)
 - `--better-MCCs`: Use the `--better-MCCs` method (default for 2 trees)
 - `--naive`: Naive inference (overrides `-g`).
@@ -233,7 +233,7 @@ end
 
 function set_up_optargs(
 	K::Int,
-	γ::Real,
+	γ::Float64,
 	likelihood_sort::Bool,
 	nMCMC::Int,
 	seq_lengths::AbstractVector{Int},
