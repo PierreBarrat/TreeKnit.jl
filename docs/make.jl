@@ -3,6 +3,7 @@ using Documenter
 
 Documenter.makedocs(;
 	source = "src",
+    warnonly = [:missing_docs,],
 	clean = true,
 	doctest = true,
 	modules = Module[TreeKnit],
