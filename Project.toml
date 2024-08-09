@@ -1,7 +1,7 @@
 name = "TreeKnit"
 uuid = "03f602be-98a1-4bb2-9504-fbd3406624a7"
 authors = ["PierreBarrat <p.barrat@live.fr>"]
-version = "0.5.7"
+version = "0.5.8"
 
 [deps]
 Comonicon = "863f3e99-da2a-4334-8734-de3dacbe5542"
