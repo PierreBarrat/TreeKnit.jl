@@ -30,7 +30,7 @@ function resolve!(
 					TreeTools.prunenode!(r)
 					TreeTools.graftnode!(nr,r)
 				end
-				TreeTools.graftnode!(R, nr, tau=tau)
+				TreeTools.graftnode!(R, nr, time=tau)
 				push!(tsplits.splits, s)
 			elseif conflict != :ignore
 				error("Tried to resolve tree with an incompatible split.")
@@ -162,7 +162,7 @@ function resolve!(t1::Tree, t2::Tree, tn::Vararg{Tree}; tau=0.)
 	S = [SplitList(t) for t in (t1,t2, tn...)]
 	Snew = resolve!(S, [t1, t2, tn...])
 	for (t, s) in zip((t1,t2,tn...), S)
-			resolve!(t, s; conflict=:fail, usemask=false, tau)
+		resolve!(t, s; conflict=:fail, usemask=false, tau)
 	end
 
 	return Snew

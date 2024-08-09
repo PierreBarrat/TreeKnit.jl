@@ -128,8 +128,8 @@ function get_auspice_json(tree, tree_list, MCCs)
 end
 
 function get_auspice_tree(n, mcc_maps, tree_name, other_tree_names; div =0)
-    if ismissing(n.tau) n.tau = 0.0 end
-	div = n.tau + div
+    ismissing(branch_length(n)) && branch_length!(n, 0.0)
+	div = branch_length(n) + div
     node_attr_dict = Dict{String, Any}("div" => div)
     for (i,ot) in enumerate(other_tree_names)
 		order_ = sort([tree_name, ot])

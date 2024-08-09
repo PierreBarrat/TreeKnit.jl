@@ -268,45 +268,45 @@ function set_branch_length!(arg::ARG, t1, t2, lm)
 			n1, n2  = lm[label(a)]
 			if isnothing(n1)
 				# Use n2 only
-				set_branch_length!(a, t2.lnodes[n2].tau, 2)
+				set_branch_length!(a, TreeTools.branch_length(t2[n2]), 2)
 			elseif isnothing(n2)
 				# Use n1 only
-				set_branch_length!(a, t1.lnodes[n1].tau, 1)
+				set_branch_length!(a, TreeTools.branch_length(t1[n1]), 1)
 			else
 				# Shared by n1 and n2
 				# Is the node above a hybrid?
 				if ishybrid(ancestor(a, 1))
 					# MCC root
 					a_h = ancestor(a, 1)
-					τ = if ismissing(t1.lnodes[n1].tau)
-						t2.lnodes[n2].tau
-					elseif ismissing(t2.lnodes[n2].tau)
-						t1.lnodes[n1].tau
+					τ = if ismissing(TreeTools.branch_length(t1[n1]))
+						TreeTools.branch_length(t2[n2])
+					elseif ismissing(TreeTools.branch_length(t2[n2]))
+						TreeTools.branch_length(t1[n1])
 					else
-						min(t1.lnodes[n1].tau, t2.lnodes[n2].tau)
+						min(TreeTools.branch_length(t1[n1]),TreeTools.branch_length(t2[n2]))
 					end
 					aτ = τ/2
-					hτ1 = t1.lnodes[n1].tau - aτ
-					hτ2 = t2.lnodes[n2].tau - aτ
+					hτ1 = TreeTools.branch_length(t1[n1]) - aτ
+					hτ2 = TreeTools.branch_length(t2[n2]) - aτ
 					set_branch_length!(a, aτ, 1, 2)
 					set_branch_length!(a_h, hτ1, 1)
 					set_branch_length!(a_h, hτ2, 2)
 				else
 					# Fully shared node - if root of one of the trees, deal with missing tau
-					τ1, τ2 = if ismissing(t1.lnodes[n1].tau)
-						if t1.lnodes[n1].isroot
-							(missing, t2.lnodes[n2].tau)
+					τ1, τ2 = if ismissing(TreeTools.branch_length(t1[n1]))
+						if t1[n1].isroot
+							(missing, TreeTools.branch_length(t2[n2]))
 						else
-							(t2.lnodes[n2].tau, t2.lnodes[n2].tau)
+							(TreeTools.branch_length(t2[n2]),TreeTools.branch_length(t2[n2]))
 						end
-					elseif ismissing(t2.lnodes[n2].tau)
-						if t2.lnodes[n2].isroot
-							(t1.lnodes[n1].tau, missing)
+					elseif ismissing(TreeTools.branch_length(t2[n2]))
+						if t2[n2].isroot
+							(TreeTools.branch_length(t1[n1]), missing)
 						else
-							(t1.lnodes[n1].tau, t1.lnodes[n1].tau)
+							(TreeTools.branch_length(t1[n1]),TreeTools.branch_length(t1[n1]))
 						end
 					else
-						τ = (t1.lnodes[n1].tau + t2.lnodes[n2].tau)/2
+						τ = (TreeTools.branch_length(t1[n1]) + TreeTools.branch_length(t2[n2]))/2
 						(τ, τ)
 					end
 					set_branch_length!(a, τ1, 1)
@@ -474,26 +474,26 @@ function fix_shared_singletons!(t1, t2, X1, X2, mcc::Vector{String})
 				if f2
 					# Both are shared.
 					# Choose one and fix it
-					if !ismissing(n1.tau) && !ismissing(n2.tau)
-						if n1.tau < n2.tau
+					if !ismissing(TreeTools.branch_length(n1)) && !ismissing(TreeTools.branch_length(n2))
+						if TreeTools.branch_length(n1) < TreeTools.branch_length(n2)
 							# a1 in t2
-							introduce_singleton!(n2, a2, a1, n1.tau, X2, X1)
+							introduce_singleton!(n2, a2, a1, TreeTools.branch_length(n1), X2, X1)
 						else
 							# a2 in t1
-							introduce_singleton!(n1, a1, a2, n2.tau, X1, X2)
+							introduce_singleton!(n1, a1, a2, TreeTools.branch_length(n2), X1, X2)
 						end
 					else
 						# a1 in t2 by default
-						introduce_singleton!(n2, a2, a1, n1.tau, X2, X1)
+						introduce_singleton!(n2, a2, a1, TreeTools.branch_length(n1), X2, X1)
 					end
 
 				else
 					# Introduce a1 in t2
-					introduce_singleton!(n2, a2, a1, n1.tau, X2, X1)
+					introduce_singleton!(n2, a2, a1, TreeTools.branch_length(n1), X2, X1)
 				end
 			elseif f2
 				# Introduce a2 in a1
-				introduce_singleton!(n1, a1, a2, n2.tau, X1, X2)
+				introduce_singleton!(n1, a1, a2, TreeTools.branch_length(n2), X1, X2)
 			end
 			# At this point, n1 and n2 should have the same ancestor
 			v1[n1.label] = true
@@ -511,19 +511,19 @@ end
 #=
 introduce singleton `a --> s --> n`.
 time above `s` wants to be `τ`:
-- if there is space above `n`, i.e. `n.tau > τ`, no problem
-- if there is no space, we put `s` at distance `0` from `a`: `nτ, sτ = (n.tau, 0.)`
+- if there is space above `n`, i.e. `branch_length(n) > τ`, no problem
+- if there is no space, we put `s` at distance `0` from `a`: `nτ, sτ = (branch_length(n), 0.)`
 - if the initial branch length is missing, we just propagate missing.
 =#
 function introduce_singleton!(n::TreeNode{T}, a::TreeNode{T}, sref, τ, X, Xref) where T
 	# times above n and above singleton
-	nτ, sτ = if ismissing(n.tau) || ismissing(τ)
+	nτ, sτ = if ismissing(TreeTools.branch_length(n)) || ismissing(τ)
         TreeTools.branch_length!(n, missing)
 		(missing, missing)
-	elseif n.tau >= τ
-		(τ, n.tau - τ)
+	elseif TreeTools.branch_length(n) >= τ
+		(τ, TreeTools.branch_length(n) - τ)
 	else
-		(n.tau, 0.)
+		(TreeTools.branch_length(n), 0.)
 	end
 
 	s = TreeTools.TreeNode(

@@ -1,3 +1,4 @@
+using Pkg
 using TreeKnit
 using TreeKnit.SplitGraph
 using Test

@@ -207,7 +207,7 @@ function reduce_to_mcc!(tree::Tree, MCC)
         if r.isroot
             node2tree!(tree, TreeNode(
                     r.data;
-                    isleaf=true, isroot = true, label=r.label, r.tau
+                    isleaf=true, isroot = true, label=label(r), tau = branch_length(r)
                 ))
         elseif !r.isleaf
         	for c in reverse(r.child)
