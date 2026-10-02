@@ -26,6 +26,11 @@ using Test
 		include("mcc_tools/test.jl")
 	end
 
+	@testset "Fixes" begin
+		println("# Fixes")
+		include("fixes/test.jl")
+	end
+
 	@testset "SimpleReassortmentGraph" begin
 		println("# SimpleReassortmentGraph")
 		include("SRG/test.jl")

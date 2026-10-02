@@ -2,6 +2,10 @@
 	arg_from_trees(t1, t2, MCCs)
 
 Construct an `ARG` from two trees and a set of MCCs.
+Return `arg, rlm, lm1, lm2, t1_arg, t2_arg`: the ARG, the map from ARG nodes to tree
+nodes, the maps from tree nodes to ARG nodes, and the copies of the input trees the ARG was
+built from (liberally resolved, with shared singletons inserted). Node labels in `rlm` refer
+to `t1_arg` and `t2_arg`. The input trees are not modified.
 """
 function arg_from_trees(it1, it2, MCCs)
 	if !ismissing(TreeTools.branch_length(it1.root)) || !ismissing(TreeTools.branch_length(it2.root))
@@ -28,7 +32,7 @@ function arg_from_trees(it1, it2, MCCs)
 	# Deal with branch lengths of the ARG
 	set_branch_length!(arg, t1, t2, rlm)
 
-	return arg, rlm, lm1, lm2
+	return arg, rlm, lm1, lm2, t1, t2
 end
 
 """

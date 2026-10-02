@@ -14,7 +14,7 @@ We suggest two sets of defaults for running TreeKnit. `--better-trees` will prod
 - `-o, --outdir <arg>`: directory for results; Example `-o=treeknit_results`
 - `-g, --gamma <arg>`: value of γ; Example `-g=2`
 - `--seq-lengths <arg>`: length of the sequences. Example: `--seq-length "1500 2000"`
-- `--n-mcmc-it <arg>`: number of MCMC iterations per leaf; default 25
+- `--n-mcmc-it <arg>`: number of MCMC iterations per leaf; default 50
 - `--rounds <arg>`: Number of times to run inference on input trees. If `rounds > 1` MCCs will be re-inferred using resolved trees from the last iteration. (default: `1`)
 - `--verbosity-level <arg>`: set value of verbosity. Default 0. `-v` flag sets it to 1. Set to 2 for maximum verbosity (only useful for small trees). Set to -1 for no output at all
 
@@ -29,7 +29,7 @@ We suggest two sets of defaults for running TreeKnit. `--better-trees` will prod
 - `--resolve-all-rounds`: Resolve trees before inferring pairwise MCCs in all rounds, overrides `--no-resolve` (default for 2 trees, for more than 2 trees default is to not resolve in the final round)
 - `--no-pre-resolve`: Do not compatibly resolve all trees with each other before inferring MCCs (default is to pre-resolve)
 - `--no-likelihood`: Do not use branch length likelihood test to sort between different MCCs
-- `--parallel`: Run sequential TreeKnit with parallelization (only used for 3 or more trees)
+- `--parallel`: infer MCCs of independent tree pairs in parallel (only used for 3 or more trees; rounds that resolve trees remain sequential)
 - `-v, --verbose`: set verbosity to 1
 - `--auspice-view`: return ouput files for auspice
 """
@@ -158,14 +158,16 @@ Comonicon.@main function treeknit(
 
 	if length(trees) == 2
 		mkpath(outdir*"/ARG")
-		rS = resolve!(trees[1], trees[2], get(MCCs, trees[1].label, trees[2].label); strict=false)
-		out_nwk = make_output_tree_names(fn, ext; ARG=true)
-		for i in 1:MCCs.no_trees
-			write_newick(outdir * "/ARG/" * out_nwk[i], trees[i])
-		end
 		@logmsg LogLevel(-1) "Building ARG from trees and MCCs..."
-		arg, rlm, lm1, lm2 = SRG.arg_from_trees(trees[1], trees[2], get(MCCs, trees[1].label, trees[2].label))
+		arg, rlm, lm1, lm2, t1_arg, t2_arg = SRG.arg_from_trees(
+			trees[1], trees[2], get(MCCs, trees[1].label, trees[2].label)
+		)
 		@logmsg LogLevel(-1) "Found $(length(arg.hybrids)) reassortments in the ARG.\n"
+		# Write the trees the ARG was built from, so that `nodes.dat` refers to their nodes
+		out_nwk = make_output_tree_names(fn, ext; ARG=true)
+		for (i, t) in enumerate((t1_arg, t2_arg))
+			write_newick(outdir * "/ARG/" * out_nwk[i], t)
+		end
 		write(outdir * "/ARG/" * "arg.nwk", arg)
 		write_rlm(outdir * "/ARG/" * "nodes.dat", rlm)
 	end

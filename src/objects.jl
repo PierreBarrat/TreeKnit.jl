@@ -23,12 +23,13 @@ Storing parameters for `SplitGraph.runopt` function.
 - `final_no_resolve::Bool = false`: do not resolve in the final round of pair-wise MCC inference
 - `parallel::Bool = false`: parallelize MCC inference as much as possible. 
 ### Simulated annealing
-- `nMCMC::Int = 25`: The *total* number of MCMC steps (swaps) for a tree of `n` leaves is `nMCMC*n`. 
+- `nMCMC::Int = 50`: The *total* number of MCMC steps (swaps) for a tree of `n` leaves is `nMCMC*n`. 
   The number of MCMC steps at one temperature is `nMCMC * n / nT`.
+- `sa_rep::Int = 1`: number of independent simulated annealing runs.
 - `cooling_schedule = :geometric`: type of cooling schedule `(:geometric, :linear, :acos)`
 - `Tmin::Float64 = 0.05`: minimal temperature of SA.
-- `Tmax::Float64 = 0.8`: maximal temperature of SA.
-- `nT::Int = 3000`: number of steps in the cooling schedule
+- `Tmax::Float64 = 1`: maximal temperature of SA.
+- `nT::Int = 100`: number of steps in the cooling schedule
 """
 @with_kw mutable struct OptArgs
 	γ::Float64 = 2.
@@ -56,33 +57,27 @@ end
 """
 	function OptArgs(K::Int; method=:none, kwargs...)
 
-OptArgs constructor will default to `:better_trees` method if `K>2`, `:better_MCCs` if `K==2`.
+Options for `K` trees. `method` sets the defaults of `resolve`, `final_no_resolve` and
+`rounds`: `:better_trees` (default if `K>2`) or `:better_MCCs` (default if `K==2`).
+All other keyword arguments are fields of `OptArgs` and override these defaults.
 """
 function OptArgs(K::Int; method=:none, kwargs...)
-	kwargs_dict = Dict(kwargs)
-	oa = OptArgs() #default values for K==2
-    oa.seq_lengths = get(kwargs_dict, :seq_lenghts, repeat([1], K))
-	oa.pre_resolve = get(kwargs_dict, :pre_resolve, true)
-	oa.strict = get(kwargs_dict, :strict, true)
-
-	if (method == :better_trees) || ((method == :none) && K>2)
-        oa.resolve = get(kwargs_dict, :resolve, false)
-        oa.final_no_resolve = get(kwargs_dict, :final_no_resolve, true)
-		oa.rounds = get(kwargs_dict, :rounds, 1)
-	elseif (method == :better_MCCs) || ((method == :none) && K==2)
-        oa.resolve = get(kwargs_dict, :resolve, true)
-		if K>2
-            oa.final_no_resolve = get(kwargs_dict, :final_no_resolve, true)
-			oa.rounds = get(kwargs_dict, :rounds, 2)
-		else
-            oa.final_no_resolve = get(kwargs_dict, :final_no_resolve, false)
-            oa.rounds = get(kwargs_dict, :rounds, 1)
-		end
+	method = if method == :none
+		K > 2 ? :better_trees : :better_MCCs
+	else
+		method
+	end
+	method_defaults = if method == :better_trees
+		(resolve = false, final_no_resolve = true, rounds = 1)
+	elseif method == :better_MCCs
+		K > 2 ? (resolve = true, final_no_resolve = true, rounds = 2) :
+			(resolve = true, final_no_resolve = false, rounds = 1)
 	else
 		error("`method` should be one of `:better_trees`, `:better_MCCs` or `:none` - got $method.")
 	end
+	oa = OptArgs(; seq_lengths = ones(Int, K), method_defaults..., kwargs...)
 
-	##clean up
+	## clean up
 	if (oa.final_no_resolve==true) && (oa.rounds==1) && (oa.resolve==true)
 		oa.resolve=false
 		oa.final_no_resolve=false
@@ -203,12 +198,12 @@ function iter_pairs(M::MCC_set)
 end
 
 """
-	iter_pairs(M::MCC_set, tree_label::String)
+	iter_shared(M::MCC_set, tree_label::String)
 
-Iterate over all tree pairs with tree `tree_label` and their calculated MCCs in order of calculation.
+MCCs of all tree pairs containing tree `tree_label`, in the order of `M.order_trees`.
 """
 function iter_shared(M::MCC_set, tree_label::String)
-    return [get(M, (tree, t)) for t in M.tree_order if t!=tree]
+    return [get(M, tree_label, t) for t in M.order_trees if t != tree_label]
 end
 
 function Base.print(M::MCC_set)
