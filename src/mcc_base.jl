@@ -94,14 +94,14 @@ end
 
 
 """
-    is_coherent_clade(roots::Array{<:TreeNode,1}, S::Tuple{<:SplitList,n} where n)
+    is_coherent_clade(roots::Array{<:TreeNode,1}, S::Tuple{Vararg{SplitList}})
 
 Do all children of `r` correspond to the same splits?
 
 In practice, check that the splits `S[i].splitmap[c]` for `i` in `1:length(S)`
 and `c` in children of `r` are all the same.
 """
-function is_coherent_clade(roots::Array{<:TreeNode,1}, S::Tuple{<:SplitList,n} where n)
+function is_coherent_clade(roots::Array{<:TreeNode,1}, S::Tuple{Vararg{SplitList}})
     # All `r` in `roots` should at least have the same number of children
     if !mapreduce(ic-> length(roots[ic].child) == length(roots[1].child), *, 2:length(roots))
         return false

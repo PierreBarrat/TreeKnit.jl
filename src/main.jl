@@ -29,92 +29,98 @@ function run_standard_treeknit!(
 	trees::AbstractVector{<:Tree}, oa::OptArgs;
 	infer_mccs_function = TreeKnit.runopt
 )
-	tree_seq_lengths = oa.seq_lengths
-	@assert length(tree_seq_lengths) == length(trees) || length(tree_seq_lengths) == 2
-    l_t = length(trees)
-    pair_MCCs = MCC_set(l_t, [t.label for t in trees])
-    for r in 1:oa.rounds
-        @logmsg LogLevel(-1) "ROUND: $r\n\n"
-        for i in 1:(l_t-1), j in (i+1):l_t
-			if length(tree_seq_lengths) >2
-				oa.seq_lengths = [tree_seq_lengths[i], tree_seq_lengths[j]]
-			end
-            # do we resolve for this round?
-            if oa.final_no_resolve && r==oa.rounds
-                oa.resolve = false
-                oa.strict = false
-            end
-
-            # compute MCCs for current tree pair and add it to set
+	@assert length(oa.seq_lengths) == length(trees) || length(oa.seq_lengths) == 2
+	l_t = length(trees)
+	pair_MCCs = MCC_set(l_t, [t.label for t in trees])
+	for r in 1:oa.rounds
+		@logmsg LogLevel(-1) "ROUND: $r\n\n"
+		for (i, j) in _tree_pairs(l_t)
+			poa = _pair_options(oa, i, j, r)
 			@logmsg LogLevel(-1) """
 			Infering MCCs for trees: $(trees[j].label) and $(trees[i].label)\n\n
 			"""
-            mccs = infer_mccs_function(oa, trees[i], trees[j]; output = :mccs)
-            add!(pair_MCCs, mccs, (i, j))
-
-            if oa.resolve 
-                rS = TreeKnit.resolve!(trees[i], trees[j], get(pair_MCCs, (j, i)); oa.strict)
-            end
-            @logmsg LogLevel(-1) """
-            found MCCs for trees: $(trees[j].label) and $(trees[i].label)
-            """
-            if r==oa.rounds 
-				i == 1 && TreeTools.ladderize!(trees[i]) # only the first tree is ladderized
-                TreeKnit.sort_polytomies!(
-                	trees[i], trees[j], get(pair_MCCs, trees[i].label, trees[j].label);
-                	oa.strict
-                )
-                @logmsg LogLevel(-1) """
-                ladderized and sorted trees: $(trees[j].label) and $(trees[i].label)
-                """
-            end
-        end
-    end
-    return pair_MCCs
-end
-
-function run_step!(oa::OptArgs, tree1::Tree, tree2::Tree, func_::Function, r, pos)
-    if oa.final_no_resolve && r==oa.rounds
-        oa = fetch(oa)
-        oa.resolve = false
-        oa.strict = false
-        MCC = func_(oa, tree1, tree2; output = :mccs)
-    else
-        MCC = func_(oa, tree1, tree2; output = :mccs)
-        rS = TreeKnit.resolve!(tree1, tree2, MCC; oa.strict)
-    end
-    if r==oa.rounds 
-        if pos ==1
-            TreeTools.ladderize!(tree1)
-        end
-        TreeKnit.sort_polytomies!(tree1, tree2, MCC; oa.strict)
-    end
-    return MCC
-end
-
-"""
-	run_parallel_treeknit!(trees::Vector{Tree{T}}, oa::OptArgs, func_::Function) where T
-
-Parallelized version of `run_standard_treeknit!(trees, oa, func_)`.
-"""
-function run_parallel_treeknit!(trees::Vector{Tree{T}}, oa::OptArgs; func_=TreeKnit.runopt) where T 
-    tree_seq_lengths = oa.seq_lengths 
-	@assert length(tree_seq_lengths) == length(trees) || length(tree_seq_lengths) == 2
-	l_t = length(trees)
-    parallel_MCCs = Dict()
-    for r in 1:oa.rounds
-        for i in 1:(l_t-1), j in (i+1):l_t
-			if length(tree_seq_lengths) >2
-				oa.seq_lengths = [tree_seq_lengths[i], tree_seq_lengths[j]]
+			mccs = infer_mccs_function(poa, trees[i], trees[j]; output = :mccs)
+			add!(pair_MCCs, mccs, (i, j))
+			if poa.resolve
+				TreeKnit.resolve!(trees[i], trees[j], mccs; poa.strict)
 			end
-            parallel_MCCs[Set([i,j])] = Dagger.@spawn run_step!(oa, trees[i], trees[j], func_, r, i)
-        end
-    end
-    pair_MCCs = MCC_set(l_t, [t.label for t in trees])
-    for (key, mcc) in parallel_MCCs
-        add!(pair_MCCs, fetch(mcc), Tuple(key))
-    end
-    return pair_MCCs
+			@logmsg LogLevel(-1) "found MCCs for trees: $(trees[j].label) and $(trees[i].label)"
+			r == oa.rounds && _sort_pair!(trees, i, j, mccs, poa.strict)
+		end
+	end
+	return pair_MCCs
+end
+
+_tree_pairs(K) = [(i, j) for i in 1:(K-1) for j in (i+1):K]
+_infer_pair(f, oa, t1, t2) = f(oa, t1, t2; output = :mccs)
+
+"""
+	_pair_options(oa, i, j, round)
+
+Copy of `oa` for inferring MCCs of trees `i` and `j` in round `round`: sequence lengths of
+the two trees, and no resolution in the final round if `oa.final_no_resolve`.
+The input `oa` is not modified.
+"""
+function _pair_options(oa::OptArgs, i, j, round)
+	poa = deepcopy(oa)
+	if length(oa.seq_lengths) > 2
+		poa.seq_lengths = [oa.seq_lengths[i], oa.seq_lengths[j]]
+	end
+	if oa.final_no_resolve && round == oa.rounds
+		poa.resolve = false
+		poa.strict = false
+	end
+	return poa
+end
+
+# Ladderize the first tree and sort polytomies so that MCCs of trees `i` and `j` face each other.
+function _sort_pair!(trees, i, j, mccs, strict)
+	i == 1 && TreeTools.ladderize!(trees[i]) # only the first tree is ladderized
+	TreeKnit.sort_polytomies!(trees[i], trees[j], mccs; strict)
+	@logmsg LogLevel(-1) "ladderized and sorted trees: $(trees[j].label) and $(trees[i].label)"
+end
+
+"""
+	run_parallel_treeknit!(trees, oa::OptArgs; infer_mccs_function = TreeKnit.runopt)
+
+Parallel version of `run_standard_treeknit!`, with the same result. In rounds without
+resolution, MCCs of all tree pairs are inferred in parallel. In rounds that resolve trees,
+each pair modifies trees used by later pairs, so pairs are processed sequentially.
+"""
+function run_parallel_treeknit!(
+	trees::AbstractVector{<:Tree}, oa::OptArgs;
+	infer_mccs_function = TreeKnit.runopt
+)
+	@assert length(oa.seq_lengths) == length(trees) || length(oa.seq_lengths) == 2
+	l_t = length(trees)
+	pairs = _tree_pairs(l_t)
+	pair_MCCs = MCC_set(l_t, [t.label for t in trees])
+	for r in 1:oa.rounds
+		resolving = any(((i, j),) -> _pair_options(oa, i, j, r).resolve, pairs)
+		if resolving
+			for (i, j) in pairs
+				poa = _pair_options(oa, i, j, r)
+				mccs = infer_mccs_function(poa, trees[i], trees[j]; output = :mccs)
+				add!(pair_MCCs, mccs, (i, j))
+				TreeKnit.resolve!(trees[i], trees[j], mccs; poa.strict)
+				r == oa.rounds && _sort_pair!(trees, i, j, mccs, poa.strict)
+			end
+		else
+			tasks = map(pairs) do (i, j)
+				poa = _pair_options(oa, i, j, r)
+				Dagger.@spawn _infer_pair(infer_mccs_function, poa, trees[i], trees[j])
+			end
+			for ((i, j), task) in zip(pairs, tasks)
+				add!(pair_MCCs, fetch(task), (i, j))
+			end
+			if r == oa.rounds
+				for (i, j) in pairs
+					_sort_pair!(trees, i, j, get(pair_MCCs, (i, j)), _pair_options(oa, i, j, r).strict)
+				end
+			end
+		end
+	end
+	return pair_MCCs
 end
 
 """
@@ -157,7 +163,9 @@ function run_treeknit!(trees::AbstractVector{<:Tree}, oa::OptArgs; naive=false)
     end
 end
 
-run_treeknit!(trees; kwargs...) = run_treeknit!(trees, OptArgs(length(trees); kwargs...))
+function run_treeknit!(trees; naive=false, kwargs...)
+	return run_treeknit!(trees, OptArgs(length(trees); kwargs...); naive)
+end
 
 function run_treeknit!(t1::Tree, t2::Tree; naive=false, kwargs...)
     return run_treeknit!([t1,t2], OptArgs(;kwargs...); naive)
@@ -180,11 +188,12 @@ run_treeknit(t1::Tree, t2::Tree, oa::OptArgs) = run_treeknit!(copy(t1), copy(t2)
 function inferARG(
 	t1::Tree, t2::Tree, oa::OptArgs = OptArgs()
 )
-	oa.resolve= false
+	oa = deepcopy(oa)
+	oa.resolve = false
 	oa.strict = false #liberal resolve is needed for reconstructing ARGs
+	trees = [copy(t1), copy(t2)]
 	MCCs = run_standard_treeknit!(trees, oa)
-	arg = SRG.arg_from_trees(t1, t2, MCCs)[1]
-	return arg[1]
+	return SRG.arg_from_trees(trees[1], trees[2], get(MCCs, 1, 2))[1]
 end
 
 
@@ -321,7 +330,6 @@ function getM(L, Md)
 	else
 		return _getM(L, Md)
 	end
-	tmp
 end
 _getM(n,Md) = ceil(Int, n/Md)
 

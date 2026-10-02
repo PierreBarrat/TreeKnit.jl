@@ -35,7 +35,9 @@ end
 	MCCs_standard = TreeKnit.run_standard_treeknit!([t1_copy, t2_copy], TreeKnit.OptArgs(rounds=1, resolve=false))
 	json_output = TreeKnit.write_mccs(MCCs_standard)
 	mccs_json = JSON3.write(MCCs_standard.mccs[Set([t1_copy.label, t2_copy.label])])
-	@test json_output == "{\"MCC_dict\":{\"1\":{\"trees\":[\"a\",\"b\"],\"mccs\":"*mccs_json*"}}}"
+	# Compare parsed JSON: key order depends on `Dict` iteration order
+	expected = "{\"MCC_dict\":{\"1\":{\"trees\":[\"a\",\"b\"],\"mccs\":"*mccs_json*"}}}"
+	@test copy(JSON3.read(json_output)) == copy(JSON3.read(expected))
 end
 
 MCCs = TreeKnit.MCC_set(2, ["a", "b"], [solutions[1]])
@@ -43,7 +45,7 @@ file = "$(dirname(pathof(TreeKnit)))/../test/main/auspice_a.json"
 json_string = read(file, String)
 json_output = TreeKnit.get_auspice_json(t1_copy, [t1_copy, t2_copy], MCCs)
 @testset "write auspice JSON" begin
-	@test replace(json_string, " " => "", "\n" => "", "\t" => "") == json_output
+	@test copy(JSON3.read(json_string)) == copy(JSON3.read(json_output))
 end
 
 @testset "tree naming" begin

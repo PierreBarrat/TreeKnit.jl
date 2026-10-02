@@ -24,8 +24,11 @@ function branch_likelihood(t1::Real, t2::Real, L1, L2)
 	return L 
 end
 
-branch_likelihood(t1::Missing, t2::Real, L1, L2) = missing
-branch_likelihood(t1::Real, t2::Missing, L1, L2) = missing
+# A missing branch length carries no information. Returning `missing` here would make the
+# likelihood of the whole configuration `missing`, and `sortconf` would then prefer such
+# configurations (`maximum` of a vector containing `missing` is `missing`).
+branch_likelihood(t1::Missing, t2::Real, L1, L2) = 0.
+branch_likelihood(t1::Real, t2::Missing, L1, L2) = 0.
 branch_likelihood(t1::Missing, t2::Missing, L1, L2) = 0.
 branch_likelihood(t1, t2, L1, L2) = 0.
 
