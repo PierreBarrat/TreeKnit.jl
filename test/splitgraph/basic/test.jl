@@ -27,12 +27,13 @@ end
 @testset "Basic compute_energy" begin
 	conf = ones(Bool, length(g.leaves))
 	@test compute_energy(conf, g) == 5
-	@testset for i in Iterators.filter(!=(3), 1:5)
+	iC = g.labels_to_int["C"] # leaf order in `g` depends on `Dict` iteration order
+	@testset for i in Iterators.filter(!=(iC), 1:5)
 		conf[i] = false
 		@test compute_energy(conf, g) == 4
 		conf[i] = true
 	end
-	conf = Bool[1, 1, 0, 1, 1]
+	conf[iC] = false
 	@test compute_energy(conf, g) == 0
 	@testset for i in 1:5
 		conf[i] = false
