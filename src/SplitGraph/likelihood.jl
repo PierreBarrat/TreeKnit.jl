@@ -71,7 +71,7 @@ function conf_likelihood_(divfunction, conf::Array{Bool,1}, g::Graph, seq_length
 						ta2 = ta2.anc
 					end
 					# If a1.conf and a2.conf are equal, we just inferred that this branch is common to trees k1 and k2
-					if (!get_resolve() && are_equal(a1.conf, a2.conf, conf)) ||
+					if (!get_resolve() && are_equal(a1, a2, conf)) ||
 						(get_resolve() && are_equal_with_resolution(g, a1, a2, conf))
 						tau1 = divfunction(tn1, ta1)
 						tau2 = divfunction(tn2, ta2)
@@ -130,7 +130,7 @@ function conf_likelihood_times(conf::Array{Bool,1}, g::Graph, μ, trees)
 						ta2 = ta2.anc
 					end
 					# If a1.conf and a2.conf are equal, we just inferred that this branch is common to trees k1 and k2
-					if are_equal(a1.conf, a2.conf, conf)
+					if are_equal(a1, a2, conf)
 						τ1 = TreeTools.divtime(tn1, ta1)
 						τ2 = TreeTools.divtime(tn2, ta2)
 						dL = branch_likelihood(μ[k1]*τ1, μ[k2]*τ2, μ[k1], μ[k2])

@@ -110,8 +110,9 @@ function map_splits_to_tree!(
                ones(Bool, length(t.lleaves)), Dict{T, Split}(),
        )
        treesplits = SplitList(t)
+       mcc_map = strict && !isnothing(MCCs) ? map_mccs(t, MCCs) : nothing
        for S in S_array
-               mS = map_splits_to_tree!(S, t, treesplits; strict, MCCs)
+               mS = map_splits_to_tree!(S, t, treesplits; strict, MCCs, mcc_map)
                for s in mS
                        push!(out.splits, s)
                end
@@ -134,7 +135,8 @@ function map_splits_to_tree!(S::SplitList, t::Tree; strict=false, MCCs=nothing)
 	return map_splits_to_tree!(S, t, treesplits; strict, MCCs)
 end
 function map_splits_to_tree!(
-	S::SplitList, tree::Tree, treesplits::SplitList; strict=false, MCCs=nothing
+	S::SplitList, tree::Tree, treesplits::SplitList; strict=false, MCCs=nothing,
+	mcc_map = strict && !isnothing(MCCs) ? map_mccs(tree, MCCs) : nothing,
 )
 	mS = SplitList(
 		S.leaves,
@@ -143,7 +145,7 @@ function map_splits_to_tree!(
 		Dict{eltype(S.leaves), Split}()
 	)
 	for i in 1:length(S)
-		ms = _map_split_to_tree!(S, i, tree, treesplits; strict, MCCs)
+		ms = _map_split_to_tree!(S, i, tree, treesplits; strict, MCCs, mcc_map)
 		push!(mS.splits, ms)
 	end
 	return mS
@@ -154,7 +156,8 @@ end
 Map split `S[i]` to `t`.
 =#
 function _map_split_to_tree!(
-	S::SplitList, i::Integer, t::Tree, treesplits::SplitList; strict=false, MCCs=nothing
+	S::SplitList, i::Integer, t::Tree, treesplits::SplitList; strict=false, MCCs=nothing,
+	mcc_map = strict && !isnothing(MCCs) ? map_mccs(t, MCCs) : nothing,
 )
 
 	ms = Split(0)
@@ -169,7 +172,7 @@ function _map_split_to_tree!(
         in the polytomy cannot be split off, this split can be introduced (i.e. if the other nodes are contained in a MCC that
         also contains other internal nodes).
         =#
-        mcc_map_ = map_mccs(t, MCCs)
+        mcc_map_ = mcc_map
         mcc_ = [mcc_map_[r.label] for r in roots]
         mcc_ =  unique(mcc_[mcc_.!=nothing])
         if isempty(mcc_)
