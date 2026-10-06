@@ -30,4 +30,9 @@ using Test
 		println("# SimpleReassortmentGraph")
 		include("SRG/test.jl")
 	end
+
+	@testset "Logging" begin
+		println("# Logging")
+		include("logging/test.jl")
+	end
 end

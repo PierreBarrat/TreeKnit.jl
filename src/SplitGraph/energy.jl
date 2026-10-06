@@ -37,7 +37,7 @@ function compute_energy(conf::Array{Bool,1}, g::Graph)
 					end
 					if get_resolve() && !are_equal_with_resolution(g, a1, a2, conf)
 						E += 1
-					elseif !get_resolve() && !are_equal(a1.conf, a2.conf, conf)
+					elseif !get_resolve() && !are_equal(a1, a2, conf)
 						E += 1
 					end
 				end
@@ -48,26 +48,12 @@ function compute_energy(conf::Array{Bool,1}, g::Graph)
 end
 
 """
-	 are_equal(nsplit1, nsplit2, conf)
+	are_equal(a1::SplitNode, a2::SplitNode, conf)
 
-Are internal configurations `nsplit1` and `nsplit2` equal for leaf configuration `conf`?
+Are the splits of `a1` and `a2` equal for leaf configuration `conf`?
 """
-function are_equal(nsplit1, nsplit2, conf)
-	_in = max(length(nsplit1), length(nsplit2)) > 25 ? insorted : in
-
-	@inbounds for n1 in nsplit1
-		if conf[n1] && !_in(n1, nsplit2)
-			return false
-		end
-	end
-
-	@inbounds for n2 in nsplit2
-		if conf[n2] && !_in(n2, nsplit1)
-			return false
-		end
-	end
-
-	return true
+function are_equal(a1::SplitNode, a2::SplitNode, conf)
+	return is_contained(a1, a2, conf) && is_contained(a2, a1, conf)
 end
 
 
@@ -96,26 +82,25 @@ we would have reached `S` instead of `asplit2` when going up from the leaf.
 2. If ... are `ABX`, `C`, `YZ`, then we can't resolve because of the first split.
 """
 function are_equal_with_resolution(g, a1::SplitNode, a2::SplitNode, conf)
-	if are_equal(a1.conf, a2.conf, conf)
+	if are_equal(a1, a2, conf)
 		return true
-	elseif is_contained(a1.conf, a2.conf, conf) && _are_equal_with_resolution(g, a1.conf, a2, conf)
+	elseif is_contained(a1, a2, conf) && _are_equal_with_resolution(g, a1, a2, conf)
 		return true
-	elseif is_contained(a2.conf, a1.conf, conf) && _are_equal_with_resolution(g, a2.conf, a1, conf)
+	elseif is_contained(a2, a1, conf) && _are_equal_with_resolution(g, a2, a1, conf)
 		return true
 	end
 	return false
 end
 
 """
-	are_equal_with_resolution(g, asplit1, asplit2, k2, conf)
+	_are_equal_with_resolution(g, a1, a2, conf)
 
-For every leaf of `a2`, check that the corresponding split `S` is either disjoint from
-`asplit1` or included in `asplit1`.
+For every internal child of `a2`, check that its split is either disjoint from the split of
+`a1` or included in it.
 """
-function _are_equal_with_resolution(g::SplitGraph.Graph, asplit1, a2::SplitNode, conf)
+function _are_equal_with_resolution(g::SplitGraph.Graph, a1::SplitNode, a2::SplitNode, conf)
 	for c in a2.child
-		S = c.conf
-		if typeof(c) == SplitNode && !is_contained(S, asplit1, conf) && !are_disjoint(S, asplit1, conf)
+		if c isa SplitNode && !is_contained(c, a1, conf) && !are_disjoint(c, a1, conf)
 			return false
 		end
 	end
@@ -127,26 +112,20 @@ function is_trivial_split(nodeconf, conf)
 	@inbounds for i in nodeconf
 		if conf[i]
 			n += 1
+			n >= 2 && return false
 		end
 	end
-	return n < 2
+	return true
 end
 
-#=
-NOTE
-
-is_contained and are_disjoint could be made much faster with dictionaries for large arrays.
-=#
-
 """
-	is_contained(nsplit1, nsplit2, conf)
+	is_contained(a1::SplitNode, a2::SplitNode, conf)
 
-Is `nsplit1` in `nsplit2` for leaf configuration `conf`?
+Is the split of `a1` included in the split of `a2` for leaf configuration `conf`?
 """
-function is_contained(nsplit1, nsplit2, conf)
-	_in = max(length(nsplit2)) > 25 ? insorted : in
-	@inbounds for i in nsplit1
-		if conf[i] && !_in(i, nsplit2)
+function is_contained(a1::SplitNode, a2::SplitNode, conf)
+	@inbounds for i in a1.conf
+		if conf[i] && !a2.mask[i]
 			return false
 		end
 	end
@@ -154,20 +133,14 @@ function is_contained(nsplit1, nsplit2, conf)
 end
 
 """
-	are_disjoint(S1, S2, conf)
+	are_disjoint(a1::SplitNode, a2::SplitNode, conf)
 
-Are `S1` and `S2` disjoint for configuration `conf`?
+Are the splits of `a1` and `a2` disjoint for leaf configuration `conf`?
 """
-function are_disjoint(S1, S2, conf)
-	Ssmall, Sbig = if length(S1) > length(S2)
-		S2, S1
-	else
-		S1, S2
-	end
-
-	_in = length(Sbig) > 25 ? insorted : in
-	@inbounds for i in Ssmall
-		if conf[i] && _in(i, Sbig)
+function are_disjoint(a1::SplitNode, a2::SplitNode, conf)
+	small, big = length(a1.conf) > length(a2.conf) ? (a2, a1) : (a1, a2)
+	@inbounds for i in small.conf
+		if conf[i] && big.mask[i]
 			return false
 		end
 	end
@@ -190,12 +163,13 @@ function doMCMC(
 )
 	_conf = copy(conf)
 	E = compute_energy(_conf, g)
-	F = E + γ*(length(conf) - sum(conf))
+	nremoved = length(_conf) - sum(_conf)
+	F = E + γ*nremoved
 	Fmin = F
 
 	oconf = [copy(_conf)]
 	for m in 1:M
-		E, F = mcmcstep!(_conf, g, F, T, γ)
+		E, F, nremoved = mcmcstep!(_conf, g, E, F, nremoved, T, γ)
 		# If new minimum is found
 		if F < Fmin
 			Fmin = F
@@ -211,22 +185,24 @@ function doMCMC(
 end
 
 """
-	mcmcstep!(conf, g, F, T, γ)
+	mcmcstep!(conf, g, E, F, nremoved, T, γ)
 
-Perform an mcmc step by removing a node from `conf` at random.
+Perform an mcmc step by flipping a leaf of `conf` at random. `E`, `F` and `nremoved` are the
+energy, the free energy and the number of removed leaves of `conf` before the step.
 
-Return (E, F) of mcmc step.
+Return `(E, F, nremoved)` after the step.
 """
-function mcmcstep!(conf, g, F, T, γ)
+function mcmcstep!(conf, g, E, F, nremoved, T, γ)
 	i = rand(1:length(conf))
 	conf[i] = !conf[i]
+	nremoved_new = conf[i] ? nremoved - 1 : nremoved + 1
 	Enew = compute_energy(conf, g)
-	Fnew = Enew + γ*(length(conf) - sum(conf))
+	Fnew = Enew + γ*nremoved_new
 	if Fnew < F || exp(-(Fnew-F)/T) > rand()
-		return Enew, Fnew
+		return Enew, Fnew, nremoved_new
 	else
 		conf[i] = !conf[i]
-		return (round(Int64, F-γ*(length(conf) - sum(conf))), F)
+		return E, F, nremoved
 	end
 end
 
