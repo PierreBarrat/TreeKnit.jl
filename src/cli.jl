@@ -353,8 +353,8 @@ function get_loggers(verbosity_level, io)
 		FormatLogger(io) do io, args
 			println(io, pth(args.file), ":", args.line, " [", args.level, "] ", args.message)
 		end |>
-		x -> MinLevelLogger(x, LogLevel(-1)) |>
-		timestamp_logger
+		timestamp_logger |>
+		x -> MinLevelLogger(x, LogLevel(-1))
 	end
 	push!(loggers, file_logger)
 
@@ -376,7 +376,8 @@ function get_loggers(verbosity_level, io)
 		       return log
 		   end
 		end |>
-		timestamp_logger
+		timestamp_logger |>
+		x -> MinLevelLogger(x, LogLevel(-verbosity_level))
     end
 	push!(loggers, console_logger)
 

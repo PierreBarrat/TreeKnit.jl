@@ -75,6 +75,7 @@ function tree2splitnodes!(g::Graph, r::TreeTools.TreeNode, sr::SplitNode, k::Int
 			color = k,
 			conf = treenode2conf(g,r),
 			isroot = true,
+			nleaves = length(g.leaves),
 		)
 		push!(g.internals, sr)
 	end
@@ -91,7 +92,8 @@ function tree2splitnodes!(g::Graph, r::TreeTools.TreeNode, sr::SplitNode, k::Int
 				child = Array{GraphNode,1}(undef, length(c.child)),
 				color = k,
 				conf = treenode2conf(g,c),
-				isroot = false
+				isroot = false,
+				nleaves = length(g.leaves),
 			)
 			tree2splitnodes!(g, c, sc, k)
 			sr.child[i] = sc

@@ -91,8 +91,9 @@ function sortconf(oconfs, trees, g, seq_lengths, mcc_names, likelihood_sort, E_s
 	else
 		@logmsg LogLevel(-2) "Comparing $(length(oconfs_)) configurations using likelihood"
 		L = Union{Missing,Float64}[]
+		layout = SplitLayout(g)
 		for conf in oconfs_
-			push!(L, conf_likelihood(conf, g, seq_lengths, trees, mode=:time))
+			push!(L, conf_likelihood(conf, g, seq_lengths, trees; mode=:time, layout))
 		end
 		@logmsg LogLevel(-2) configurations=[[mcc_names[x] for x in g.labels[.!conf]] for conf in oconfs_]
 		@logmsg LogLevel(-2) "Likelihoods: $L"
