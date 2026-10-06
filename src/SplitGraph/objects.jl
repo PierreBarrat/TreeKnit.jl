@@ -7,8 +7,9 @@ abstract type GraphNode end
 
 Represent a split in the tree of a given segment. It is an internal node in the graph of splits. 
 - `color` is the color of the segment that `SplitNode` refers to
-- `conf` defines the split. It is an array of `Bool` of length `N` (number of leaves).
-   All leaves `i` such that `conf[i]` are on one side of the split, the others are on the other side.
+- `conf` defines the split: the sorted indices of the leaves below the node.
+- `mask` is the membership vector of `conf`: `mask[i]` is `true` if and only if `i` is in `conf`.
+  Its length is the number of leaves of the graph.
 - `anc::Union{SplitNode,Nothing}`
 - `child::Array{GraphNode,1}`
 - `isroot::Bool`
@@ -19,16 +20,22 @@ mutable struct SplitNode <: GraphNode
 	color::Int64
 	conf::Array{Int,1}
 	isroot::Bool
-	SplitNode(anc, child, color, conf, isroot) = new(anc, child, color, sort(conf), isroot)
+	mask::BitVector
+	function SplitNode(anc, child, color, conf, isroot, nleaves=maximum(conf; init=0))
+		mask = falses(nleaves)
+		mask[conf] .= true
+		return new(anc, child, color, sort(conf), isroot, mask)
+	end
 end
 function SplitNode(;
 	anc=nothing,
 	child=Array{GraphNode,1}(undef, 0),
 	color=0,
 	conf=Array{Int,1}(undef,0),
-	isroot=true
+	isroot=true,
+	nleaves=maximum(conf; init=0),
 )
-	return  SplitNode(anc, child, color, conf, isroot)
+	return  SplitNode(anc, child, color, conf, isroot, nleaves)
 end
 
 """
